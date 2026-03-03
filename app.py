@@ -137,7 +137,14 @@ TRANSLATIONS = {
         'key_features': 'Key Features',
         'feature_msp': 'MSP Price Protection',
         'feature_direct': 'Direct Market Access',
-        'feature_secure': 'Secure & Transparent'
+        'feature_secure': 'Secure & Transparent',
+        'phone': 'Phone Number',
+        'contact_details': 'Contact Details',
+        'buyer_name': 'Buyer Name',
+        'buyer_contact': 'Buyer Contact',
+        'sold_items': 'Sold Items',
+        'farmer_contact': 'Farmer Contact',
+        'no_phone': 'No phone provided',
     },
     'ta': {
         'home': 'முகப்பு',
@@ -232,7 +239,14 @@ TRANSLATIONS = {
         'key_features': 'முக்கிய அம்சங்கள்',
         'feature_msp': 'MSP விலை பாதுகாப்பு',
         'feature_direct': 'நேரடி சந்தை அணுகல்',
-        'feature_secure': 'பாதுகாப்பான & வெளிப்படையான'
+        'feature_secure': 'பாதுகாப்பான & வெளிப்படையான',
+        'phone': 'தொலைபேசி எண்',
+        'contact_details': 'தொடர்பு விவரங்கள்',
+        'buyer_name': 'வாங்குபவர் பெயர்',
+        'buyer_contact': 'வாங்குபவர் தொடர்பு',
+        'sold_items': 'விற்கப்பட்ட பொருட்கள்',
+        'farmer_contact': 'விவசாயி தொடர்பு',
+        'no_phone': 'தொலைபேசி எண் வழங்கப்படவில்லை',
     }
 }
 
@@ -260,8 +274,9 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         role = request.form.get('role')
+        phone = request.form.get('phone')
 
-        if not all([name, email, password, role]):
+        if not all([name, email, password, role, phone]):
             flash('All fields are required', 'error')
             return redirect(url_for('register'))
 
@@ -275,7 +290,8 @@ def register():
             'name': name,
             'email': email,
             'password': password,
-            'role': role
+            'role': role,
+            'phone': phone
         }
         users.append(new_user)
         save_data(USERS_FILE, users)
@@ -335,9 +351,21 @@ def farmer_dashboard():
 
     user_crops = [c for c in crops if c['farmer_id'] == session['user']['id']]
     orders = load_data(ORDERS_FILE)
-    earnings = sum(o['total_price'] for o in orders if o['farmer_id'] == session['user']['id'])
+    users = load_data(USERS_FILE)
+    buyer_map = {u['id']: {'name': u['name'], 'phone': u.get('phone', 'N/A')} for u in users}
     
-    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA)
+    sold_orders = []
+    for o in orders:
+        if o['farmer_id'] == session['user']['id']:
+            o_copy = o.copy()
+            buyer_info = buyer_map.get(o['buyer_id'], {'name': 'Unknown', 'phone': 'N/A'})
+            o_copy['buyer_name'] = buyer_info['name']
+            o_copy['buyer_phone'] = buyer_info['phone']
+            sold_orders.append(o_copy)
+
+    earnings = sum(o['total_price'] for o in sold_orders)
+    
+    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders)
 
 @app.route('/delete_crop/<crop_id>')
 def delete_crop(crop_id):
@@ -361,13 +389,15 @@ def buyer_dashboard():
     location = request.args.get('location', '').lower()
 
     filtered_crops = []
-    farmer_map = {u['id']: u['name'] for u in users}
+    farmer_map = {u['id']: {'name': u['name'], 'phone': u.get('phone', 'N/A')} for u in users}
 
     for c in crops:
         if search and search not in c['crop_name'].lower(): continue
         if location and location not in c['location'].lower(): continue
         c_copy = c.copy()
-        c_copy['farmer_name'] = farmer_map.get(c['farmer_id'], 'Farmer')
+        farmer_info = farmer_map.get(c['farmer_id'], {'name': 'Farmer', 'phone': 'N/A'})
+        c_copy['farmer_name'] = farmer_info['name']
+        c_copy['farmer_phone'] = farmer_info['phone']
         c_copy['msp_value'] = MSP_DATA.get(c['crop_name'].lower(), 0)
         filtered_crops.append(c_copy)
 

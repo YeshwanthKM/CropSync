@@ -63,6 +63,7 @@
                         <th>{{ get_text('msp_reference') }}</th>
                         <th>{{ get_text('stock') }}</th>
                         <th>{{ get_text('location') }}</th>
+                        <th>{{ get_text('farmer_contact') }}</th>
                         <th>{{ get_text('order') }}</th>
                     </tr>
                 </thead>
@@ -74,6 +75,10 @@
                         <td style="color: var(--secondary-text); font-size: 0.8125rem;">₹{{ crop.msp_value }}/kg</td>
                         <td>{{ crop.quantity }} kg</td>
                         <td>{{ crop.location }}</td>
+                        <td>
+                            <div style="font-size: 0.8125rem;">{{ crop.farmer_name }}</div>
+                            <div style="font-weight: 600;">{{ crop.farmer_phone }}</div>
+                        </td>
                         <td>
                             <form action="{{ url_for('place_order') }}" method="POST"
                                 style="display:flex; gap: 0.5rem; border: none; padding: 0; box-shadow: none; margin: 0; background: none;">

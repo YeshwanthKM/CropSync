@@ -112,6 +112,38 @@
             </div>
         </div>
 
+        <div style="margin-top: 3rem;">
+            <h2>{{ get_text('sold_items') }}</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{{ get_text('crop_name') }}</th>
+                            <th>{{ get_text('quantity') }}</th>
+                            <th>{{ get_text('price') }}</th>
+                            <th>{{ get_text('buyer_name') }}</th>
+                            <th>{{ get_text('buyer_contact') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in sold_orders %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ get_text(order.crop_name)|capitalize }}</td>
+                            <td>{{ order.quantity }} kg</td>
+                            <td style="font-weight: 600;">₹{{ order.total_price }}</td>
+                            <td>{{ order.buyer_name }}</td>
+                            <td>{{ order.buyer_phone }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--secondary-text);">No data.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--nav-border);">
             <div class="card" style="background: var(--nav-bg); padding: 2rem;">
                 <h3 style="margin-bottom: 1rem;">ℹ️ {{ get_text('short_about') }}</h3>
