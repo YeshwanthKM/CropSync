@@ -20,10 +20,6 @@
                 <a href="{{ url_for('login') }}">{{ get_text('login') }}</a>
                 <a href="{{ url_for('register') }}">{{ get_text('register') }}</a>
                 <button onclick="toggleTheme()" style="padding: 5px 10px;">🌓</button>
-                <a href="{{ url_for('set_language', lang='ta') if session.get('lang', 'en') == 'en' else url_for('set_language', lang='en') }}"
-                    style="padding: 5px 10px;">
-                    {{ 'தமிழ்' if session.get('lang', 'en') == 'en' else 'EN' }}
-                </a>
             </div>
         </div>
 

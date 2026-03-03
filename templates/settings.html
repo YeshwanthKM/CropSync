@@ -56,16 +56,6 @@
                 <button type="submit" style="width: 100%;">{{ get_text('save_changes') }}</button>
             </form>
 
-            <div class="card" style="margin-top: 2rem; text-align: center;">
-                <h3>{{ get_text('language') }}</h3>
-                <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
-                    <a href="{{ url_for('set_language', lang='en') }}"
-                        class="btn {% if session.get('lang', 'en') == 'en' %}active{% endif %}">{{ get_text('english')
-                        }}</a>
-                    <a href="{{ url_for('set_language', lang='ta') }}"
-                        class="btn {% if session.get('lang') == 'ta' %}active{% endif %}">{{ get_text('tamil') }}</a>
-                </div>
-            </div>
         </div>
     </div>
 
