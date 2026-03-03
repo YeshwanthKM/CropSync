@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Smart AgriTrade - {{ get_text('settings') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="nav">
+            <div style="font-weight: 800;"><a href="{{ url_for('home') }}"
+                    style="border:none; padding:0; background:none; color:inherit;">Smart AgriTrade</a></div>
+            <div class="nav-links">
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓
+                    Theme</button>
+                {% if session['user']['role'] == 'farmer' %}
+                <a href="{{ url_for('farmer_dashboard') }}">{{ get_text('farmer_dashboard') }}</a>
+                {% else %}
+                <a href="{{ url_for('buyer_dashboard') }}">{{ get_text('buyer_dashboard') }}</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}">{{ get_text('logout') }}</a>
+            </div>
+        </div>
+
+        <div style="max-width: 450px; margin: 4rem auto;">
+            <h2 style="text-align: center; margin-bottom: 2rem;">{{ get_text('profile_settings') }}</h2>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <div class="form-group">
+                    <label>{{ get_text('name') }}</label>
+                    <input type="text" name="name" value="{{ session['user']['name'] }}" required>
+                </div>
+                <div class="form-group">
+                    <label>{{ get_text('email') }}</label>
+                    <input type="email" value="{{ session['user']['email'] }}" disabled style="opacity: 0.7;">
+                </div>
+                <div class="form-group">
+                    <label>{{ get_text('password') }}</label>
+                    <input type="password" name="password" placeholder="••••••••">
+                    <p style="font-size: 0.75rem; color: var(--secondary-text);">{{ get_text('password_info') }}</p>
+                </div>
+                <button type="submit" style="width: 100%;">{{ get_text('save_changes') }}</button>
+            </form>
+
+            <div class="card" style="margin-top: 2rem; text-align: center;">
+                <h3>{{ get_text('language') }}</h3>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                    <a href="{{ url_for('set_language', lang='en') }}"
+                        class="btn {% if session.get('lang', 'en') == 'en' %}active{% endif %}">{{ get_text('english')
+                        }}</a>
+                    <a href="{{ url_for('set_language', lang='ta') }}"
+                        class="btn {% if session.get('lang') == 'ta' %}active{% endif %}">{{ get_text('tamil') }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    </script>
+</body>
+
+</html>

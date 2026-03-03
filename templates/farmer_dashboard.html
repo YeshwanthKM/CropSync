@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Smart AgriTrade - {{ get_text('farmer_dashboard') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="nav">
+            <div style="font-weight: 800;"><a href="{{ url_for('home') }}"
+                    style="border:none; padding:0; background:none; color:inherit;">Smart AgriTrade</a></div>
+            <div class="nav-links">
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓
+                    Theme</button>
+                <a href="{{ url_for('settings') }}">{{ get_text('settings') }}</a>
+                <a href="{{ url_for('logout') }}">{{ get_text('logout') }}</a>
+            </div>
+        </div>
+
+        <h1>{{ get_text('farmer_dashboard') }}</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="grid">
+            <div class="card">
+                <p style="font-size: 0.75rem; text-transform: uppercase; color: var(--secondary-text);">{{
+                    get_text('total_earnings') }}</p>
+                <h2 style="border:none; margin:0;">₹{{ earnings }}</h2>
+            </div>
+            <div class="card">
+                <p style="font-size: 0.75rem; text-transform: uppercase; color: var(--secondary-text);">{{
+                    get_text('active_listings') }}</p>
+                <h2 style="border:none; margin:0;">{{ crops|length }}</h2>
+            </div>
+        </div>
+
+        <div style="margin-top: 3rem;">
+            <h2>{{ get_text('list_new_crop') }}</h2>
+            <div class="msp-info">
+                <strong>{{ get_text('msp_reference') }}:</strong> {% for crop, price in msp_data.items() %}{{
+                get_text(crop)|capitalize }}: ₹{{ price }}{% if not loop.last %} • {% endif %}{% endfor %}
+            </div>
+            <form method="POST">
+                <div class="grid">
+                    <div class="form-group">
+                        <label>{{ get_text('crop_name') }}</label>
+                        <input type="text" name="crop_name" placeholder="rice, wheat..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ get_text('quantity') }} (kg)</label>
+                        <input type="number" step="0.1" name="quantity" required>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ get_text('price_per_kg') }} (₹)</label>
+                        <input type="number" step="0.1" name="price_per_kg" required>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ get_text('location') }}</label>
+                        <input type="text" name="location" required>
+                    </div>
+                </div>
+                <button type="submit">{{ get_text('add_new_listing') }}</button>
+            </form>
+        </div>
+
+        <div style="margin-top: 3rem;">
+            <h2>{{ get_text('my_crop_listings') }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>{{ get_text('crop_name') }}</th>
+                        <th>{{ get_text('quantity') }} (kg)</th>
+                        <th>{{ get_text('price_per_kg') }}</th>
+                        <th>{{ get_text('location') }}</th>
+                        <th>{{ get_text('action') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for crop in crops %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ get_text(crop.crop_name)|capitalize }}</td>
+                        <td>{{ crop.quantity }}</td>
+                        <td>₹{{ crop.price_per_kg }}</td>
+                        <td>{{ crop.location }}</td>
+                        <td>
+                            <a href="{{ url_for('delete_crop', crop_id=crop.id) }}"
+                                style="color: red; border: 1px solid red; padding: 2px 8px; font-size: 0.75rem;"
+                                onclick="return confirm('Delete?')">{{ get_text('delete') }}</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--secondary-text);">No data.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--nav-border);">
+            <div class="card" style="background: var(--nav-bg); padding: 2rem;">
+                <h3 style="margin-bottom: 1rem;">ℹ️ {{ get_text('short_about') }}</h3>
+                <p style="font-size: 0.9375rem; color: var(--secondary-text); line-height: 1.6;">{{
+                    get_text('short_desc') }}</p>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        </script>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Smart AgriTrade - {{ get_text('buyer_dashboard') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="nav">
+            <div style="font-weight: 800;"><a href="{{ url_for('home') }}"
+                    style="border:none; padding:0; background:none; color:inherit;">Smart AgriTrade</a></div>
+            <div class="nav-links">
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓
+                    Theme</button>
+                <a href="{{ url_for('settings') }}">{{ get_text('settings') }}</a>
+                <a href="{{ url_for('logout') }}">{{ get_text('logout') }}</a>
+            </div>
+        </div>
+
+        <h1>{{ get_text('buyer_dashboard') }}</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div style="margin-bottom: 3rem;">
+            <h2>{{ get_text('search_marketplace') }}</h2>
+            <form method="GET" action="{{ url_for('buyer_dashboard') }}"
+                style="display: flex; gap: 1rem; padding: 1.5rem; align-items: flex-end; background: var(--card-bg); border: 1px solid var(--nav-border); box-shadow: var(--shadow); border-radius: var(--border-radius); flex-wrap: wrap;">
+                <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                    <label>{{ get_text('crop_name') }}</label>
+                    <input type="text" name="search" value="{{ request.args.get('search', '') }}">
+                </div>
+                <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                    <label>{{ get_text('location') }}</label>
+                    <input type="text" name="location" value="{{ request.args.get('location', '') }}">
+                </div>
+                <div style="flex: 1; min-width: 150px; display: flex; gap: 0.5rem;">
+                    <button type="submit" style="flex: 2;">{{ get_text('search') }}</button>
+                    <a href="{{ url_for('buyer_dashboard') }}" class="btn" style="flex: 1;">{{ get_text('clear') }}</a>
+                </div>
+            </form>
+        </div>
+
+        <div style="margin-bottom: 3rem;">
+            <h2>{{ get_text('available_crops') }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>{{ get_text('crop_name') }}</th>
+                        <th>{{ get_text('price') }}</th>
+                        <th>{{ get_text('msp_reference') }}</th>
+                        <th>{{ get_text('stock') }}</th>
+                        <th>{{ get_text('location') }}</th>
+                        <th>{{ get_text('order') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for crop in crops %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ get_text(crop.crop_name)|capitalize }}</td>
+                        <td>₹{{ crop.price_per_kg }}/kg</td>
+                        <td style="color: var(--secondary-text); font-size: 0.8125rem;">₹{{ crop.msp_value }}/kg</td>
+                        <td>{{ crop.quantity }} kg</td>
+                        <td>{{ crop.location }}</td>
+                        <td>
+                            <form action="{{ url_for('place_order') }}" method="POST"
+                                style="display:flex; gap: 0.5rem; border: none; padding: 0; box-shadow: none; margin: 0; background: none;">
+                                <input type="hidden" name="crop_id" value="{{ crop.id }}">
+                                <input type="number" name="quantity" step="0.1" max="{{ crop.quantity }}" required
+                                    style="width: 70px;">
+                                <button type="submit" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">{{
+                                    get_text('buy') }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--secondary-text);">No data.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h2>{{ get_text('my_orders') }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>{{ get_text('crop_name') }}</th>
+                        <th>{{ get_text('quantity') }}</th>
+                        <th>{{ get_text('price') }}</th>
+                        <th>{{ get_text('status') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ get_text(order.crop_name)|capitalize }}</td>
+                        <td>{{ order.quantity }} kg</td>
+                        <td style="font-weight: 600;">₹{{ order.total_price }}</td>
+                        <td>
+                            <span
+                                style="background: var(--text-color); color: var(--bg-color); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem;">{{
+                                order.status }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--secondary-text);">No data.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--nav-border);">
+            <div class="card" style="background: var(--nav-bg); padding: 2rem;">
+                <h3 style="margin-bottom: 1rem;">ℹ️ {{ get_text('short_about') }}</h3>
+                <p style="font-size: 0.9375rem; color: var(--secondary-text); line-height: 1.6;">{{
+                    get_text('short_desc') }}</p>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        </script>
+    </div>
+</body>
+
+</html>
