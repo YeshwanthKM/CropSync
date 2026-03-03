@@ -28,18 +28,18 @@ def save_data(file_path, data):
 
 # MSP Reference Data
 MSP_DATA = {
-    'rice': 2183,
-    'wheat': 2275,
-    'maize': 2090,
-    'ragi': 3846,
-    'bajra': 2500,
-    'tur': 7000,
-    'moong': 8558,
-    'urad': 6950,
-    'groundnut': 6377,
-    'sunflower': 6760,
-    'soyabean': 4600,
-    'cotton': 6620
+    'rice': 21.83,
+    'wheat': 22.75,
+    'maize': 20.90,
+    'ragi': 38.46,
+    'bajra': 25.00,
+    'tur': 70.00,
+    'moong': 85.58,
+    'urad': 69.50,
+    'groundnut': 63.77,
+    'sunflower': 67.60,
+    'soyabean': 46.00,
+    'cotton': 66.20
 }
 
 # English and Tamil Translations
@@ -129,9 +129,9 @@ TRANSLATIONS = {
         'impact_4': 'Support for SDG 1 (No Poverty) and SDG 2 (Zero Hunger)',
         'tech_used': 'Technology Used',
         'tech_1': 'Python Flask',
-        'tech_2': 'Local JSON Storage',
-        'tech_3': 'HTML, CSS & JS',
-        'tech_4': 'Cloud Deployment',
+        'tech_2': 'JSON Database Storage',
+        'tech_3': 'HTML5 & CSS3 Responsive UI',
+        'tech_4': 'Gunicorn & Render Deployment',
         'short_about': 'About Smart AgriTrade',
         'short_desc': 'Smart AgriTrade is a digital marketplace designed to eliminate middlemen and ensure fair crop pricing. By integrating MSP-based validation, the platform protects farmers from underpayment while providing buyers with transparent and direct access to agricultural produce.',
         'key_features': 'Key Features',
@@ -224,9 +224,9 @@ TRANSLATIONS = {
         'impact_4': 'வறுமையின்மை (SDG 1) மற்றும் பசியின்மை (SDG 2) ஆகியவற்றிற்கான ஆதரவு',
         'tech_used': 'பயன்படுத்தப்பட்ட தொழில்நுட்பம்',
         'tech_1': 'பைதான் பிளாஸ்க் (Python Flask)',
-        'tech_2': 'உள்ளூர் JSON சேமிப்பு',
-        'tech_3': 'HTML, CSS & JS',
-        'tech_4': 'மேகக்கணி வரிசைப்படுத்தல்',
+        'tech_2': 'JSON தரவுத்தள சேமிப்பு',
+        'tech_3': 'HTML5 & CSS3 பதிலளிக்கும் UI',
+        'tech_4': 'Gunicorn & Render வரிசைப்படுத்தல்',
         'short_about': 'ஸ்மார்ட் அக்ரிட்ரேட் பற்றி',
         'short_desc': 'ஸ்மார்ட் அக்ரிட்ரேட் என்பது இடைத்தரகர்களைத் தவிர்க்கவும் நியாயமான பயிர் விலையை உறுதி செய்யவும் வடிவமைக்கப்பட்ட ஒரு டிஜிட்டல் சந்தையாகும். MSP அடிப்படையிலான சரிபார்ப்பை ஒருங்கிணைப்பதன் மூலம், விவசாயிகளை குறைந்த விலையில் இருந்து பாதுகாக்கிறது.',
         'key_features': 'முக்கிய அம்சங்கள்',
