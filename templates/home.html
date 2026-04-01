@@ -18,9 +18,7 @@
             <div style="font-weight: 800; font-size: 1.5rem;">CropSync</div>
             <div class="nav-links">
                 <a href="{{ url_for('login') }}">{{ get_text('login') }}</a>
-                <a href="{{ url_for('register') }}">{{ get_text('register') }}</a>
-                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓
-                    Theme</button>
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓 Theme</button>
             </div>
         </div>
 
@@ -34,10 +32,7 @@
             </p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                 <a href="{{ url_for('login') }}" class="btn"
-                    style="padding: 0.8rem 2rem; font-size: 1.1rem; background: var(--text-color); color: var(--bg-color);">👨‍🌾
-                    {{ get_text('farmer_login') }}</a>
-                <a href="{{ url_for('login') }}" class="btn" style="padding: 0.8rem 2rem; font-size: 1.1rem;">🛒 {{
-                    get_text('buyer_login') }}</a>
+                    style="padding: 0.8rem 2rem; font-size: 1.1rem; background: var(--text-color); color: var(--bg-color);">{{ get_text('login') }}</a>
             </div>
         </div>
 
