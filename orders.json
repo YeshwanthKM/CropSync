@@ -1,0 +1,31 @@
+[
+    {
+        "id": "19824918e15eb868",
+        "buyer_id": "b1",
+        "farmer_id": "f1",
+        "crop_name": "rice ",
+        "quantity": 0.6,
+        "total_price": 14.399999999999999,
+        "status": "Rejected"
+    },
+    {
+        "id": "763ff3e40fdbb22f",
+        "buyer_id": "b1",
+        "farmer_id": "f1",
+        "crop_id": "f2bf2c54d1b22f84",
+        "crop_name": "rice",
+        "quantity": 1.0,
+        "total_price": 25.0,
+        "status": "Accepted"
+    },
+    {
+        "id": "898eb5dc93d27c6d",
+        "buyer_id": "b1",
+        "farmer_id": "f2",
+        "crop_id": "bab5be78c27a1e6e",
+        "crop_name": "wheat",
+        "quantity": 1.0,
+        "total_price": 23.0,
+        "status": "Pending"
+    }
+]

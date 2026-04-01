@@ -11,6 +11,19 @@ USERS_FILE = 'users.json'
 CROPS_FILE = 'crops.json'
 ORDERS_FILE = 'orders.json'
 
+# Demo Credentials for Seeding
+DEMO_PASSWORD = 'farmer123' # Same for farmers and buyers for demo ease
+SEED_USERS = [
+    {"id": "f1", "name": "Farmer 1", "email": "farmer1@gmail.com", "password": DEMO_PASSWORD, "role": "farmer", "phone": "9876543210", "address": "Village A, State X", "location": "Coimbatore"},
+    {"id": "f2", "name": "Farmer 2", "email": "farmer2@gmail.com", "password": DEMO_PASSWORD, "role": "farmer", "phone": "9876543211", "address": "Village B, State Y", "location": "Madurai"},
+    {"id": "f3", "name": "Farmer 3", "email": "farmer3@gmail.com", "password": DEMO_PASSWORD, "role": "farmer", "phone": "9876543212", "address": "Village C, State Z", "location": "Salem"},
+    {"id": "f4", "name": "Farmer 4", "email": "farmer4@gmail.com", "password": DEMO_PASSWORD, "role": "farmer", "phone": "9876543213", "address": "Village D, State W", "location": "Erode"},
+    {"id": "b1", "name": "Buyer 1", "email": "buyer1@gmail.com", "password": "buyer123", "role": "buyer", "phone": "8876543210", "address": "City X, State A", "location": "Chennai"},
+    {"id": "b2", "name": "Buyer 2", "email": "buyer2@gmail.com", "password": "buyer123", "role": "buyer", "phone": "8876543211", "address": "City Y, State B", "location": "Bangalore"},
+    {"id": "b3", "name": "Buyer 3", "email": "buyer3@gmail.com", "password": "buyer123", "role": "buyer", "phone": "8876543212", "address": "City Z, State C", "location": "Trichy"},
+    {"id": "b4", "name": "Buyer 4", "email": "buyer4@gmail.com", "password": "buyer123", "role": "buyer", "phone": "8876543213", "address": "City W, State D", "location": "Nellai"},
+]
+
 def load_data(file_path):
     if not os.path.exists(file_path):
         with open(file_path, 'w', encoding='utf-8') as f:
@@ -25,6 +38,15 @@ def load_data(file_path):
 def save_data(file_path, data):
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+
+def ensure_demo_users():
+    users = load_data(USERS_FILE)
+    existing_emails = {u['email'] for u in users}
+    
+    needed_seeds = [u for u in SEED_USERS if u['email'] not in existing_emails]
+    if needed_seeds:
+        users.extend(needed_seeds)
+        save_data(USERS_FILE, users)
 
 # MSP Reference Data
 MSP_DATA = {
@@ -391,5 +413,6 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
+    ensure_demo_users()
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)

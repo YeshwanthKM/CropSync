@@ -1,0 +1,18 @@
+[
+    {
+        "id": "f2bf2c54d1b22f84",
+        "farmer_id": "f1",
+        "crop_name": "rice",
+        "quantity": 49.0,
+        "price_per_kg": 25.0,
+        "location": "Thanjavur, Tamil Nadu"
+    },
+    {
+        "id": "bab5be78c27a1e6e",
+        "farmer_id": "f2",
+        "crop_name": "wheat",
+        "quantity": 50.0,
+        "price_per_kg": 23.0,
+        "location": "Salem, Tamil Nadu"
+    }
+]

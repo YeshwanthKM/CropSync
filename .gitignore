@@ -7,7 +7,4 @@ venv/
 ENV/
 .env
 .flaskenv
-users.json
-crops.json
-orders.json
 .DS_Store

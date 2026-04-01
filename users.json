@@ -1,0 +1,82 @@
+[
+    {
+        "id": "f1",
+        "name": "Ramesh Kumar",
+        "email": "farmer1@gmail.com",
+        "password": "farmer123",
+        "role": "farmer",
+        "phone": "9845012345",
+        "address": "12, Amman Koil Street, Thanjavur",
+        "location": "Thanjavur, Tamil Nadu"
+    },
+    {
+        "id": "f2",
+        "name": "Suresh Raina",
+        "email": "farmer2@gmail.com",
+        "password": "farmer123",
+        "role": "farmer",
+        "phone": "9765432109",
+        "address": "45, Gandhi Road, Salem",
+        "location": "Salem, Tamil Nadu"
+    },
+    {
+        "id": "f3",
+        "name": "Anitha Devi",
+        "email": "farmer3@gmail.com",
+        "password": "farmer123",
+        "role": "farmer",
+        "phone": "9654321098",
+        "address": "89, Bharathi Street, Madurai",
+        "location": "Madurai, Tamil Nadu"
+    },
+    {
+        "id": "f4",
+        "name": "Muthu Pandi",
+        "email": "farmer4@gmail.com",
+        "password": "farmer123",
+        "role": "farmer",
+        "phone": "9543210987",
+        "address": "23, North Street, Tirunelveli",
+        "location": "Tirunelveli, Tamil Nadu"
+    },
+    {
+        "id": "b1",
+        "name": "Fresh Mart Retail",
+        "email": "buyer1@gmail.com",
+        "password": "buyer123",
+        "role": "buyer",
+        "phone": "8122334455",
+        "address": "78, MG Road, Chennai",
+        "location": "Chennai, Tamil Nadu"
+    },
+    {
+        "id": "b2",
+        "name": "Sri Vinayaka Traders",
+        "email": "buyer2@gmail.com",
+        "password": "buyer123",
+        "role": "buyer",
+        "phone": "8233445566",
+        "address": "102, Market Road, Coimbatore",
+        "location": "Coimbatore, Tamil Nadu"
+    },
+    {
+        "id": "b3",
+        "name": "Organic Foods Ltd",
+        "email": "buyer3@gmail.com",
+        "password": "buyer123",
+        "role": "buyer",
+        "phone": "8344556677",
+        "address": "56, Link Road, Bangalore",
+        "location": "Bangalore, Karnataka"
+    },
+    {
+        "id": "b4",
+        "name": "Global Agri Exports",
+        "email": "buyer4@gmail.com",
+        "password": "buyer123",
+        "role": "buyer",
+        "phone": "8455667788",
+        "address": "12, Harbor View, Tuticorin",
+        "location": "Tuticorin, Tamil Nadu"
+    }
+]
