@@ -169,9 +169,12 @@ def init_db():
 def _dict_row(row):
     if row is None:
         return None
-    if isinstance(row, dict):
-        return row
-    return dict(row)
+    d = dict(row) if not isinstance(row, dict) else row.copy()
+    for k, v in list(d.items()):
+        if isinstance(v, (datetime, uuid.UUID)):
+            d[k] = str(v)
+    return d
+
 
 # --- USER FUNCTIONS ---
 

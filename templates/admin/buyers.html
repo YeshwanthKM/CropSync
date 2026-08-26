@@ -43,7 +43,8 @@
                     <span class="btn badge-rejected" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border: none;">Suspended</span>
                     {% endif %}
                 </td>
-                <td>{{ b.created_at[:10] if b.created_at else 'N/A' }}</td>
+                <td>{{ (b.created_at|string)[:10] if b.created_at else 'N/A' }}</td>
+
                 <td>
                     <a href="{{ url_for('admin_buyer_detail', buyer_id=b.id) }}" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Manage</a>
                 </td>
