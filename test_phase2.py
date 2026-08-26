@@ -87,31 +87,20 @@ class TestCropSyncPhase2(unittest.TestCase):
         self.assertEqual(resp_login_pending.status_code, 200)
         self.assertIn(b'Account Verification Status', resp_login_pending.data)
 
-        # Step C: Simulate Email Verification
+        # Step C: Complete Email Verification
         with self.client.session_transaction() as sess:
             sess['pending_user_id'] = u['id']
             sess['pending_email'] = test_email
 
         resp_email_v = self.client.get('/simulate-email-verification', follow_redirects=True)
         self.assertEqual(resp_email_v.status_code, 200)
-        self.assertIn(b'Mobile Number Verification', resp_email_v.data)
-
-        u_after_email = db.get_user_by_email(test_email)
-        self.assertTrue(u_after_email.get('email_verified'))
-
-        # Step D: Submit Phone OTP
-        # Set known OTP hash
-        known_otp = "123456"
-        db.set_phone_otp(u['id'], OTPService.hash_otp(known_otp), "2099-01-01T00:00:00")
-
-        resp_otp = self.client.post('/verify-phone', data={'otp': known_otp}, follow_redirects=True)
-        self.assertEqual(resp_otp.status_code, 200)
-        self.assertIn(b'Farmer Dashboard', resp_otp.data)
+        self.assertIn(b'Farmer Dashboard', resp_email_v.data)
 
         # Verify active account status in DB
         u_final = db.get_user_by_email(test_email)
         self.assertEqual(u_final['account_status'], 'active')
-        self.assertTrue(u_final.get('phone_verified'))
+        self.assertTrue(u_final.get('email_verified'))
+
 
     # 5. Test Admin Portal Status Filters & Audit Logging
     def test_admin_verification_filters_and_audit(self):

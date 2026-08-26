@@ -180,13 +180,14 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- PUBLIC / AUTH ROUTES ---
+from auth_service import SupabaseAuthService
 
 @app.route('/')
 def home():
     return render_template('home.html')
 
 @app.route('/register', methods=['GET', 'POST'])
+
 def register():
     if request.method == 'POST':
         role = request.form.get('role', 'farmer').lower()
@@ -222,6 +223,11 @@ def register():
             return render_template('register.html')
 
         try:
+            # Register with Supabase Auth API (Dispatches real email verification link to user's inbox)
+            auth_res, auth_err = SupabaseAuthService.signup(email, password, user_data={'name': name, 'role': role})
+            if auth_err:
+                print("[!] Supabase Auth signup notification:", auth_err)
+
             pwd_hash = generate_password_hash(password, method='pbkdf2:sha256')
             user_id = db.create_user(
                 email=email,
@@ -233,22 +239,13 @@ def register():
                 organization=organization,
                 status='pending',
                 email_verified=False,
-                phone_verified=False
+                phone_verified=True  # Phone OTP verification bypassed as requested
             )
-            
-            # Generate and store initial Phone OTP
-            otp_code = OTPService.generate_otp()
-            otp_hash = OTPService.hash_otp(otp_code)
-            expires_at = (datetime.utcnow() + timedelta(minutes=5)).isoformat()
-            db.set_phone_otp(user_id, otp_hash, expires_at)
-            OTPService.send_sms(phone, otp_code)
 
             session['pending_user_id'] = user_id
             session['pending_email'] = email
-            session['pending_phone'] = phone
-            session['last_otp'] = otp_code
 
-            flash('Account created! Please verify your email to continue.', 'success')
+            flash('Account created! A verification email has been sent to your inbox. Please check your email to activate your account.', 'success')
             return redirect(url_for('verify_email_pending'))
         except Exception as e:
             print("[!] Registration error:", e)
@@ -273,11 +270,21 @@ def simulate_email_verification():
         
     if user_id:
         db.update_email_verified(user_id, True)
-        flash('Email verified successfully! Now complete mobile phone verification.', 'success')
-        return redirect(url_for('verify_phone'))
+        db.update_user_status(user_id, 'active')
+        updated_user = db.get_user_by_id(user_id)
+        session.clear()
+        if updated_user['role'] == 'farmer':
+            session['farmer_user'] = updated_user
+            flash('Email verified! Welcome to CropSync Farmer Dashboard.', 'success')
+            return redirect(url_for('farmer_dashboard'))
+        else:
+            session['buyer_user'] = updated_user
+            flash('Email verified! Welcome to CropSync Buyer Portal.', 'success')
+            return redirect(url_for('buyer_dashboard'))
     else:
-        flash('Session expired. Please log in again.', 'error')
+        flash('Session expired. Please log in.', 'error')
         return redirect(url_for('login'))
+
 
 @app.route('/resend-email-verification', methods=['POST'])
 def resend_email_verification():
