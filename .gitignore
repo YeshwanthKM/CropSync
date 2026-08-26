@@ -8,3 +8,4 @@ ENV/
 .env
 .flaskenv
 .DS_Store
+.vercel/

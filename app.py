@@ -6,10 +6,11 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 app = Flask(__name__)
 app.secret_key = 'cropsync-demo-secret-key-stable'
 
-# Data File Paths
-USERS_FILE = 'users.json'
-CROPS_FILE = 'crops.json'
-ORDERS_FILE = 'orders.json'
+# Data File Paths - support serverless read-only filesystems (e.g. Vercel)
+DATA_DIR = '/tmp' if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME') else '.'
+USERS_FILE = os.path.join(DATA_DIR, 'users.json')
+CROPS_FILE = os.path.join(DATA_DIR, 'crops.json')
+ORDERS_FILE = os.path.join(DATA_DIR, 'orders.json')
 
 # Demo Credentials for Seeding
 DEMO_PASSWORD = 'farmer123' # Same for farmers and buyers for demo ease
@@ -26,18 +27,31 @@ SEED_USERS = [
 
 def load_data(file_path):
     if not os.path.exists(file_path):
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump([], f)
-        return []
+        initial = SEED_USERS if 'users' in file_path else []
+        try:
+            save_data(file_path, initial)
+        except Exception:
+            pass
+        return initial
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
+            if 'users' in file_path and not data:
+                return SEED_USERS
+            return data
     except (json.JSONDecodeError, UnicodeDecodeError):
+        if 'users' in file_path:
+            return SEED_USERS
         return []
 
 def save_data(file_path, data):
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    except OSError:
+        tmp_path = os.path.join('/tmp', os.path.basename(file_path))
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
 
 def reset_demo_data():
     """Resets the demo environment to a clean state on startup."""
@@ -48,7 +62,6 @@ def reset_demo_data():
     save_data(ORDERS_FILE, [])
 
 def ensure_demo_users():
-    # This is now largely handled by reset_demo_data but kept for double safety
     users = load_data(USERS_FILE)
     if not users:
         save_data(USERS_FILE, SEED_USERS)
