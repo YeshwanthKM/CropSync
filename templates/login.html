@@ -18,6 +18,7 @@
             <div style="font-weight: 800;"><a href="{{ url_for('home') }}"
                     style="border:none; padding:0; background:none; color:inherit;">CropSync</a></div>
             <div class="nav-links">
+                <a href="{{ url_for('register') }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #27ae60; border-color: #27ae60; color: #ffffff; text-decoration: none;">Register</a>
                 <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓 Theme</button>
             </div>
         </div>
@@ -46,12 +47,17 @@
                 </div>
                 <button type="submit" style="width: 100%;">{{ get_text('login') }}</button>
 
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="{{ url_for('register') }}" style="color: var(--primary-color, #27ae60); font-weight: 600; text-decoration: none;">Don't have an account? Create / Register Here →</a>
+                </div>
+
                 <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
                     <button type="button" onclick="fillDemo('farmer1@gmail.com', 'farmer123')" style="flex: 1; min-width: 100px; background: transparent; border: 1px solid var(--nav-border); color: inherit;">Farmer Login</button>
                     <button type="button" onclick="fillDemo('buyer1@gmail.com', 'buyer123')" style="flex: 1; min-width: 100px; background: transparent; border: 1px solid var(--nav-border); color: inherit;">Buyer Login</button>
                     <button type="button" onclick="fillDemo('admin@cropsync.com', 'admin123')" style="flex: 1; min-width: 100px; background: #ff9800; border: 1px solid #ff9800; color: #ffffff; font-weight: 600;">Admin Login</button>
                 </div>
             </form>
+
 
             <div style="margin-top: 2rem; padding: 1.5rem; background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: var(--border-radius);">
                 <h3 style="margin-bottom: 1rem; text-align: center;">{{ get_text('demo_credentials') }}</h3>

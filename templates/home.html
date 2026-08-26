@@ -19,6 +19,7 @@
                 <a href="#features">Features</a>
                 <a href="#compare">Compare</a>
                 <a href="#impact">Impact</a>
+                <a href="{{ url_for('register') }}" class="nav-cta" style="background: #27ae60; border-color: #27ae60; color: #fff;">Register</a>
                 <a href="{{ url_for('login') }}" class="nav-cta">Login →</a>
             </div>
             <button class="mobile-menu-btn" onclick="document.getElementById('navLinks').classList.toggle('active')">
@@ -48,15 +49,16 @@
                     A transparent digital marketplace that connects farmers directly with buyers — ensuring fair pricing through MSP awareness and eliminating unnecessary middlemen.
                 </p>
                 <div class="hero-actions">
-                    <a href="{{ url_for('login') }}" class="btn-primary">
+                    <a href="{{ url_for('register') }}" class="btn-primary">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        Join as Farmer
+                        Register / Join Now
                     </a>
                     <a href="{{ url_for('login') }}" class="btn-secondary">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                        Explore Marketplace
+                        Login to Account
                     </a>
                 </div>
+
             </div>
         </div>
     </section>
