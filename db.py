@@ -340,20 +340,26 @@ def get_all_farmers(search=None):
                 s_param = f"%{search.lower()}%"
                 sql = f"""
                     SELECT u.id, u.email, u.account_status, u.suspension_reason, u.created_at,
-                           fp.name, fp.phone, fp.address, fp.location
+                           COALESCE(fp.name, 'Farmer') as name, 
+                           COALESCE(fp.phone, 'N/A') as phone, 
+                           COALESCE(fp.address, 'N/A') as address, 
+                           COALESCE(fp.location, 'N/A') as location
                     FROM users u
-                    JOIN farmer_profiles fp ON u.id = fp.user_id
+                    LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
                     WHERE u.role = 'farmer'
-                      AND (LOWER(fp.name) LIKE {ph} OR LOWER(u.email) LIKE {ph} OR LOWER(fp.location) LIKE {ph})
+                      AND (LOWER(COALESCE(fp.name, '')) LIKE {ph} OR LOWER(u.email) LIKE {ph} OR LOWER(COALESCE(fp.location, '')) LIKE {ph})
                     ORDER BY u.created_at DESC
                 """
                 cursor.execute(sql, (s_param, s_param, s_param))
             else:
                 sql = """
                     SELECT u.id, u.email, u.account_status, u.suspension_reason, u.created_at,
-                           fp.name, fp.phone, fp.address, fp.location
+                           COALESCE(fp.name, 'Farmer') as name, 
+                           COALESCE(fp.phone, 'N/A') as phone, 
+                           COALESCE(fp.address, 'N/A') as address, 
+                           COALESCE(fp.location, 'N/A') as location
                     FROM users u
-                    JOIN farmer_profiles fp ON u.id = fp.user_id
+                    LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
                     WHERE u.role = 'farmer'
                     ORDER BY u.created_at DESC
                 """
@@ -376,20 +382,28 @@ def get_all_buyers(search=None):
                 s_param = f"%{search.lower()}%"
                 sql = f"""
                     SELECT u.id, u.email, u.account_status, u.suspension_reason, u.created_at,
-                           bp.name, bp.phone, bp.organization, bp.address, bp.location
+                           COALESCE(bp.name, 'Buyer') as name, 
+                           COALESCE(bp.phone, 'N/A') as phone, 
+                           COALESCE(bp.organization, 'N/A') as organization,
+                           COALESCE(bp.address, 'N/A') as address, 
+                           COALESCE(bp.location, 'N/A') as location
                     FROM users u
-                    JOIN buyer_profiles bp ON u.id = bp.user_id
+                    LEFT JOIN buyer_profiles bp ON u.id = bp.user_id
                     WHERE u.role = 'buyer'
-                      AND (LOWER(bp.name) LIKE {ph} OR LOWER(u.email) LIKE {ph} OR LOWER(bp.location) LIKE {ph})
+                      AND (LOWER(COALESCE(bp.name, '')) LIKE {ph} OR LOWER(u.email) LIKE {ph} OR LOWER(COALESCE(bp.location, '')) LIKE {ph})
                     ORDER BY u.created_at DESC
                 """
                 cursor.execute(sql, (s_param, s_param, s_param))
             else:
                 sql = """
                     SELECT u.id, u.email, u.account_status, u.suspension_reason, u.created_at,
-                           bp.name, bp.phone, bp.organization, bp.address, bp.location
+                           COALESCE(bp.name, 'Buyer') as name, 
+                           COALESCE(bp.phone, 'N/A') as phone, 
+                           COALESCE(bp.organization, 'N/A') as organization,
+                           COALESCE(bp.address, 'N/A') as address, 
+                           COALESCE(bp.location, 'N/A') as location
                     FROM users u
-                    JOIN buyer_profiles bp ON u.id = bp.user_id
+                    LEFT JOIN buyer_profiles bp ON u.id = bp.user_id
                     WHERE u.role = 'buyer'
                     ORDER BY u.created_at DESC
                 """
@@ -402,7 +416,7 @@ def get_all_buyers(search=None):
         print("[!] Error in get_all_buyers:", e)
         return []
 
-def get_admin_stats():
+def get_admin_stats(_retry=True):
     try:
         conn, db_type = get_connection()
         try:
@@ -428,9 +442,21 @@ def get_admin_stats():
                 try: return val[0]
                 except: return 0
 
+            fc = _c(farmers_count)
+            bc = _c(buyers_count)
+            
+            # If database has 0 farmers and 0 buyers, trigger seeding automatically
+            if fc == 0 and bc == 0 and _retry:
+                try:
+                    import migrate_data
+                    migrate_data.run_migration()
+                    return get_admin_stats(_retry=False)
+                except Exception as _m_err:
+                    print("[!] Auto migration error in get_admin_stats:", _m_err)
+
             return {
-                'total_farmers': _c(farmers_count),
-                'total_buyers': _c(buyers_count),
+                'total_farmers': fc,
+                'total_buyers': bc,
                 'active_listings': _c(listings_count),
                 'active_orders': _c(orders_count),
                 'suspended_accounts': _c(suspended_count)
@@ -440,6 +466,7 @@ def get_admin_stats():
     except Exception as e:
         print("[!] Error in get_admin_stats:", e)
         return {'total_farmers': 0, 'total_buyers': 0, 'active_listings': 0, 'active_orders': 0, 'suspended_accounts': 0}
+
 
 # --- CROPS FUNCTIONS ---
 
