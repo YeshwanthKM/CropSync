@@ -16,8 +16,11 @@ def get_connection():
     if DB_URL:
         import psycopg2
         import psycopg2.extras
-        # Use psycopg2 DictCursor for dictionary-like row access
-        conn = psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        url = DB_URL
+        if 'sslmode' not in url.lower():
+            sep = '&' if '?' in url else '?'
+            url = f"{url}{sep}sslmode=require"
+        conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
         conn.autocommit = True
         return conn, "postgres"
     else:
@@ -27,6 +30,7 @@ def get_connection():
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         return conn, "sqlite"
+
 
 def init_db():
     conn, db_type = get_connection()

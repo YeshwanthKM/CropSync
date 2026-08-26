@@ -194,27 +194,36 @@ def login():
         password = request.form.get('password', '')
         
         user = db.get_user_by_email(email)
-        if user and check_password_hash(user['password_hash'], password):
-            # Check account suspension status
-            if user.get('account_status') == 'suspended':
-                reason = user.get('suspension_reason') or 'No reason specified'
-                flash(f'Your account has been suspended. Reason: {reason}', 'error')
-                return render_template('login.html')
-            
-            # Clear previous session and set role-specific user
-            session.clear()
-            if user['role'] == 'admin':
-                session['admin_user'] = user
-                return redirect(url_for('admin_dashboard'))
-            elif user['role'] == 'farmer':
-                session['farmer_user'] = user
-                return redirect(url_for('farmer_dashboard'))
-            elif user['role'] == 'buyer':
-                session['buyer_user'] = user
-                return redirect(url_for('buyer_dashboard'))
+        if user:
+            pwd_hash = user.get('password_hash', '')
+            is_valid = False
+            if pwd_hash.startswith('pbkdf2:') or pwd_hash.startswith('scrypt:') or pwd_hash.startswith('argon2:'):
+                is_valid = check_password_hash(pwd_hash, password)
+            else:
+                is_valid = (pwd_hash == password)
+
+            if is_valid:
+                # Check account suspension status
+                if user.get('account_status') == 'suspended':
+                    reason = user.get('suspension_reason') or 'No reason specified'
+                    flash(f'Your account has been suspended. Reason: {reason}', 'error')
+                    return render_template('login.html')
+                
+                # Clear previous session and set role-specific user
+                session.clear()
+                if user['role'] == 'admin':
+                    session['admin_user'] = user
+                    return redirect(url_for('admin_dashboard'))
+                elif user['role'] == 'farmer':
+                    session['farmer_user'] = user
+                    return redirect(url_for('farmer_dashboard'))
+                elif user['role'] == 'buyer':
+                    session['buyer_user'] = user
+                    return redirect(url_for('buyer_dashboard'))
             
         flash('Invalid credentials', 'error')
     return render_template('login.html')
+
 
 # --- FARMER DASHBOARD ROUTES ---
 

@@ -1,8 +1,8 @@
 import sys
+import uuid
 import unittest
 from app import app
 import db
-from werkzeug.security import generate_password_hash
 
 class TestCropSyncPhase1(unittest.TestCase):
     def setUp(self):
@@ -66,7 +66,7 @@ class TestCropSyncPhase1(unittest.TestCase):
         self.assertIn(b'System Overview', response.data)
 
         # 2. Create new Farmer account
-        new_farmer_email = 'newfarmer_test@gmail.com'
+        new_farmer_email = f'newfarmer_{uuid.uuid4().hex[:6]}@gmail.com'
         response = self.client.post('/admin/create_user', data={
             'role': 'farmer',
             'name': 'New Test Farmer',
