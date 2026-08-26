@@ -96,6 +96,7 @@
 
 <script>
 function viewListingModal(id, crop, farmer, email, location, qty, price, msp, status, created, updated) {
+    const mspText = (msp && msp !== 'None' && msp !== 'N/A' && !isNaN(parseFloat(msp))) ? `₹${parseFloat(msp).toFixed(2)}/kg` : 'N/A';
     document.getElementById('modalCropTitle').innerText = `🌾 ${crop} Listing Details`;
     document.getElementById('modalContent').innerHTML = `
         <div><strong>Listing ID:</strong> <span style="font-family: monospace;">${id}</span></div>
@@ -104,7 +105,7 @@ function viewListingModal(id, crop, farmer, email, location, qty, price, msp, st
         <div><strong>Location:</strong> ${location}</div>
         <div><strong>Quantity:</strong> ${qty} kg</div>
         <div><strong>Price per kg:</strong> ₹${price}</div>
-        <div><strong>Government MSP Reference:</strong> ₹${msp}/kg</div>
+        <div><strong>Government MSP Reference:</strong> ${mspText}</div>
         <div><strong>Status:</strong> <span style="text-transform: capitalize; font-weight: bold;">${status}</span></div>
         <div><strong>Created Timestamp:</strong> ${created}</div>
         <div><strong>Updated Timestamp:</strong> ${updated}</div>
@@ -115,4 +116,5 @@ function closeListingModal() {
     document.getElementById('listingModal').style.display = 'none';
 }
 </script>
+
 {% endblock %}

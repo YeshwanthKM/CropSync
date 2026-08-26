@@ -1078,10 +1078,24 @@ SEED_GOVT_MSP = [
     ("Cotton", 66.20, 6620.0, "Commercial", "Kharif", 2025)
 ]
 
-def seed_government_msp_data():
+_msp_seeded = False
+
+def seed_government_msp_data(force=False):
+    global _msp_seeded
+    if _msp_seeded and not force:
+        return
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT count(*) FROM government_msp")
+            count = cursor.fetchone()[0]
+            if count >= 12 and not force:
+                _msp_seeded = True
+                return
+        except Exception:
+            pass
+
         now = datetime.utcnow().isoformat()
         for crop, msp_kg, msp_q, cat, season, yr in SEED_GOVT_MSP:
             if db_type == "postgres":
@@ -1104,6 +1118,7 @@ def seed_government_msp_data():
                 """
                 cursor.execute(sql, (crop, msp_kg, msp_q, cat, season, yr, now, now))
         conn.commit()
+        _msp_seeded = True
     except Exception as e:
         print("[!] Error in seed_government_msp_data:", e)
     finally:
@@ -1219,9 +1234,20 @@ def toggle_msp_status(crop_name, new_status):
 # --- ADMIN LISTINGS MANAGEMENT SERVICES ---
 
 def get_all_listings_admin():
+    seed_government_msp_data()
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
+        
+        # Batch fetch all MSP active benchmark values in a single query
+        cursor.execute("SELECT crop_name, msp_price_per_kg FROM government_msp")
+        msp_rows = cursor.fetchall()
+        msp_map = {}
+        for r in msp_rows:
+            rd = _dict_row(r)
+            if rd and rd.get('crop_name'):
+                msp_map[rd['crop_name'].strip().lower()] = float(rd['msp_price_per_kg'])
+
         sql = """
             SELECT c.*, fp.name AS farmer_name, u.email AS farmer_email
             FROM crops c
@@ -1233,14 +1259,19 @@ def get_all_listings_admin():
         rows = cursor.fetchall()
         listings = [_dict_row(r) for r in rows]
         for l in listings:
-            msp_info = get_msp_by_crop(l['crop_name'])
-            l['msp_reference'] = msp_info['msp_price_per_kg'] if msp_info else None
+            c_name = l['crop_name'].strip().lower() if l.get('crop_name') else ''
+            msp_val = msp_map.get(c_name)
+            if msp_val is None:
+                # Substring matching fallback
+                msp_val = next((v for k, v in msp_map.items() if k in c_name or c_name in k), None)
+            l['msp_reference'] = msp_val
         return listings
     except Exception as e:
         print("[!] Error in get_all_listings_admin:", e)
         return []
     finally:
         conn.close()
+
 
 def get_listing_by_id_admin(crop_id):
     conn, db_type = get_connection()
