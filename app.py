@@ -223,13 +223,6 @@ def register():
             return render_template('register.html')
 
         try:
-            # Register with Supabase Auth API
-            auth_res, auth_err = SupabaseAuthService.signup(email, password, user_data={'name': name, 'role': role})
-            if auth_err and ('already registered' in str(auth_err).lower() or 'already exists' in str(auth_err).lower()):
-                print(f"[!] Purging stale Supabase Auth user for {email} and retrying signup...")
-                SupabaseAuthService.delete_user_by_email(email)
-                auth_res, auth_err = SupabaseAuthService.signup(email, password, user_data={'name': name, 'role': role})
-
             pwd_hash = generate_password_hash(password, method='pbkdf2:sha256')
             user_id = db.create_user(
                 email=email,
@@ -253,11 +246,14 @@ def register():
 
             session['pending_user_id'] = user_id
             session['pending_email'] = email
-            if auth_err or email_err:
-                session['auth_err'] = str(auth_err or email_err)
+            if email_err and not email_sent:
+                session['auth_err'] = str(email_err)
+            else:
+                session.pop('auth_err', None)
 
             flash('Account created! Please check your email to activate your account.', 'success')
             return redirect(url_for('verify_email_pending'))
+
         except Exception as e:
             print("[!] Registration error:", e)
             flash(f'Error creating account: {str(e)}', 'error')
