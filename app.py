@@ -25,19 +25,20 @@ except Exception as _e:
 
 # MSP Reference Data
 MSP_DATA = {
-    'rice': 21.83,
-    'wheat': 22.75,
-    'maize': 20.90,
-    'ragi': 38.46,
-    'bajra': 25.00,
-    'tur': 70.00,
-    'moong': 85.58,
-    'urad': 69.50,
-    'groundnut': 63.77,
-    'sunflower': 67.60,
-    'soyabean': 46.00,
-    'cotton': 66.20
+    'rice': 21.83, 'Rice': 21.83,
+    'wheat': 22.75, 'Wheat': 22.75,
+    'maize': 20.90, 'Maize': 20.90,
+    'ragi': 38.46, 'Ragi': 38.46,
+    'bajra': 25.00, 'Bajra': 25.00,
+    'tur': 70.00, 'Tur': 70.00,
+    'moong': 85.58, 'Moong': 85.58,
+    'urad': 69.50, 'Urad': 69.50,
+    'groundnut': 63.77, 'Groundnut': 63.77,
+    'sunflower': 67.60, 'Sunflower': 67.60,
+    'soyabean': 46.00, 'Soyabean': 46.00,
+    'cotton': 66.20, 'Cotton': 66.20
 }
+
 
 # English and Tamil Translations
 TRANSLATIONS = {

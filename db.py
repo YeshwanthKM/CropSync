@@ -1045,7 +1045,8 @@ def record_price_observation(crop_id, crop_name, location, price_per_kg, recorde
                 VALUES (?, ?, ?, ?, ?, ?)
             """
             cursor.execute(ins_sql, (hid, str(crop_id) if crop_id else None, crop_name.strip().title(), location.strip().title(), float(price_per_kg), rec_time))
-            conn.commit()
+        
+        conn.commit()
         return hid
     except Exception as e:
         print("[!] Error in record_price_observation:", e)
@@ -1064,22 +1065,25 @@ def update_crop_price(crop_id, farmer_id, new_price):
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"UPDATE crops SET price_per_kg = {ph}, updated_at = {ph} WHERE id = {ph} AND farmer_id = {ph}"
         cursor.execute(sql, (float(new_price), now, str(crop_id), str(farmer_id)))
-        if db_type == "sqlite":
-            conn.commit()
+        conn.commit()
         record_price_observation(crop['id'], crop['crop_name'], crop['location'], new_price)
         return True
     finally:
         conn.close()
 
 SEED_GOVT_MSP = [
-    ("Rice", 23.00, "Cereals", "Kharif", 2025),
+    ("Rice", 21.83, "Cereals", "Kharif", 2025),
     ("Wheat", 22.75, "Cereals", "Rabi", 2025),
-    ("Cotton", 66.20, "Commercial", "Kharif", 2025),
-    ("Tomato", 18.00, "Horticulture", "All Season", 2025),
-    ("Potato", 15.00, "Horticulture", "Rabi", 2025),
     ("Maize", 20.90, "Coarse Cereals", "Kharif", 2025),
-    ("Pulses", 66.00, "Pulses", "Kharif", 2025),
-    ("Sugarcane", 3.15, "Commercial", "All Season", 2025)
+    ("Ragi", 38.46, "Coarse Cereals", "Kharif", 2025),
+    ("Bajra", 25.00, "Coarse Cereals", "Kharif", 2025),
+    ("Tur", 70.00, "Pulses", "Kharif", 2025),
+    ("Moong", 85.58, "Pulses", "Kharif", 2025),
+    ("Urad", 69.50, "Pulses", "Kharif", 2025),
+    ("Groundnut", 63.77, "Oilseeds", "Kharif", 2025),
+    ("Sunflower", 67.60, "Oilseeds", "Kharif", 2025),
+    ("Soyabean", 46.00, "Oilseeds", "Kharif", 2025),
+    ("Cotton", 66.20, "Commercial", "Kharif", 2025)
 ]
 
 def seed_government_msp_data():
@@ -1100,10 +1104,10 @@ def seed_government_msp_data():
                     VALUES (?, ?, ?, ?, ?, datetime('now'))
                 """
                 cursor.execute(sql, (crop, msp, cat, season, yr))
-        if db_type == "sqlite":
-            conn.commit()
+        conn.commit()
     except Exception as e:
         print("[!] Error in seed_government_msp_data:", e)
+
 def sync_existing_crops_to_history():
     conn, db_type = get_connection()
     try:
