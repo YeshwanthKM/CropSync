@@ -482,21 +482,27 @@ def admin_create_user():
             flash(f'User with email {email} already exists.', 'error')
             return render_template('admin/create_user.html')
 
-        pwd_hash = generate_password_hash(password, method='pbkdf2:sha256')
-        db.create_user(
-            email=email,
-            password_hash=pwd_hash,
-            role=role,
-            name=name,
-            phone=phone,
-            address=address,
-            location=location,
-            organization=organization
-        )
-        flash(f'Successfully created new {role} account for {email}.', 'success')
-        return redirect(url_for('admin_farmers' if role == 'farmer' else 'admin_buyers'))
+        try:
+            pwd_hash = generate_password_hash(password, method='pbkdf2:sha256')
+            db.create_user(
+                email=email,
+                password_hash=pwd_hash,
+                role=role,
+                name=name,
+                phone=phone,
+                address=address,
+                location=location,
+                organization=organization
+            )
+            flash(f'Successfully created new {role} account for {email}.', 'success')
+            return redirect(url_for('admin_farmers' if role == 'farmer' else 'admin_buyers'))
+        except Exception as e:
+            print("[!] Error creating user:", e)
+            flash(f'Error creating user: {str(e)}', 'error')
+            return render_template('admin/create_user.html')
 
     return render_template('admin/create_user.html')
+
 
 # --- SETTINGS & LOGOUT ---
 
