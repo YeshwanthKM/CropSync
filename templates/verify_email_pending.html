@@ -44,12 +44,12 @@
             {% endwith %}
 
             <div style="display: flex; gap: 1rem; flex-direction: column;">
-                <a href="{{ url_for('simulate_email_verification') }}" class="btn" style="background: var(--primary-color, #27ae60); color: #fff; text-decoration: none; font-weight: 600;">
-                    ✓ Click Here to Complete Email Verification
-                </a>
+                <p style="color: var(--secondary-text); font-size: 0.95rem; background: var(--nav-bg); padding: 1rem; border-radius: var(--border-radius); border: 1px solid var(--nav-border);">
+                    📩 <strong>Action Required:</strong> Please open your email inbox (and check your Spam/Junk folder if needed), click the verification link sent by Supabase Auth, and your account will be activated instantly!
+                </p>
                 
                 <form method="POST" action="{{ url_for('resend_email_verification') }}">
-                    <button type="submit" class="btn" style="width: 100%; background: transparent; border: 1px solid var(--nav-border); color: inherit;">
+                    <button type="submit" class="btn" style="width: 100%; background: var(--primary-color, #27ae60); color: #fff; border: none; font-weight: 600;">
                         🔄 Resend Verification Email
                     </button>
                 </form>
@@ -58,6 +58,7 @@
                     ← Back to Login
                 </a>
             </div>
+
         </div>
 
         <script>

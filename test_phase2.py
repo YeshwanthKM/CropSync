@@ -92,7 +92,8 @@ class TestCropSyncPhase2(unittest.TestCase):
             sess['pending_user_id'] = u['id']
             sess['pending_email'] = test_email
 
-        resp_email_v = self.client.get('/simulate-email-verification', follow_redirects=True)
+        resp_email_v = self.client.get('/confirm-email', follow_redirects=True)
+
         self.assertEqual(resp_email_v.status_code, 200)
         self.assertIn(b'Farmer Dashboard', resp_email_v.data)
 

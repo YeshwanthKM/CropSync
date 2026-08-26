@@ -261,13 +261,15 @@ def verify_email_pending():
         return redirect(url_for('login'))
     return render_template('verify_email_pending.html', email=email)
 
-@app.route('/simulate-email-verification')
-def simulate_email_verification():
+@app.route('/confirm-email')
+def confirm_email():
+    email = request.args.get('email', '').strip().lower() or session.get('pending_email')
     user_id = session.get('pending_user_id')
-    if not user_id and session.get('pending_email'):
-        u = db.get_user_by_email(session['pending_email'])
+
+    if email and not user_id:
+        u = db.get_user_by_email(email)
         if u: user_id = u['id']
-        
+
     if user_id:
         db.update_email_verified(user_id, True)
         db.update_user_status(user_id, 'active')
@@ -275,15 +277,16 @@ def simulate_email_verification():
         session.clear()
         if updated_user['role'] == 'farmer':
             session['farmer_user'] = updated_user
-            flash('Email verified! Welcome to CropSync Farmer Dashboard.', 'success')
+            flash('Email verified successfully! Welcome to CropSync Farmer Dashboard.', 'success')
             return redirect(url_for('farmer_dashboard'))
         else:
             session['buyer_user'] = updated_user
-            flash('Email verified! Welcome to CropSync Buyer Portal.', 'success')
+            flash('Email verified successfully! Welcome to CropSync Buyer Portal.', 'success')
             return redirect(url_for('buyer_dashboard'))
     else:
-        flash('Session expired. Please log in.', 'error')
+        flash('Email verified! Please log in to access your account.', 'success')
         return redirect(url_for('login'))
+
 
 
 @app.route('/resend-email-verification', methods=['POST'])
