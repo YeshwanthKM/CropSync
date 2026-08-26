@@ -246,6 +246,7 @@ def register():
             session['pending_user_id'] = user_id
             session['pending_email'] = email
             session['pending_phone'] = phone
+            session['last_otp'] = otp_code
 
             flash('Account created! Please verify your email to continue.', 'success')
             return redirect(url_for('verify_email_pending'))
@@ -298,6 +299,10 @@ def verify_phone():
         flash('Session expired. Please log in.', 'error')
         return redirect(url_for('login'))
 
+    dev_otp = None
+    if not os.environ.get('SMS_PROVIDER_API_KEY'):
+        dev_otp = session.get('last_otp')
+
     if request.method == 'POST':
         submitted_otp = request.form.get('otp', '').strip()
         stored_hash = user.get('otp_hash')
@@ -309,15 +314,13 @@ def verify_phone():
                 exp_dt = datetime.fromisoformat(str(expires_at).replace('Z', ''))
                 if datetime.utcnow() > exp_dt:
                     flash('OTP code has expired. Please request a new OTP.', 'error')
-                    return render_template('verify_phone.html', user=user, phone=user.get('phone'))
+                    return render_template('verify_phone.html', user=user, phone=user.get('phone'), dev_otp=dev_otp)
             except Exception:
                 pass
 
         if OTPService.verify_otp_hash(stored_hash, submitted_otp):
             db.update_phone_verified(user_id, True)
-            # If both email and phone are verified, upgrade account_status to active
-            if user.get('email_verified') or True:
-                db.update_user_status(user_id, 'active')
+            db.update_user_status(user_id, 'active')
             
             # Clear pending session and log user into dashboard session
             updated_user = db.get_user_by_id(user_id)
@@ -334,7 +337,7 @@ def verify_phone():
             db.increment_otp_attempts(user_id)
             flash('Invalid OTP code. Please try again.', 'error')
 
-    return render_template('verify_phone.html', user=user, phone=user.get('phone'))
+    return render_template('verify_phone.html', user=user, phone=user.get('phone'), dev_otp=dev_otp)
 
 @app.route('/resend-phone-otp', methods=['POST'])
 def resend_phone_otp():
@@ -345,9 +348,11 @@ def resend_phone_otp():
         otp_hash = OTPService.hash_otp(otp_code)
         expires_at = (datetime.utcnow() + timedelta(minutes=5)).isoformat()
         db.set_phone_otp(user_id, otp_hash, expires_at)
+        session['last_otp'] = otp_code
         OTPService.send_sms(user.get('phone'), otp_code)
-        flash('A fresh OTP code has been sent to your mobile number.', 'success')
+        flash('A fresh OTP code has been generated.', 'success')
     return redirect(url_for('verify_phone'))
+
 
 @app.route('/verification-status')
 def verification_status():

@@ -29,6 +29,14 @@
                 We've sent a 6-digit OTP code to: <strong>{{ phone or user.get('phone', 'N/A') }}</strong>
             </p>
 
+            {% if dev_otp %}
+            <div style="padding: 0.85rem 1rem; background: rgba(39, 174, 96, 0.15); border: 1px solid #27ae60; border-radius: var(--border-radius); color: var(--text-color); font-size: 0.95rem; margin-bottom: 1.5rem; text-align: center;">
+                <strong>💡 Demo OTP Code:</strong> <span style="font-size: 1.25rem; font-weight: 800; letter-spacing: 0.2rem; color: #27ae60;">{{ dev_otp }}</span><br>
+                <span style="font-size: 0.8rem; color: var(--secondary-text);">(To send real SMS to mobile phones, add <code>SMS_PROVIDER_API_KEY</code> in environment variables).</span>
+            </div>
+            {% endif %}
+
+
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             <div class="flash-messages" style="margin-bottom: 1.5rem;">
