@@ -121,7 +121,6 @@
                 <a href="{{ url_for('home') }}" style="border:none; padding:0; background:none; color:inherit;">CropSync</a>
             </div>
             <div class="nav-links">
-                <a href="{{ url_for('price_trends') }}" style="color: #27ae60; font-weight: 700;">📉 Crop Price Trends</a>
                 {% if session.get('farmer_user') %}
                     <a href="{{ url_for('farmer_dashboard') }}">🌾 Farmer Dashboard</a>
                     <a href="{{ url_for('logout') }}">Logout</a>
@@ -137,6 +136,7 @@
                 {% endif %}
                 <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓 Theme</button>
             </div>
+
         </div>
 
         <!-- Header -->
