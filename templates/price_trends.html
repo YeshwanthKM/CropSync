@@ -306,7 +306,13 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 13, weight: 'bold' }
+                            }
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -318,19 +324,32 @@
                     scales: {
                         y: {
                             beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Price per kg (₹)',
+                                font: { size: 13, weight: 'bold' }
+                            },
                             grid: { color: 'rgba(127, 127, 127, 0.15)' },
                             ticks: {
                                 callback: function(value) { return '₹' + value; },
-                                color: 'inherit'
+                                font: { size: 12, weight: '600' }
                             }
                         },
                         x: {
+                            title: {
+                                display: true,
+                                text: 'Date / Period Observation',
+                                font: { size: 13, weight: 'bold' }
+                            },
                             grid: { display: false },
-                            ticks: { color: 'inherit' }
+                            ticks: {
+                                font: { size: 12, weight: '600' }
+                            }
                         }
                     }
                 }
             });
+
 
             async function updateTrendsData() {
                 const crop = document.getElementById('cropSelect').value;

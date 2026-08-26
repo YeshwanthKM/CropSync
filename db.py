@@ -1071,7 +1071,44 @@ def update_crop_price(crop_id, farmer_id, new_price):
     finally:
         conn.close()
 
+SEED_GOVT_MSP = [
+    ("Rice", 23.00, "Cereals", "Kharif", 2025),
+    ("Wheat", 22.75, "Cereals", "Rabi", 2025),
+    ("Cotton", 66.20, "Commercial", "Kharif", 2025),
+    ("Tomato", 18.00, "Horticulture", "All Season", 2025),
+    ("Potato", 15.00, "Horticulture", "Rabi", 2025),
+    ("Maize", 20.90, "Coarse Cereals", "Kharif", 2025),
+    ("Pulses", 66.00, "Pulses", "Kharif", 2025),
+    ("Sugarcane", 3.15, "Commercial", "All Season", 2025)
+]
+
+def seed_government_msp_data():
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        for crop, msp, cat, season, yr in SEED_GOVT_MSP:
+            if db_type == "postgres":
+                sql = """
+                    INSERT INTO government_msp (crop_name, msp_price_per_kg, category, season, effective_year)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (crop_name) DO UPDATE SET msp_price_per_kg = EXCLUDED.msp_price_per_kg
+                """
+                cursor.execute(sql, (crop, msp, cat, season, yr))
+            else:
+                sql = """
+                    INSERT OR REPLACE INTO government_msp (crop_name, msp_price_per_kg, category, season, effective_year, created_at)
+                    VALUES (?, ?, ?, ?, ?, datetime('now'))
+                """
+                cursor.execute(sql, (crop, msp, cat, season, yr))
+        if db_type == "sqlite":
+            conn.commit()
+    except Exception as e:
+        print("[!] Error in seed_government_msp_data:", e)
+    finally:
+        conn.close()
+
 def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30d'):
+    seed_government_msp_data()
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
@@ -1093,14 +1130,23 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
         start_date = (now - timedelta(days=days)).isoformat()
         prev_start_date = (now - timedelta(days=days * 2)).isoformat()
 
-        # Query Government MSP
-        cursor.execute(f"SELECT msp_price_per_kg FROM government_msp WHERE LOWER(crop_name) = LOWER({ph})", (crop_name,))
+        # Flexible Query for Government MSP (exact or substring match)
+        c_clean = crop_name.strip()
+        cursor.execute(f"""
+            SELECT msp_price_per_kg 
+            FROM government_msp 
+            WHERE LOWER(crop_name) = LOWER({ph}) 
+               OR LOWER({ph}) LIKE '%' || LOWER(crop_name) || '%' 
+               OR LOWER(crop_name) LIKE '%' || LOWER({ph}) || '%'
+            LIMIT 1
+        """, (c_clean, c_clean, c_clean))
         msp_row = cursor.fetchone()
         govt_msp = float(msp_row['msp_price_per_kg'] if isinstance(msp_row, dict) else msp_row[0]) if msp_row else None
 
         # Build SQL filters
         where_clauses = [f"LOWER(crop_name) = LOWER({ph})"]
-        params = [crop_name]
+        params = [c_clean]
+
 
         if location and location != 'All Locations':
             where_clauses.append(f"LOWER(location) = LOWER({ph})")
