@@ -265,7 +265,8 @@
 
             const initialLabels = {{ (trends.labels or []) | tojson }};
             const initialPrices = {{ (trends.prices or []) | tojson }};
-            const initialMsp = {{ trends.govt_msp or 'null' }};
+            const initialMsp = {{ trends.govt_msp if trends.govt_msp is not none else 'null' }};
+
 
             const ctx = document.getElementById('trendChart').getContext('2d');
             
