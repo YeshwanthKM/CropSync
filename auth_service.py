@@ -151,11 +151,21 @@ class EmailService:
                 with urllib.request.urlopen(req, context=ctx) as resp:
                     print(f"[+] Direct email sent via Resend API to {email}")
                     return True, None
+            except urllib.error.HTTPError as e:
+                error_text = e.read().decode('utf-8')
+                print(f"[!] Resend API HTTPError ({e.code}): {error_text}")
+                try:
+                    err_json = json.loads(error_text)
+                    msg = err_json.get('message') or err_json.get('name') or f"Resend Error {e.code}"
+                    return False, f"Resend API: {msg}"
+                except Exception:
+                    return False, f"Resend HTTP {e.code}"
             except Exception as e:
                 print(f"[!] Resend API error sending email to {email}:", e)
                 return False, str(e)
         else:
             print(f"[+] [DEV MODE EMAIL] Verification link for {email}: {confirm_url}")
             return False, "RESEND_API_KEY not configured"
+
 
 
