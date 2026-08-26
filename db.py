@@ -365,10 +365,34 @@ def update_user_profile(user_id, name, phone="", address="", location="", organi
     finally:
         conn.close()
 
+def ensure_seed_users():
+    try:
+        from werkzeug.security import generate_password_hash
+        for u in SEED_USERS:
+            try:
+                existing = get_user_by_email(u['email'])
+                if not existing:
+                    pwd_hash = generate_password_hash(u.get('password', 'farmer123'), method='pbkdf2:sha256')
+                    create_user(
+                        email=u['email'],
+                        password_hash=pwd_hash,
+                        role=u.get('role', 'farmer'),
+                        name=u.get('name', 'User'),
+                        phone=u.get('phone', ''),
+                        address=u.get('address', ''),
+                        location=u.get('location', ''),
+                        user_id=u.get('id')
+                    )
+            except Exception:
+                pass
+    except Exception as e:
+        print("[!] Error in ensure_seed_users:", e)
+
 # --- ADMIN MANAGEMENT FUNCTIONS ---
 
 def get_all_farmers(search=None):
     try:
+        ensure_seed_users()
         conn, db_type = get_connection()
         try:
             cursor = conn.cursor()
@@ -425,6 +449,7 @@ def get_all_farmers(search=None):
 
 def get_all_buyers(search=None):
     try:
+        ensure_seed_users()
         conn, db_type = get_connection()
         try:
             cursor = conn.cursor()
@@ -481,8 +506,9 @@ def get_all_buyers(search=None):
         print("[!] Error in get_all_buyers:", e)
         return [u for u in SEED_USERS if u['role'] == 'buyer']
 
-def get_admin_stats(_retry=True):
+def get_admin_stats():
     try:
+        ensure_seed_users()
         conn, db_type = get_connection()
         try:
             cursor = conn.cursor()
@@ -510,20 +536,9 @@ def get_admin_stats(_retry=True):
             fc = _c(farmers_count)
             bc = _c(buyers_count)
             
-            # If database has 0 farmers and 0 buyers, trigger seeding automatically
-            if fc == 0 and bc == 0 and _retry:
-                try:
-                    import migrate_data
-                    migrate_data.run_migration()
-                    return get_admin_stats(_retry=False)
-                except Exception as _m_err:
-                    print("[!] Auto migration error in get_admin_stats:", _m_err)
-                fc = 4
-                bc = 4
-
             return {
-                'total_farmers': max(fc, 4),
-                'total_buyers': max(bc, 4),
+                'total_farmers': fc,
+                'total_buyers': bc,
                 'active_listings': _c(listings_count),
                 'active_orders': _c(orders_count),
                 'suspended_accounts': _c(suspended_count)
