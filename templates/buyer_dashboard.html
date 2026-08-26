@@ -19,9 +19,8 @@
                 <button class="sidebar-link active" onclick="showSection('home')">{{ get_text('home') }}</button>
                 <button class="sidebar-link" onclick="showSection('marketplace')">{{ get_text('marketplace') }}</button>
                 <button class="sidebar-link" onclick="showSection('my-orders')">{{ get_text('my_orders') }}</button>
-                <a href="{{ url_for('price_trends') }}" class="sidebar-link" style="color: #27ae60; font-weight: 700; text-decoration: none; display: block; padding: 0.75rem 1rem;">📉 Crop Price Trends</a>
-
                 <button class="sidebar-link" onclick="showSection('msp-reference')">{{ get_text('msp_reference') }}</button>
+
 
             </nav>
             <div class="sidebar-footer">
@@ -102,11 +101,11 @@
                             <thead>
                                 <tr>
                                     <th>{{ get_text('crop_name') }}</th>
-                                    <th>{{ get_text('price') }}</th>
-                                    <th>{{ get_text('msp_reference') }}</th>
+                                    <th>Farmer Price</th>
+                                    <th>Govt MSP Reference</th>
                                     <th>{{ get_text('stock') }}</th>
                                     <th>{{ get_text('location') }}</th>
-                                    <th>{{ get_text('farmer_contact') }}</th>
+                                    <th>Farmer</th>
                                     <th>{{ get_text('order') }}</th>
                                 </tr>
                             </thead>
@@ -114,20 +113,33 @@
                                 {% for crop in crops %}
                                 <tr>
                                     <td style="font-weight: 600;">{{ get_text(crop.crop_name)|capitalize }}</td>
-                                    <td>₹{{ crop.price_per_kg }}/kg</td>
-                                    <td style="color: var(--secondary-text); font-size: 0.8125rem;">₹{{ crop.msp_value }}/kg</td>
+                                    <td style="font-weight: 700; color: #27ae60;">₹{{ crop.price_per_kg }}/kg</td>
+                                    <td style="font-size: 0.85rem;">
+                                        {% if crop.msp_value %}
+                                            <div>Govt MSP: <strong>₹{{ "%.2f"|format(crop.msp_value) }}/kg</strong></div>
+                                            <div style="font-size: 0.75rem; font-weight: 700; margin-top: 2px;">
+                                                {% if crop.msp_diff_pct >= 0 %}
+                                                    <span style="color: #27ae60;">+{{ crop.msp_diff_pct }}% above MSP</span>
+                                                {% else %}
+                                                    <span style="color: #e74c3c;">{{ crop.msp_diff_pct }}% below MSP</span>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span style="color: var(--secondary-text);">N/A</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ crop.quantity }} kg</td>
                                     <td>{{ crop.location }}</td>
                                     <td>
-                                        <div style="font-size: 0.8125rem;">{{ crop.farmer_name }}</div>
-                                        <div style="font-weight: 600;">{{ crop.farmer_phone }}</div>
+                                        <div style="font-size: 0.85rem; font-weight: 600;">{{ crop.farmer_name }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon order acceptance</div>
                                     </td>
                                     <td>
                                         <form action="{{ url_for('place_order') }}" method="POST"
                                             style="display:flex; gap: 0.5rem; border: none; padding: 0; box-shadow: none; margin: 0; background: none;">
                                             <input type="hidden" name="crop_id" value="{{ crop.id }}">
-                                            <input type="number" name="quantity" step="1" max="{{ crop.quantity }}" required
-                                                style="width: 70px;">
+                                            <input type="number" name="quantity" step="1" min="1" max="{{ crop.quantity }}" required
+                                                style="width: 70px;" placeholder="Qty">
                                             <button type="submit" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">{{
                                                 get_text('buy') }}</button>
                                         </form>
@@ -162,13 +174,17 @@
                         <tbody>
                             {% for order in orders %}
                             <tr>
-                                <td style="text-transform: capitalize;">{{ order.crop_name }}</td>
+                                <td style="text-transform: capitalize; font-weight: 700;">{{ order.crop_name }}</td>
                                 <td>
                                     <div>{{ order.farmer_name }}</div>
-                                    <div style="font-size: 0.75rem; color: var(--secondary-text);">{{ order.farmer_phone }}</div>
+                                    {% if order.status == 'Accepted' %}
+                                        <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">📞 {{ order.farmer_phone or 'Contact Provided' }}</div>
+                                    {% else %}
+                                        <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon acceptance</div>
+                                    {% endif %}
                                 </td>
                                 <td>{{ order.quantity }} kg</td>
-                                <td>₹{{ order.total_price }}</td>
+                                <td style="font-weight: 700; color: #27ae60;">₹{{ order.total_price }}</td>
                                 <td>
                                     <span class="badge badge-{{ order.status|lower }}" style="padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
                                         {{ order.status }}
@@ -177,10 +193,11 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" style="text-align: center; color: var(--secondary-text);">You haven't placed any orders yet.</td>
+                                <td colspan="5" style="text-align: center; color: var(--secondary-text);">You haven't placed any orders yet.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
+
                     </table>
                 </div>
             </div>

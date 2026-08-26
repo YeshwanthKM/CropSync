@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS crops (
     quantity NUMERIC NOT NULL CHECK (quantity >= 0),
     price_per_kg NUMERIC NOT NULL CHECK (price_per_kg >= 0),
     location TEXT NOT NULL,
-    status TEXT DEFAULT 'available' CHECK (status IN ('available', 'sold', 'archived')) NOT NULL,
+    status TEXT DEFAULT 'available' CHECK (status IN ('available', 'disabled', 'sold', 'archived')) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -75,12 +75,13 @@ CREATE TABLE IF NOT EXISTS orders (
     crop_name TEXT NOT NULL,
     quantity NUMERIC NOT NULL CHECK (quantity > 0),
     total_price NUMERIC NOT NULL CHECK (total_price >= 0),
-    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled')) NOT NULL,
+    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed')) NOT NULL,
+    payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 6. Audit Logs Table (Phase 2 Admin Actions)
+-- 6. Audit Logs Table (Admin Actions)
 CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -94,20 +95,14 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE TABLE IF NOT EXISTS government_msp (
     crop_name TEXT PRIMARY KEY,
     msp_price_per_kg NUMERIC NOT NULL CHECK (msp_price_per_kg >= 0),
+    msp_price_per_quintal NUMERIC CHECK (msp_price_per_quintal >= 0),
     category TEXT NOT NULL,
     season TEXT NOT NULL,
     effective_year INTEGER NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 8. Crop Price History Table (CropSync Marketplace Price Trends)
-CREATE TABLE IF NOT EXISTS crop_price_history (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    crop_id UUID REFERENCES crops(id) ON DELETE CASCADE,
-    crop_name TEXT NOT NULL,
-    location TEXT NOT NULL,
-    price_per_kg NUMERIC NOT NULL CHECK (price_per_kg >= 0),
-    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    source TEXT DEFAULT 'Ministry of Agriculture & Farmers Welfare, Govt of India',
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Indexes for performance
@@ -120,11 +115,6 @@ CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_farmer_id ON orders(farmer_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(created_at);
 
-CREATE INDEX IF NOT EXISTS idx_price_history_crop_name ON crop_price_history(crop_name);
-CREATE INDEX IF NOT EXISTS idx_price_history_location ON crop_price_history(location);
-CREATE INDEX IF NOT EXISTS idx_price_history_crop_id ON crop_price_history(crop_id);
-CREATE INDEX IF NOT EXISTS idx_price_history_recorded_at ON crop_price_history(recorded_at);
-
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE farmer_profiles ENABLE ROW LEVEL SECURITY;
@@ -133,6 +123,6 @@ ALTER TABLE crops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE government_msp ENABLE ROW LEVEL SECURITY;
-ALTER TABLE crop_price_history ENABLE ROW LEVEL SECURITY;
+
 
 

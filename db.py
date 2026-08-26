@@ -155,20 +155,21 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS government_msp (
                     crop_name TEXT PRIMARY KEY,
                     msp_price_per_kg NUMERIC NOT NULL,
+                    msp_price_per_quintal NUMERIC,
                     category TEXT NOT NULL,
                     season TEXT NOT NULL,
                     effective_year INTEGER NOT NULL,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS crop_price_history (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    crop_id UUID REFERENCES crops(id) ON DELETE CASCADE,
-                    crop_name TEXT NOT NULL,
-                    location TEXT NOT NULL,
-                    price_per_kg NUMERIC NOT NULL CHECK (price_per_kg >= 0),
-                    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                    source TEXT DEFAULT 'Ministry of Agriculture & Farmers Welfare, Govt of India',
+                    status TEXT DEFAULT 'active',
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
             """)
+            # Drop obsolete table if exists
+            try:
+                cursor.execute("DROP TABLE IF EXISTS crop_price_history")
+            except Exception:
+                pass
         else:
             cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS users_v2 (
@@ -217,7 +218,7 @@ def init_db():
                     quantity REAL NOT NULL,
                     price_per_kg REAL NOT NULL,
                     location TEXT NOT NULL,
-                    status TEXT DEFAULT 'available' CHECK (status IN ('available', 'sold', 'archived')) NOT NULL,
+                    status TEXT DEFAULT 'available' CHECK (status IN ('available', 'disabled', 'sold', 'archived')) NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
@@ -229,7 +230,8 @@ def init_db():
                     crop_name TEXT NOT NULL,
                     quantity REAL NOT NULL,
                     total_price REAL NOT NULL,
-                    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled')) NOT NULL,
+                    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed')) NOT NULL,
+                    payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')) NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
@@ -244,24 +246,20 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS government_msp (
                     crop_name TEXT PRIMARY KEY,
                     msp_price_per_kg REAL NOT NULL,
+                    msp_price_per_quintal REAL,
                     category TEXT NOT NULL,
                     season TEXT NOT NULL,
                     effective_year INTEGER NOT NULL,
-                    created_at TEXT NOT NULL
+                    source TEXT DEFAULT 'Ministry of Agriculture & Farmers Welfare, Govt of India',
+                    status TEXT DEFAULT 'active',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
                 );
-                CREATE TABLE IF NOT EXISTS crop_price_history (
-                    id TEXT PRIMARY KEY,
-                    crop_id TEXT REFERENCES crops(id) ON DELETE CASCADE,
-                    crop_name TEXT NOT NULL,
-                    location TEXT NOT NULL,
-                    price_per_kg REAL NOT NULL,
-                    recorded_at TEXT NOT NULL
-                );
-
+                DROP TABLE IF EXISTS crop_price_history;
             """)
+
             try:
                 cursor.execute("SELECT count(*) FROM users")
-                # Migrate existing users to users_v2 if users table exists
                 cursor.execute("""
                     INSERT OR IGNORE INTO users_v2 (id, email, password_hash, role, account_status, suspension_reason, created_at, updated_at)
                     SELECT id, email, password_hash, role, account_status, suspension_reason, created_at, updated_at FROM users
@@ -272,13 +270,23 @@ def init_db():
                         cursor.execute(f"ALTER TABLE users_v2 ADD COLUMN {col}")
                     except Exception:
                         pass
-                cursor.execute("DROP TABLE users")
-                cursor.execute("ALTER TABLE users_v2 RENAME TO users")
             except Exception:
+                pass
+
+            # Add column migrations for existing tables if needed
+            msp_cols = [
+                "msp_price_per_quintal REAL",
+                "source TEXT DEFAULT 'Ministry of Agriculture & Farmers Welfare, Govt of India'",
+                "status TEXT DEFAULT 'active'",
+                "updated_at TEXT"
+            ]
+            for mcol in msp_cols:
                 try:
-                    cursor.execute("ALTER TABLE users_v2 RENAME TO users")
+                    cursor.execute(f"ALTER TABLE government_msp ADD COLUMN {mcol}")
                 except Exception:
                     pass
+
+
             conn.commit()
 
     except Exception as e:
@@ -286,6 +294,7 @@ def init_db():
     finally:
         try: conn.close()
         except: pass
+
 
 
 def _dict_row(row):
@@ -898,13 +907,10 @@ def create_crop(farmer_id, crop_name, quantity, price_per_kg, location, crop_id=
             VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'available', {ph}, {ph})
         """
         cursor.execute(sql, (cid, str(farmer_id), crop_name.strip().title(), float(quantity), float(price_per_kg), location.strip().title(), now, now))
-        if db_type == "sqlite":
-            conn.commit()
-        record_price_observation(cid, crop_name, location, price_per_kg, recorded_at=now)
+        conn.commit()
         return cid
     finally:
         conn.close()
-
 
 def delete_crop(crop_id, farmer_id):
     conn, db_type = get_connection()
@@ -913,8 +919,7 @@ def delete_crop(crop_id, farmer_id):
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"DELETE FROM crops WHERE id = {ph} AND farmer_id = {ph}"
         cursor.execute(sql, (str(crop_id), str(farmer_id)))
-        if db_type == "sqlite":
-            conn.commit()
+        conn.commit()
     finally:
         conn.close()
 
@@ -924,15 +929,12 @@ def update_crop_quantity(crop_id, new_quantity):
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
-        status = 'sold' if new_quantity <= 0 else 'available'
+        status = 'sold' if float(new_quantity) <= 0 else 'available'
         sql = f"UPDATE crops SET quantity = {ph}, status = {ph}, updated_at = {ph} WHERE id = {ph}"
         cursor.execute(sql, (float(new_quantity), status, now, str(crop_id)))
-        if db_type == "sqlite":
-            conn.commit()
+        conn.commit()
     finally:
         conn.close()
-
-# --- ORDERS FUNCTIONS ---
 
 def get_orders_for_farmer(farmer_id):
     try:
@@ -990,8 +992,7 @@ def create_order(buyer_id, farmer_id, crop_id, crop_name, quantity, total_price,
             VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'Pending', {ph}, {ph})
         """
         cursor.execute(sql, (oid, str(crop_id), str(buyer_id), str(farmer_id), crop_name, float(quantity), float(total_price), now, now))
-        if db_type == "sqlite":
-            conn.commit()
+        conn.commit()
         return oid
     finally:
         conn.close()
@@ -1004,350 +1005,413 @@ def update_order_status(order_id, status):
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"UPDATE orders SET status = {ph}, updated_at = {ph} WHERE id = {ph}"
         cursor.execute(sql, (status, now, str(order_id)))
-        if db_type == "sqlite":
-            conn.commit()
+        conn.commit()
     finally:
         conn.close()
 
 
-# --- CROP PRICE TRENDS FUNCTIONS ---
 
-def record_price_observation(crop_id, crop_name, location, price_per_kg, recorded_at=None):
-    if not crop_name or not location or price_per_kg is None:
-        return None
+def accept_order_atomic(order_id, farmer_id):
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
-        rec_time = recorded_at or datetime.utcnow().isoformat()
+        now = datetime.utcnow().isoformat()
         
-        # Avoid duplicate observations for the same crop_id and exact price within 60 seconds
-        if crop_id:
-            check_sql = f"""
-                SELECT id FROM crop_price_history 
-                WHERE crop_id = {ph} AND price_per_kg = {ph}
-                ORDER BY recorded_at DESC LIMIT 1
-            """
-            cursor.execute(check_sql, (str(crop_id), float(price_per_kg)))
-            if cursor.fetchone():
-                return None
+        # 1. Fetch order
+        sql_o = f"SELECT * FROM orders WHERE id = {ph} AND farmer_id = {ph}"
+        cursor.execute(sql_o, (str(order_id), str(farmer_id)))
+        order_row = cursor.fetchone()
+        order = _dict_row(order_row)
+        if not order or order['status'] != 'Pending':
+            return False, "Order not found or not pending."
+            
+        # 2. Fetch crop listing
+        sql_c = f"SELECT * FROM crops WHERE id = {ph}"
+        cursor.execute(sql_c, (str(order['crop_id']),))
+        crop_row = cursor.fetchone()
+        crop = _dict_row(crop_row)
+        if not crop:
+            return False, "Crop listing no longer exists."
 
-        hid = str(uuid.uuid4())
-        if db_type == "postgres":
-            ins_sql = """
-                INSERT INTO crop_price_history (id, crop_id, crop_name, location, price_per_kg, recorded_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(ins_sql, (hid, str(crop_id) if crop_id else None, crop_name.strip().title(), location.strip().title(), float(price_per_kg), rec_time))
-        else:
-            ins_sql = """
-                INSERT INTO crop_price_history (id, crop_id, crop_name, location, price_per_kg, recorded_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """
-            cursor.execute(ins_sql, (hid, str(crop_id) if crop_id else None, crop_name.strip().title(), location.strip().title(), float(price_per_kg), rec_time))
-        
+        curr_qty = float(crop['quantity'])
+        order_qty = float(order['quantity'])
+
+        if curr_qty < order_qty:
+            return False, f"Insufficient stock: Available {curr_qty} kg, requested {order_qty} kg."
+
+        # 3. Update stock and crop status
+        new_qty = curr_qty - order_qty
+        new_crop_status = 'sold' if new_qty == 0 else crop['status']
+
+        sql_u_crop = f"UPDATE crops SET quantity = {ph}, status = {ph}, updated_at = {ph} WHERE id = {ph}"
+        cursor.execute(sql_u_crop, (new_qty, new_crop_status, now, str(crop['id'])))
+
+        # 4. Update order status to Accepted
+        sql_u_order = f"UPDATE orders SET status = 'Accepted', updated_at = {ph} WHERE id = {ph}"
+        cursor.execute(sql_u_order, (now, str(order_id)))
+
         conn.commit()
-        return hid
+        return True, "Order accepted and stock updated."
     except Exception as e:
-        print("[!] Error in record_price_observation:", e)
+        print("[!] Error in accept_order_atomic:", e)
         try: conn.rollback()
         except: pass
-        return None
-
+        return False, f"Server error: {e}"
     finally:
         conn.close()
 
-def update_crop_price(crop_id, farmer_id, new_price):
-    crop = get_crop_by_id(crop_id)
-    if not crop:
-        return False
-    conn, db_type = get_connection()
-    try:
-        cursor = conn.cursor()
-        now = datetime.utcnow().isoformat()
-        ph = "%s" if db_type == "postgres" else "?"
-        sql = f"UPDATE crops SET price_per_kg = {ph}, updated_at = {ph} WHERE id = {ph} AND farmer_id = {ph}"
-        cursor.execute(sql, (float(new_price), now, str(crop_id), str(farmer_id)))
-        conn.commit()
-        record_price_observation(crop['id'], crop['crop_name'], crop['location'], new_price)
-        return True
-    finally:
-        conn.close()
+# --- PHASE 3 OFFICIAL MSP REFERENCE SERVICES ---
 
 SEED_GOVT_MSP = [
-    ("Rice", 21.83, "Cereals", "Kharif", 2025),
-    ("Wheat", 22.75, "Cereals", "Rabi", 2025),
-    ("Maize", 20.90, "Coarse Cereals", "Kharif", 2025),
-    ("Ragi", 38.46, "Coarse Cereals", "Kharif", 2025),
-    ("Bajra", 25.00, "Coarse Cereals", "Kharif", 2025),
-    ("Tur", 70.00, "Pulses", "Kharif", 2025),
-    ("Moong", 85.58, "Pulses", "Kharif", 2025),
-    ("Urad", 69.50, "Pulses", "Kharif", 2025),
-    ("Groundnut", 63.77, "Oilseeds", "Kharif", 2025),
-    ("Sunflower", 67.60, "Oilseeds", "Kharif", 2025),
-    ("Soyabean", 46.00, "Oilseeds", "Kharif", 2025),
-    ("Cotton", 66.20, "Commercial", "Kharif", 2025)
+    ("Rice", 21.83, 2183.0, "Cereals", "Kharif", 2025),
+    ("Wheat", 22.75, 2275.0, "Cereals", "Rabi", 2025),
+    ("Maize", 20.90, 2090.0, "Coarse Cereals", "Kharif", 2025),
+    ("Ragi", 38.46, 3846.0, "Coarse Cereals", "Kharif", 2025),
+    ("Bajra", 25.00, 2500.0, "Coarse Cereals", "Kharif", 2025),
+    ("Tur", 70.00, 7000.0, "Pulses", "Kharif", 2025),
+    ("Moong", 85.58, 8558.0, "Pulses", "Kharif", 2025),
+    ("Urad", 69.50, 6950.0, "Pulses", "Kharif", 2025),
+    ("Groundnut", 63.77, 6377.0, "Oilseeds", "Kharif", 2025),
+    ("Sunflower", 67.60, 6760.0, "Oilseeds", "Kharif", 2025),
+    ("Soyabean", 46.00, 4600.0, "Oilseeds", "Kharif", 2025),
+    ("Cotton", 66.20, 6620.0, "Commercial", "Kharif", 2025)
 ]
 
 def seed_government_msp_data():
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
-        for crop, msp, cat, season, yr in SEED_GOVT_MSP:
+        now = datetime.utcnow().isoformat()
+        for crop, msp_kg, msp_q, cat, season, yr in SEED_GOVT_MSP:
             if db_type == "postgres":
                 sql = """
-                    INSERT INTO government_msp (crop_name, msp_price_per_kg, category, season, effective_year)
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (crop_name) DO UPDATE SET msp_price_per_kg = EXCLUDED.msp_price_per_kg
+                    INSERT INTO government_msp (crop_name, msp_price_per_kg, msp_price_per_quintal, category, season, effective_year, source, status, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, 'Ministry of Agriculture & Farmers Welfare, Govt of India', 'active', %s, %s)
+                    ON CONFLICT (crop_name) DO UPDATE SET 
+                        msp_price_per_kg = EXCLUDED.msp_price_per_kg,
+                        msp_price_per_quintal = EXCLUDED.msp_price_per_quintal,
+                        category = EXCLUDED.category,
+                        season = EXCLUDED.season,
+                        effective_year = EXCLUDED.effective_year,
+                        updated_at = EXCLUDED.updated_at
                 """
-                cursor.execute(sql, (crop, msp, cat, season, yr))
+                cursor.execute(sql, (crop, msp_kg, msp_q, cat, season, yr, now, now))
             else:
                 sql = """
-                    INSERT OR REPLACE INTO government_msp (crop_name, msp_price_per_kg, category, season, effective_year, created_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
+                    INSERT OR REPLACE INTO government_msp (crop_name, msp_price_per_kg, msp_price_per_quintal, category, season, effective_year, source, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 'Ministry of Agriculture & Farmers Welfare, Govt of India', 'active', ?, ?)
                 """
-                cursor.execute(sql, (crop, msp, cat, season, yr))
+                cursor.execute(sql, (crop, msp_kg, msp_q, cat, season, yr, now, now))
         conn.commit()
     except Exception as e:
         print("[!] Error in seed_government_msp_data:", e)
-
-def sync_existing_crops_to_history():
-    conn, db_type = get_connection()
-    try:
-        cursor = conn.cursor()
-        sql = "SELECT id, crop_name, location, price_per_kg, created_at FROM crops"
-        cursor.execute(sql)
-        crops = [_dict_row(r) for r in cursor.fetchall()]
-        for c in crops:
-            record_price_observation(c['id'], c['crop_name'], c['location'], c['price_per_kg'], recorded_at=c.get('created_at'))
-    except Exception as e:
-        print("[!] Error in sync_existing_crops_to_history:", e)
     finally:
         conn.close()
 
-def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30d'):
+def get_all_msp_references(search=None, season=None, year=None):
     seed_government_msp_data()
-    sync_existing_crops_to_history()
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
+        where_clauses = []
+        params = []
+        if search:
+            where_clauses.append(f"LOWER(crop_name) LIKE LOWER({ph})")
+            params.append(f"%{search.strip()}%")
+        if season and season != 'All':
+            where_clauses.append(f"season = {ph}")
+            params.append(season)
+        if year and str(year) != 'All':
+            where_clauses.append(f"effective_year = {ph}")
+            params.append(int(year))
         
-        # Period start date calculation
-        now = datetime.utcnow()
-        if period == '7d':
-            days = 7
-        elif period == '3m':
-            days = 90
-        elif period == '6m':
-            days = 180
-        elif period == '1y':
-            days = 365
-        else:
-            days = 30  # 30d default
-
-        start_date = (now - timedelta(days=days)).isoformat()
-        prev_start_date = (now - timedelta(days=days * 2)).isoformat()
-
-        # Flexible Query for Government MSP (exact or substring match)
-        c_clean = crop_name.strip()
-        cursor.execute(f"""
-            SELECT msp_price_per_kg 
-            FROM government_msp 
-            WHERE LOWER(crop_name) = LOWER({ph}) 
-               OR LOWER({ph}) LIKE '%' || LOWER(crop_name) || '%' 
-               OR LOWER(crop_name) LIKE '%' || LOWER({ph}) || '%'
-            LIMIT 1
-        """, (c_clean, c_clean, c_clean))
-        msp_row = cursor.fetchone()
-        govt_msp = float(msp_row['msp_price_per_kg'] if isinstance(msp_row, dict) else msp_row[0]) if msp_row else None
-
-        # Build SQL filters (exact or substring match on crop_name)
-        where_clauses = [f"(LOWER(crop_name) = LOWER({ph}) OR LOWER(crop_name) LIKE '%' || LOWER({ph}) || '%' OR LOWER({ph}) LIKE '%' || LOWER(crop_name) || '%')"]
-        params = [c_clean, c_clean, c_clean]
-
-        if location and location != 'All Locations':
-            where_clauses.append(f"LOWER(location) = LOWER({ph})")
-            params.append(location)
-
-        where_sql = " AND ".join(where_clauses)
-
-        # Fetch current period observations
-        sql_current = f"""
-            SELECT price_per_kg, recorded_at 
-            FROM crop_price_history 
-            WHERE {where_sql} AND recorded_at >= {ph}
-            ORDER BY recorded_at ASC
-        """
-        cursor.execute(sql_current, tuple(params + [start_date]))
-        current_rows = [_dict_row(r) for r in cursor.fetchall()]
-
-        # Fallback 1: Query all observations from history if current period yields 0 rows
-        if not current_rows:
-            sql_all = f"""
-                SELECT price_per_kg, recorded_at 
-                FROM crop_price_history 
-                WHERE {where_sql}
-                ORDER BY recorded_at ASC
-            """
-            cursor.execute(sql_all, tuple(params))
-            current_rows = [_dict_row(r) for r in cursor.fetchall()]
-
-        # Fallback 2: Direct query from active marketplace crops table if history is empty
-        if not current_rows:
-            sql_crops_direct = f"""
-                SELECT price_per_kg, created_at AS recorded_at 
-                FROM crops 
-                WHERE {where_sql}
-                ORDER BY created_at ASC
-            """
-            cursor.execute(sql_crops_direct, tuple(params))
-            current_rows = [_dict_row(r) for r in cursor.fetchall()]
-
-        # Fetch previous period observations
-        sql_prev = f"""
-            SELECT price_per_kg 
-            FROM crop_price_history 
-            WHERE {where_sql} AND recorded_at >= {ph} AND recorded_at < {ph}
-        """
-        cursor.execute(sql_prev, tuple(params + [prev_start_date, start_date]))
-        prev_rows = [_dict_row(r) for r in cursor.fetchall()]
-
-        total_obs = len(current_rows)
-
-        if total_obs == 0:
-            return {
-                "crop_name": crop_name,
-                "location": location,
-                "period": period,
-                "total_observations": 0,
-                "message": "No CropSync price data available for this crop.",
-                "has_data": False,
-                "govt_msp": govt_msp
-            }
-
-
-
-        if total_obs < 2:
-            single_price = float(current_rows[0]['price_per_kg'])
-            return {
-                "crop_name": crop_name,
-                "location": location,
-                "period": period,
-                "total_observations": 1,
-                "current_avg_price": round(single_price, 2),
-                "previous_avg_price": None,
-                "change_pct": 0.0,
-                "min_price": round(single_price, 2),
-                "max_price": round(single_price, 2),
-                "trend_direction": "→ Stable",
-                "message": "Limited data available. Trend may not be representative.",
-                "has_data": True,
-                "labels": [str(current_rows[0]['recorded_at'])[:10]],
-                "prices": [round(single_price, 2)],
-                "govt_msp": govt_msp
-            }
-
-        # Calculate statistics from actual observations
-        prices = [float(r['price_per_kg']) for r in current_rows]
-        curr_avg = sum(prices) / len(prices)
-        min_p = min(prices)
-        max_p = max(prices)
-
-        if prev_rows:
-            prev_prices = [float(r['price_per_kg']) for r in prev_rows]
-            prev_avg = sum(prev_prices) / len(prev_prices)
-        else:
-            mid = len(prices) // 2
-            prev_avg = sum(prices[:mid]) / len(prices[:mid]) if mid > 0 else curr_avg
-
-        change_pct = round(((curr_avg - prev_avg) / prev_avg) * 100, 1) if prev_avg else 0.0
-
-        if change_pct > 1.0:
-            trend_direction = "↗ Increasing"
-        elif change_pct < -1.0:
-            trend_direction = "↘ Decreasing"
-        else:
-            trend_direction = "→ Stable"
-
-        chart_labels = []
-        chart_prices = []
-        for r in current_rows:
-            dt_str = str(r['recorded_at'])[:10]
-            chart_labels.append(dt_str)
-            chart_prices.append(round(float(r['price_per_kg']), 2))
-
-        return {
-            "crop_name": crop_name,
-            "location": location,
-            "period": period,
-            "total_observations": total_obs,
-            "current_avg_price": round(curr_avg, 2),
-            "previous_avg_price": round(prev_avg, 2),
-            "change_pct": change_pct,
-            "min_price": round(min_p, 2),
-            "max_price": round(max_p, 2),
-            "trend_direction": trend_direction,
-            "labels": chart_labels,
-            "prices": chart_prices,
-            "govt_msp": govt_msp,
-            "has_data": True,
-            "message": None
-        }
+        where_sql = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+        sql = f"SELECT * FROM government_msp{where_sql} ORDER BY crop_name ASC"
+        cursor.execute(sql, tuple(params))
+        rows = cursor.fetchall()
+        return [_dict_row(r) for r in rows]
     except Exception as e:
-        print("[!] Error in get_crop_price_trends:", e)
-        return {
-            "crop_name": crop_name,
-            "location": location,
-            "period": period,
-            "total_observations": 0,
-            "message": "No CropSync price data available for this crop and location.",
-            "has_data": False,
-            "govt_msp": None
-        }
-    finally:
-        conn.close()
-
-def get_available_trend_crops():
-    conn, db_type = get_connection()
-    try:
-        cursor = conn.cursor()
-        sql = """
-            SELECT DISTINCT crop_name FROM (
-                SELECT crop_name FROM crops
-                UNION
-                SELECT crop_name FROM crop_price_history
-            ) t ORDER BY crop_name ASC
-        """
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        crops = [r['crop_name'].title() if isinstance(r, dict) else r[0].title() for r in rows if r]
-        return crops or ["Rice", "Wheat", "Cotton", "Tomato", "Potato", "Maize", "Pulses", "Sugarcane"]
-    except Exception:
-        return ["Rice", "Wheat", "Cotton", "Tomato", "Potato", "Maize", "Pulses", "Sugarcane"]
-    finally:
-        conn.close()
-
-def get_available_trend_locations():
-    conn, db_type = get_connection()
-    try:
-        cursor = conn.cursor()
-        sql = """
-            SELECT DISTINCT location FROM (
-                SELECT location FROM crops
-                UNION
-                SELECT location FROM crop_price_history
-            ) t ORDER BY location ASC
-        """
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        locations = [r['location'].title() if isinstance(r, dict) else r[0].title() for r in rows if r and (isinstance(r, dict) and r.get('location') or r[0])]
-        return locations
-    except Exception:
+        print("[!] Error in get_all_msp_references:", e)
         return []
     finally:
         conn.close()
 
+def get_msp_by_crop(crop_name):
+    if not crop_name: return None
+    seed_government_msp_data()
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        c_clean = crop_name.strip()
+        sql = f"""
+            SELECT * FROM government_msp 
+            WHERE LOWER(crop_name) = LOWER({ph}) 
+               OR LOWER({ph}) LIKE '%' || LOWER(crop_name) || '%' 
+               OR LOWER(crop_name) LIKE '%' || LOWER({ph}) || '%'
+            LIMIT 1
+        """
+        cursor.execute(sql, (c_clean, c_clean, c_clean))
+        row = cursor.fetchone()
+        return _dict_row(row)
+    except Exception as e:
+        print(f"[!] Error in get_msp_by_crop({crop_name}):", e)
+        return None
+    finally:
+        conn.close()
 
+def save_msp_reference(crop_name, msp_price_per_kg, category='Cereals', season='Kharif', effective_year=2025, source='Ministry of Agriculture & Farmers Welfare, Govt of India', status='active'):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        ph = "%s" if db_type == "postgres" else "?"
+        msp_kg = float(msp_price_per_kg)
+        msp_q = msp_kg * 100.0
+        c_name = crop_name.strip().title()
+        if db_type == "postgres":
+            sql = f"""
+                INSERT INTO government_msp (crop_name, msp_price_per_kg, msp_price_per_quintal, category, season, effective_year, source, status, created_at, updated_at)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+                ON CONFLICT (crop_name) DO UPDATE SET 
+                    msp_price_per_kg = EXCLUDED.msp_price_per_kg,
+                    msp_price_per_quintal = EXCLUDED.msp_price_per_quintal,
+                    category = EXCLUDED.category,
+                    season = EXCLUDED.season,
+                    effective_year = EXCLUDED.effective_year,
+                    source = EXCLUDED.source,
+                    status = EXCLUDED.status,
+                    updated_at = EXCLUDED.updated_at
+            """
+            cursor.execute(sql, (c_name, msp_kg, msp_q, category, season, int(effective_year), source, status, now, now))
+        else:
+            sql = f"""
+                INSERT OR REPLACE INTO government_msp (crop_name, msp_price_per_kg, msp_price_per_quintal, category, season, effective_year, source, status, created_at, updated_at)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+            """
+            cursor.execute(sql, (c_name, msp_kg, msp_q, category, season, int(effective_year), source, status, now, now))
+        conn.commit()
+        return True
+    except Exception as e:
+        print("[!] Error in save_msp_reference:", e)
+        return False
+    finally:
+        conn.close()
 
+def toggle_msp_status(crop_name, new_status):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"UPDATE government_msp SET status = {ph}, updated_at = {ph} WHERE LOWER(crop_name) = LOWER({ph})"
+        cursor.execute(sql, (new_status, now, crop_name.strip()))
+        conn.commit()
+        return True
+    except Exception as e:
+        print("[!] Error in toggle_msp_status:", e)
+        return False
+    finally:
+        conn.close()
 
+# --- ADMIN LISTINGS MANAGEMENT SERVICES ---
+
+def get_all_listings_admin():
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        sql = """
+            SELECT c.*, fp.name AS farmer_name, u.email AS farmer_email
+            FROM crops c
+            JOIN users u ON c.farmer_id = u.id
+            LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
+            ORDER BY c.created_at DESC
+        """
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        listings = [_dict_row(r) for r in rows]
+        for l in listings:
+            msp_info = get_msp_by_crop(l['crop_name'])
+            l['msp_reference'] = msp_info['msp_price_per_kg'] if msp_info else None
+        return listings
+    except Exception as e:
+        print("[!] Error in get_all_listings_admin:", e)
+        return []
+    finally:
+        conn.close()
+
+def get_listing_by_id_admin(crop_id):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"""
+            SELECT c.*, fp.name AS farmer_name, fp.phone AS farmer_phone, u.email AS farmer_email
+            FROM crops c
+            JOIN users u ON c.farmer_id = u.id
+            LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
+            WHERE c.id = {ph}
+        """
+        cursor.execute(sql, (str(crop_id),))
+        row = cursor.fetchone()
+        listing = _dict_row(row)
+        if listing:
+            msp_info = get_msp_by_crop(listing['crop_name'])
+            listing['msp_reference'] = msp_info['msp_price_per_kg'] if msp_info else None
+        return listing
+    except Exception as e:
+        print(f"[!] Error in get_listing_by_id_admin({crop_id}):", e)
+        return None
+    finally:
+        conn.close()
+
+def update_listing_status_admin(crop_id, status, admin_id=None):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"UPDATE crops SET status = {ph}, updated_at = {ph} WHERE id = {ph}"
+        cursor.execute(sql, (status, now, str(crop_id)))
+        conn.commit()
+        if admin_id:
+            log_admin_action(admin_id, f"Admin updated listing status to {status}", reason=f"Listing {crop_id}")
+        return True
+    except Exception as e:
+        print(f"[!] Error in update_listing_status_admin({crop_id}):", e)
+        return False
+    finally:
+        conn.close()
+
+# --- ADMIN ORDERS MANAGEMENT SERVICES ---
+
+def get_all_orders_admin(status_filter=None):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        where_sql = f" WHERE o.status = {ph}" if status_filter and status_filter != 'All' else ""
+        params = (status_filter,) if status_filter and status_filter != 'All' else ()
+        
+        sql = f"""
+            SELECT o.*, 
+                   fp.name AS farmer_name, fp.phone AS farmer_phone, u_f.email AS farmer_email,
+                   bp.name AS buyer_name, bp.phone AS buyer_phone, u_b.email AS buyer_email,
+                   c.price_per_kg AS unit_price
+            FROM orders o
+            JOIN users u_f ON o.farmer_id = u_f.id
+            LEFT JOIN farmer_profiles fp ON u_f.id = fp.user_id
+            JOIN users u_b ON o.buyer_id = u_b.id
+            LEFT JOIN buyer_profiles bp ON u_b.id = bp.user_id
+            LEFT JOIN crops c ON o.crop_id = c.id
+            {where_sql}
+            ORDER BY o.created_at DESC
+        """
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+        orders = [_dict_row(r) for r in rows]
+        for o in orders:
+            if not o.get('unit_price') and float(o.get('quantity', 0)) > 0:
+                o['unit_price'] = round(float(o['total_price']) / float(o['quantity']), 2)
+        return orders
+    except Exception as e:
+        print("[!] Error in get_all_orders_admin:", e)
+        return []
+    finally:
+        conn.close()
+
+def get_order_by_id_admin(order_id):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"""
+            SELECT o.*, 
+                   fp.name AS farmer_name, fp.phone AS farmer_phone, u_f.email AS farmer_email,
+                   bp.name AS buyer_name, bp.phone AS buyer_phone, u_b.email AS buyer_email,
+                   c.price_per_kg AS unit_price
+            FROM orders o
+            JOIN users u_f ON o.farmer_id = u_f.id
+            LEFT JOIN farmer_profiles fp ON u_f.id = fp.user_id
+            JOIN users u_b ON o.buyer_id = u_b.id
+            LEFT JOIN buyer_profiles bp ON u_b.id = bp.user_id
+            LEFT JOIN crops c ON o.crop_id = c.id
+            WHERE o.id = {ph}
+        """
+        cursor.execute(sql, (str(order_id),))
+        row = cursor.fetchone()
+        order = _dict_row(row)
+        if order and not order.get('unit_price') and float(order.get('quantity', 0)) > 0:
+            order['unit_price'] = round(float(order['total_price']) / float(order['quantity']), 2)
+        return order
+    except Exception as e:
+        print(f"[!] Error in get_order_by_id_admin({order_id}):", e)
+        return None
+    finally:
+        conn.close()
+
+# --- ADMIN DASHBOARD STATS & AUDIT LOGGING ---
+
+def get_admin_dashboard_stats():
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT count(*) FROM users WHERE role = 'farmer'")
+        total_farmers = cursor.fetchone()[0]
+
+        cursor.execute("SELECT count(*) FROM users WHERE role = 'buyer'")
+        total_buyers = cursor.fetchone()[0]
+
+        cursor.execute("SELECT count(*) FROM crops WHERE status = 'available'")
+        active_listings = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COALESCE(SUM(quantity), 0) FROM crops WHERE status = 'available'")
+        total_listed_qty = float(cursor.fetchone()[0])
+
+        cursor.execute("SELECT count(*) FROM orders WHERE status = 'Pending'")
+        pending_orders = cursor.fetchone()[0]
+
+        cursor.execute("SELECT count(*) FROM orders WHERE status = 'Accepted'")
+        accepted_orders = cursor.fetchone()[0]
+
+        cursor.execute("SELECT count(*) FROM orders WHERE status = 'Completed'")
+        completed_orders = cursor.fetchone()[0]
+
+        return {
+            'total_farmers': total_farmers,
+            'total_buyers': total_buyers,
+            'active_listings': active_listings,
+            'total_listed_qty': total_listed_qty,
+            'pending_orders': pending_orders,
+            'accepted_orders': accepted_orders,
+            'completed_orders': completed_orders
+        }
+    except Exception as e:
+        print("[!] Error in get_admin_dashboard_stats:", e)
+        return {
+            'total_farmers': 0, 'total_buyers': 0, 'active_listings': 0,
+            'total_listed_qty': 0.0, 'pending_orders': 0, 'accepted_orders': 0, 'completed_orders': 0
+        }
+    finally:
+        conn.close()
+
+def log_admin_action(admin_id, action, target_user_id=None, reason=None):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        aid = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"""
+            INSERT INTO audit_logs (id, admin_id, action, target_user_id, reason, created_at)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+        """
+        cursor.execute(sql, (aid, str(admin_id) if admin_id else None, action, str(target_user_id) if target_user_id else None, reason, now))
+        conn.commit()
+    except Exception as e:
+        print("[!] Error logging admin action:", e)
+    finally:
+        conn.close()

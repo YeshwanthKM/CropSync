@@ -4,39 +4,58 @@
 {% block header_title %}System Overview{% endblock %}
 
 {% block content %}
-<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2.5rem;">
-    <div class="card" style="text-align: center;">
-        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem;">{{ stats.total_farmers }}</h3>
-        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Total Farmers</p>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 2.5rem; gap: 1.25rem;">
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #27ae60;">{{ stats.total_farmers }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Total Farmers</p>
     </div>
-    <div class="card" style="text-align: center;">
-        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem;">{{ stats.total_buyers }}</h3>
-        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Total Buyers</p>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #2980b9;">{{ stats.total_buyers }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Total Buyers</p>
     </div>
-    <div class="card" style="text-align: center;">
-        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem;">{{ stats.active_listings }}</h3>
-        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Active Listings</p>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #8e44ad;">{{ stats.active_listings }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Active Listings</p>
     </div>
-    <div class="card" style="text-align: center;">
-        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem;">{{ stats.active_orders }}</h3>
-        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Pending Orders</p>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 1.8rem; color: #16a085;">{{ "%.0f"|format(stats.total_listed_qty) }} kg</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Total Listed Quantity</p>
     </div>
-    <div class="card" style="text-align: center; border-color: {% if stats.suspended_accounts > 0 %}#f44336{% else %}var(--nav-border){% endif %};">
-        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem; color: {% if stats.suspended_accounts > 0 %}#f44336{% else %}inherit{% endif %};">{{ stats.suspended_accounts }}</h3>
-        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Suspended Accounts</p>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #f39c12;">{{ stats.pending_orders }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Pending Orders</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #27ae60;">{{ stats.accepted_orders }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Accepted Orders</p>
     </div>
 </div>
 
-<div class="grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
     <div class="card">
-        <h3>Farmer Management</h3>
-        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Review, edit, activate, or suspend registered farmer accounts across regions.</p>
+        <h3>👨‍🌾 Farmers</h3>
+        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Review farmer accounts and locations.</p>
         <a href="{{ url_for('admin_farmers') }}" class="btn" style="width: 100%;">Manage Farmers &rarr;</a>
     </div>
     <div class="card">
-        <h3>Buyer Management</h3>
-        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Review, edit, activate, or suspend registered buyer accounts and organizations.</p>
+        <h3>🛒 Buyers</h3>
+        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Review buyer accounts and organizations.</p>
         <a href="{{ url_for('admin_buyers') }}" class="btn" style="width: 100%;">Manage Buyers &rarr;</a>
+    </div>
+    <div class="card">
+        <h3>🌾 Listings</h3>
+        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Review crop listings and toggle statuses.</p>
+        <a href="{{ url_for('admin_listings') }}" class="btn" style="width: 100%;">Manage Listings &rarr;</a>
+    </div>
+    <div class="card">
+        <h3>📦 Orders</h3>
+        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Monitor marketplace order transactions.</p>
+        <a href="{{ url_for('admin_orders') }}" class="btn" style="width: 100%;">View All Orders &rarr;</a>
+    </div>
+    <div class="card">
+        <h3>🏛️ MSP References</h3>
+        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Manage official Government MSP benchmarks.</p>
+        <a href="{{ url_for('admin_msp') }}" class="btn" style="width: 100%;">Manage MSP References &rarr;</a>
     </div>
 </div>
 {% endblock %}

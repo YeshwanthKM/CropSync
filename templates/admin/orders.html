@@ -1,0 +1,115 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "orders" %}
+{% block title %}Order Management{% endblock %}
+{% block header_title %}Marketplace Orders{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="margin: 0;">Marketplace Orders</h3>
+            <p style="color: var(--secondary-text); margin: 0.25rem 0 0 0; font-size: 0.9rem;">View and monitor all buyer-farmer transactions across the platform.</p>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            {% for s in ['All', 'Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed'] %}
+                <a href="{{ url_for('admin_orders', status=s) }}" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; {% if status_filter == s %}background: #27ae60; border-color: #27ae60; color: white;{% else %}background: var(--nav-bg); color: var(--text-color); border: 1px solid var(--nav-border);{% endif %}">
+                    {{ s }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+    <div class="table-container">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: rgba(0,0,0,0.03); border-bottom: 1px solid var(--nav-border); text-align: left;">
+                    <th style="padding: 0.75rem 1rem;">Order ID</th>
+                    <th style="padding: 0.75rem 1rem;">Crop</th>
+                    <th style="padding: 0.75rem 1rem;">Farmer</th>
+                    <th style="padding: 0.75rem 1rem;">Buyer</th>
+                    <th style="padding: 0.75rem 1rem;">Quantity</th>
+                    <th style="padding: 0.75rem 1rem;">Unit Price</th>
+                    <th style="padding: 0.75rem 1rem;">Total Amount</th>
+                    <th style="padding: 0.75rem 1rem;">Status</th>
+                    <th style="padding: 0.75rem 1rem;">Created Date</th>
+                    <th style="padding: 0.75rem 1rem;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in orders %}
+                <tr style="border-bottom: 1px solid var(--nav-border);">
+                    <td style="padding: 0.75rem 1rem; font-family: monospace; font-size: 0.85rem;">{{ o.id[:8] }}...</td>
+                    <td style="padding: 0.75rem 1rem; font-weight: 700;">{{ o.crop_name }}</td>
+                    <td style="padding: 0.75rem 1rem;">
+                        <div>{{ o.farmer_name or 'Farmer' }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-text);">{{ o.farmer_email }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 1rem;">
+                        <div>{{ o.buyer_name or 'Buyer' }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-text);">{{ o.buyer_email }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 1rem;">{{ o.quantity }} kg</td>
+                    <td style="padding: 0.75rem 1rem;">₹{{ "%.2f"|format(o.unit_price or 0) }}/kg</td>
+                    <td style="padding: 0.75rem 1rem; font-weight: 800; color: #27ae60;">₹{{ "%.2f"|format(o.total_price or 0) }}</td>
+                    <td style="padding: 0.75rem 1rem;">
+                        {% if o.status == 'Pending' %}
+                            <span style="background: rgba(243, 156, 18, 0.15); color: #f39c12; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Pending</span>
+                        {% elif o.status == 'Accepted' %}
+                            <span style="background: rgba(39, 174, 96, 0.15); color: #27ae60; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Accepted</span>
+                        {% elif o.status == 'Rejected' %}
+                            <span style="background: rgba(231, 76, 60, 0.15); color: #e74c3c; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Rejected</span>
+                        {% elif o.status == 'Completed' %}
+                            <span style="background: rgba(41, 128, 185, 0.15); color: #2980b9; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Completed</span>
+                        {% else %}
+                            <span style="background: rgba(127, 127, 127, 0.15); color: #7f8c8d; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">{{ o.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--secondary-text);">{{ str(o.created_at)[:10] }}</td>
+                    <td style="padding: 0.75rem 1rem;">
+                        <button onclick="viewOrderModal('{{ o.id }}', '{{ o.crop_name }}', '{{ o.farmer_name }}', '{{ o.farmer_email }}', '{{ o.buyer_name }}', '{{ o.buyer_email }}', '{{ o.quantity }}', '{{ o.unit_price or 0 }}', '{{ o.total_price }}', '{{ o.status }}', '{{ o.created_at }}', '{{ o.updated_at }}')" class="btn" style="padding: 4px 8px; font-size: 0.75rem;">Details</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 3rem 1rem; color: var(--secondary-text);">No orders found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Order View Modal -->
+<div id="orderModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 500px; width: 90%; background: var(--bg-color); padding: 2rem; position: relative;">
+        <h3 id="modalOrderTitle" style="margin-top: 0;">Order Details</h3>
+        <div id="modalOrderContent" style="display: flex; flex-direction: column; gap: 0.75rem; margin: 1.5rem 0;"></div>
+        <button onclick="closeOrderModal()" class="btn" style="width: 100%;">Close</button>
+    </div>
+</div>
+
+<script>
+function viewOrderModal(id, crop, farmer, f_email, buyer, b_email, qty, unitPrice, total, status, created, updated) {
+    document.getElementById('modalOrderTitle').innerText = `📦 Order Details`;
+    document.getElementById('modalOrderContent').innerHTML = `
+        <div><strong>Order ID:</strong> <span style="font-family: monospace;">${id}</span></div>
+        <div><strong>Crop:</strong> ${crop}</div>
+        <div><strong>Farmer:</strong> ${farmer} (${f_email})</div>
+        <div><strong>Buyer:</strong> ${buyer} (${b_email})</div>
+        <div><strong>Quantity:</strong> ${qty} kg</div>
+        <div><strong>Unit Price:</strong> ₹${unitPrice}/kg</div>
+        <div><strong>Total Amount:</strong> ₹${total}</div>
+        <div><strong>Status:</strong> <span style="font-weight: bold;">${status}</span></div>
+        <div><strong>Created Date:</strong> ${created}</div>
+        <div><strong>Updated Date:</strong> ${updated}</div>
+    `;
+    document.getElementById('orderModal').style.display = 'flex';
+}
+function closeOrderModal() {
+    document.getElementById('orderModal').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -20,9 +20,8 @@
                 <button class="sidebar-link" onclick="showSection('add-listing')">{{ get_text('list_new_crop') }}</button>
                 <button class="sidebar-link" onclick="showSection('my-listings')">{{ get_text('my_crop_listings') }}</button>
                 <button class="sidebar-link" onclick="showSection('sold-items')">Orders & Sales</button>
-                <a href="{{ url_for('price_trends') }}" class="sidebar-link" style="color: #27ae60; font-weight: 700; text-decoration: none; display: block; padding: 0.75rem 1rem;">📉 Crop Price Trends</a>
-
                 <button class="sidebar-link" onclick="showSection('msp-reference')">{{ get_text('msp_reference') }}</button>
+
 
             </nav>
             <div class="sidebar-footer">
@@ -93,42 +92,93 @@
                         {% endfor %}
                     </div>
                 </div>
-                <form method="POST">
+                <form method="POST" id="listingForm">
                     <div class="grid">
                         <div class="form-group">
                             <label>{{ get_text('crop_name') }}</label>
-                            <select name="crop_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--input-border); background: var(--bg-color); color: var(--text-color); font-size: 0.95rem; font-weight: 600;">
+                            <select id="cropSelect" name="crop_name" required onchange="calculateMspDiff()" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--input-border); background: var(--bg-color); color: var(--text-color); font-size: 0.95rem; font-weight: 600;">
                                 <option value="" disabled selected>Select crop...</option>
-                                <option value="Rice">Rice (MSP: ₹21.83/kg)</option>
-                                <option value="Wheat">Wheat (MSP: ₹22.75/kg)</option>
-                                <option value="Maize">Maize (MSP: ₹20.90/kg)</option>
-                                <option value="Ragi">Ragi (MSP: ₹38.46/kg)</option>
-                                <option value="Bajra">Bajra (MSP: ₹25.00/kg)</option>
-                                <option value="Tur">Tur (MSP: ₹70.00/kg)</option>
-                                <option value="Moong">Moong (MSP: ₹85.58/kg)</option>
-                                <option value="Urad">Urad (MSP: ₹69.50/kg)</option>
-                                <option value="Groundnut">Groundnut (MSP: ₹63.77/kg)</option>
-                                <option value="Sunflower">Sunflower (MSP: ₹67.60/kg)</option>
-                                <option value="Soyabean">Soyabean (MSP: ₹46.00/kg)</option>
-                                <option value="Cotton">Cotton (MSP: ₹66.20/kg)</option>
+                                <option value="Rice" data-msp="21.83">Rice (MSP: ₹21.83/kg)</option>
+                                <option value="Wheat" data-msp="22.75">Wheat (MSP: ₹22.75/kg)</option>
+                                <option value="Maize" data-msp="20.90">Maize (MSP: ₹20.90/kg)</option>
+                                <option value="Ragi" data-msp="38.46">Ragi (MSP: ₹38.46/kg)</option>
+                                <option value="Bajra" data-msp="25.00">Bajra (MSP: ₹25.00/kg)</option>
+                                <option value="Tur" data-msp="70.00">Tur (MSP: ₹70.00/kg)</option>
+                                <option value="Moong" data-msp="85.58">Moong (MSP: ₹85.58/kg)</option>
+                                <option value="Urad" data-msp="69.50">Urad (MSP: ₹69.50/kg)</option>
+                                <option value="Groundnut" data-msp="63.77">Groundnut (MSP: ₹63.77/kg)</option>
+                                <option value="Sunflower" data-msp="67.60">Sunflower (MSP: ₹67.60/kg)</option>
+                                <option value="Soyabean" data-msp="46.00">Soyabean (MSP: ₹46.00/kg)</option>
+                                <option value="Cotton" data-msp="66.20">Cotton (MSP: ₹66.20/kg)</option>
                             </select>
-
                         </div>
 
                         <div class="form-group">
                             <label>{{ get_text('quantity') }} (kg)</label>
-                            <input type="number" step="1" name="quantity" required>
+                            <input type="number" step="1" name="quantity" min="1" required>
                         </div>
                         <div class="form-group" style="flex: 1.5;">
                             <label>{{ get_text('price_per_kg') }} (₹)</label>
-                            <input type="number" step="0.1" name="price_per_kg" required>
+                            <input type="number" step="0.1" id="priceInput" name="price_per_kg" required oninput="calculateMspDiff()">
                         </div>
                     </div>
+
+                    <!-- MSP Live Comparison Widget -->
+                    <div id="mspWidget" style="display: none; margin: 1rem 0; padding: 0.85rem; border-radius: 8px; background: rgba(41, 128, 185, 0.08); border: 1px solid rgba(41, 128, 185, 0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div>
+                                <span>Govt MSP Reference: <strong id="mspValueDisplay">₹0.00/kg</strong></span>
+                            </div>
+                            <div>
+                                <span>Difference vs MSP: <strong id="mspDiffDisplay">0%</strong></span>
+                            </div>
+                        </div>
+                        <div id="mspWarningMsg" style="margin-top: 0.5rem; font-size: 0.85rem; color: #e74c3c; font-weight: 600; display: none;">
+                            ⚠️ Note: Your price is listed below the official Government MSP benchmark.
+                        </div>
+                    </div>
+
                     <p style="font-size: 0.8125rem; color: var(--secondary-text); margin-bottom: 1.5rem;">
                         📍 <strong>Location:</strong> {{ session['farmer_user']['location'] }} (Auto-detected from your profile)
                     </p>
                     <button type="submit">{{ get_text('add_new_listing') }}</button>
                 </form>
+
+                <script>
+                function calculateMspDiff() {
+                    const select = document.getElementById('cropSelect');
+                    const priceInput = document.getElementById('priceInput');
+                    const widget = document.getElementById('mspWidget');
+                    const mspDisplay = document.getElementById('mspValueDisplay');
+                    const diffDisplay = document.getElementById('mspDiffDisplay');
+                    const warning = document.getElementById('mspWarningMsg');
+
+                    const selectedOpt = select.options[select.selectedIndex];
+                    const msp = parseFloat(selectedOpt ? selectedOpt.getAttribute('data-msp') : 0);
+                    const userPrice = parseFloat(priceInput.value);
+
+                    if (msp && msp > 0) {
+                        widget.style.display = 'block';
+                        mspDisplay.innerText = `₹${msp.toFixed(2)}/kg`;
+
+                        if (userPrice && userPrice > 0) {
+                            const diffPct = (((userPrice - msp) / msp) * 100).toFixed(1);
+                            if (diffPct >= 0) {
+                                diffDisplay.innerHTML = `<span style="color: #27ae60;">+${diffPct}% above MSP</span>`;
+                                warning.style.display = 'none';
+                            } else {
+                                diffDisplay.innerHTML = `<span style="color: #e74c3c;">${diffPct}% below MSP</span>`;
+                                warning.style.display = 'block';
+                            }
+                        } else {
+                            diffDisplay.innerText = 'Enter price';
+                            warning.style.display = 'none';
+                        }
+                    } else {
+                        widget.style.display = 'none';
+                    }
+                }
+                </script>
             </div>
 
             <!-- Section: My Crop Listings -->
@@ -189,7 +239,11 @@
                                 <td style="text-transform: capitalize;">{{ order.crop_name }}</td>
                                 <td>
                                     <div>{{ order.buyer_name }}</div>
-                                    <div style="font-size: 0.75rem; color: var(--secondary-text);">{{ order.buyer_phone }}</div>
+                                    {% if order.status == 'Accepted' %}
+                                        <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">📞 {{ order.buyer_phone or 'Contact Provided' }}</div>
+                                    {% else %}
+                                        <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon acceptance</div>
+                                    {% endif %}
                                 </td>
                                 <td>{{ order.quantity }} kg</td>
                                 <td>₹{{ order.total_price }}</td>
@@ -217,6 +271,7 @@
                     </table>
                 </div>
             </div>
+
 
             <!-- Section: MSP Reference -->
             <div id="section-msp-reference" class="dashboard-section" style="display: none;">

@@ -1,0 +1,117 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "listings" %}
+{% block title %}Crop Listings Management{% endblock %}
+{% block header_title %}Crop Listings Management{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem; padding: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="margin: 0;">Marketplace Listings</h3>
+            <p style="color: var(--secondary-text); margin: 0.25rem 0 0 0; font-size: 0.9rem;">Review and manage active or disabled farmer crop listings.</p>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+    <div class="table-container">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: rgba(0,0,0,0.03); border-bottom: 1px solid var(--nav-border); text-align: left;">
+                    <th style="padding: 0.75rem 1rem;">Listing ID</th>
+                    <th style="padding: 0.75rem 1rem;">Crop</th>
+                    <th style="padding: 0.75rem 1rem;">Farmer</th>
+                    <th style="padding: 0.75rem 1rem;">Location</th>
+                    <th style="padding: 0.75rem 1rem;">Quantity</th>
+                    <th style="padding: 0.75rem 1rem;">Price / kg</th>
+                    <th style="padding: 0.75rem 1rem;">MSP Reference</th>
+                    <th style="padding: 0.75rem 1rem;">Status</th>
+                    <th style="padding: 0.75rem 1rem;">Created Date</th>
+                    <th style="padding: 0.75rem 1rem;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in listings %}
+                <tr style="border-bottom: 1px solid var(--nav-border);">
+                    <td style="padding: 0.75rem 1rem; font-family: monospace; font-size: 0.85rem;">{{ l.id[:8] }}...</td>
+                    <td style="padding: 0.75rem 1rem; font-weight: 700;">{{ l.crop_name }}</td>
+                    <td style="padding: 0.75rem 1rem;">
+                        <div>{{ l.farmer_name or 'Farmer' }}</div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-text);">{{ l.farmer_email }}</div>
+                    </td>
+                    <td style="padding: 0.75rem 1rem;">{{ l.location }}</td>
+                    <td style="padding: 0.75rem 1rem;">{{ l.quantity }} kg</td>
+                    <td style="padding: 0.75rem 1rem; font-weight: 700; color: #27ae60;">₹{{ l.price_per_kg }}</td>
+                    <td style="padding: 0.75rem 1rem; font-size: 0.85rem;">
+                        {% if l.msp_reference %}
+                            <span style="background: rgba(41, 128, 185, 0.1); border: 1px solid rgba(41, 128, 185, 0.3); padding: 2px 6px; border-radius: 4px;">
+                                MSP: ₹{{ "%.2f"|format(l.msp_reference) }}/kg
+                            </span>
+                        {% else %}
+                            <span style="color: var(--secondary-text);">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 1rem;">
+                        {% if l.status == 'available' %}
+                            <span style="background: rgba(39, 174, 96, 0.15); color: #27ae60; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Active</span>
+                        {% elif l.status == 'disabled' %}
+                            <span style="background: rgba(231, 76, 60, 0.15); color: #e74c3c; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Disabled</span>
+                        {% elif l.status == 'sold' %}
+                            <span style="background: rgba(142, 68, 173, 0.15); color: #8e44ad; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Sold Out</span>
+                        {% else %}
+                            <span style="background: rgba(127, 127, 127, 0.15); color: #7f8c8d; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">{{ l.status|capitalize }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--secondary-text);">{{ str(l.created_at)[:10] }}</td>
+                    <td style="padding: 0.75rem 1rem;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="viewListingModal('{{ l.id }}', '{{ l.crop_name }}', '{{ l.farmer_name }}', '{{ l.farmer_email }}', '{{ l.location }}', '{{ l.quantity }}', '{{ l.price_per_kg }}', '{{ l.msp_reference or 'N/A' }}', '{{ l.status }}', '{{ l.created_at }}', '{{ l.updated_at }}')" class="btn" style="padding: 4px 8px; font-size: 0.75rem;">View</button>
+                            {% if l.status == 'available' %}
+                                <a href="{{ url_for('admin_listing_status', crop_id=l.id, status='disabled') }}" class="btn" style="padding: 4px 8px; font-size: 0.75rem; background: #e74c3c; border-color: #e74c3c; color: white;" onclick="return confirm('Disable this listing?')">Disable</a>
+                            {% elif l.status == 'disabled' %}
+                                <a href="{{ url_for('admin_listing_status', crop_id=l.id, status='available') }}" class="btn" style="padding: 4px 8px; font-size: 0.75rem; background: #27ae60; border-color: #27ae60; color: white;">Reactivate</a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 3rem 1rem; color: var(--secondary-text);">No listings found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Listing View Modal -->
+<div id="listingModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 500px; width: 90%; background: var(--bg-color); padding: 2rem; position: relative;">
+        <h3 id="modalCropTitle" style="margin-top: 0;">Listing Details</h3>
+        <div id="modalContent" style="display: flex; flex-direction: column; gap: 0.75rem; margin: 1.5rem 0;"></div>
+        <button onclick="closeListingModal()" class="btn" style="width: 100%;">Close</button>
+    </div>
+</div>
+
+<script>
+function viewListingModal(id, crop, farmer, email, location, qty, price, msp, status, created, updated) {
+    document.getElementById('modalCropTitle').innerText = `🌾 ${crop} Listing Details`;
+    document.getElementById('modalContent').innerHTML = `
+        <div><strong>Listing ID:</strong> <span style="font-family: monospace;">${id}</span></div>
+        <div><strong>Farmer Name:</strong> ${farmer}</div>
+        <div><strong>Farmer Email:</strong> ${email}</div>
+        <div><strong>Location:</strong> ${location}</div>
+        <div><strong>Quantity:</strong> ${qty} kg</div>
+        <div><strong>Price per kg:</strong> ₹${price}</div>
+        <div><strong>Government MSP Reference:</strong> ₹${msp}/kg</div>
+        <div><strong>Status:</strong> <span style="text-transform: capitalize; font-weight: bold;">${status}</span></div>
+        <div><strong>Created Timestamp:</strong> ${created}</div>
+        <div><strong>Updated Timestamp:</strong> ${updated}</div>
+    `;
+    document.getElementById('listingModal').style.display = 'flex';
+}
+function closeListingModal() {
+    document.getElementById('listingModal').style.display = 'none';
+}
+</script>
+{% endblock %}

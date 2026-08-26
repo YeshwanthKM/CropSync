@@ -21,14 +21,24 @@
                     Dashboard
                 </a>
                 <a href="{{ url_for('admin_farmers') }}" class="sidebar-link {% if active_page == 'farmers' %}active{% endif %}">
-                    Farmers Management
+                    Farmers
                 </a>
                 <a href="{{ url_for('admin_buyers') }}" class="sidebar-link {% if active_page == 'buyers' %}active{% endif %}">
-                    Buyers Management
+                    Buyers
+                </a>
+                <a href="{{ url_for('admin_listings') }}" class="sidebar-link {% if active_page == 'listings' %}active{% endif %}">
+                    Listings
+                </a>
+                <a href="{{ url_for('admin_orders') }}" class="sidebar-link {% if active_page == 'orders' %}active{% endif %}">
+                    Orders
+                </a>
+                <a href="{{ url_for('admin_msp') }}" class="sidebar-link {% if active_page == 'msp' %}active{% endif %}">
+                    MSP References
                 </a>
                 <a href="{{ url_for('admin_create_user') }}" class="sidebar-link {% if active_page == 'create_user' %}active{% endif %}">
                     + Create New User
                 </a>
+
             </nav>
             <div class="sidebar-footer">
                 <button id="theme-toggle" class="sidebar-link">Theme</button>

@@ -1,0 +1,165 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "msp" %}
+{% block title %}MSP References Management{% endblock %}
+{% block header_title %}Government MSP References{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="margin: 0;">Government Minimum Support Price (MSP) References</h3>
+            <p style="color: var(--secondary-text); margin: 0.25rem 0 0 0; font-size: 0.9rem;">Official Ministry of Agriculture benchmarks used for farmer validation & buyer comparison.</p>
+        </div>
+        <button onclick="openMspModal()" class="btn" style="background: #27ae60; border-color: #27ae60; color: white;">+ Add MSP Reference</button>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <form method="GET" action="{{ url_for('admin_msp') }}" style="display: flex; gap: 1rem; margin-top: 1.25rem; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 2; min-width: 200px;">
+            <label style="font-weight: 600; font-size: 0.85rem;">Search Crop</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="e.g. Rice, Wheat...">
+        </div>
+        <div style="flex: 1; min-width: 140px;">
+            <label style="font-weight: 600; font-size: 0.85rem;">Season</label>
+            <select name="season" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--input-border); background: var(--bg-color); color: var(--text-color);">
+                <option value="All" {% if season == 'All' %}selected{% endif %}>All Seasons</option>
+                <option value="Kharif" {% if season == 'Kharif' %}selected{% endif %}>Kharif</option>
+                <option value="Rabi" {% if season == 'Rabi' %}selected{% endif %}>Rabi</option>
+                <option value="All Season" {% if season == 'All Season' %}selected{% endif %}>All Season</option>
+            </select>
+        </div>
+        <div style="flex: 1; min-width: 140px;">
+            <label style="font-weight: 600; font-size: 0.85rem;">Marketing Year</label>
+            <select name="year" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--input-border); background: var(--bg-color); color: var(--text-color);">
+                <option value="All" {% if year == 'All' %}selected{% endif %}>All Years</option>
+                <option value="2025" {% if year == '2025' %}selected{% endif %}>2024-25</option>
+                <option value="2024" {% if year == '2024' %}selected{% endif %}>2023-24</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn">Filter</button>
+            <a href="{{ url_for('admin_msp') }}" class="btn" style="background: var(--nav-bg); color: var(--text-color); border: 1px solid var(--nav-border);">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+    <div class="table-container">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: rgba(0,0,0,0.03); border-bottom: 1px solid var(--nav-border); text-align: left;">
+                    <th style="padding: 0.75rem 1rem;">Crop Name</th>
+                    <th style="padding: 0.75rem 1rem;">Category</th>
+                    <th style="padding: 0.75rem 1rem;">Season</th>
+                    <th style="padding: 0.75rem 1rem;">Marketing Year</th>
+                    <th style="padding: 0.75rem 1rem;">MSP / kg</th>
+                    <th style="padding: 0.75rem 1rem;">MSP / Quintal</th>
+                    <th style="padding: 0.75rem 1rem;">Source</th>
+                    <th style="padding: 0.75rem 1rem;">Status</th>
+                    <th style="padding: 0.75rem 1rem;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in msp_records %}
+                <tr style="border-bottom: 1px solid var(--nav-border);">
+                    <td style="padding: 0.75rem 1rem; font-weight: 700;">{{ r.crop_name }}</td>
+                    <td style="padding: 0.75rem 1rem;">{{ r.category }}</td>
+                    <td style="padding: 0.75rem 1rem;">{{ r.season }}</td>
+                    <td style="padding: 0.75rem 1rem;">{{ r.effective_year }}</td>
+                    <td style="padding: 0.75rem 1rem; font-weight: 800; color: #27ae60;">₹{{ "%.2f"|format(r.msp_price_per_kg or 0) }}/kg</td>
+                    <td style="padding: 0.75rem 1rem;">₹{{ "%.0f"|format(r.msp_price_per_quintal or (r.msp_price_per_kg * 100)) }}/q</td>
+                    <td style="padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--secondary-text); max-width: 200px;">{{ r.source or 'Ministry of Agriculture, Govt of India' }}</td>
+                    <td style="padding: 0.75rem 1rem;">
+                        {% if r.status == 'active' %}
+                            <span style="background: rgba(39, 174, 96, 0.15); color: #27ae60; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Active</span>
+                        {% else %}
+                            <span style="background: rgba(231, 76, 60, 0.15); color: #e74c3c; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem 1rem;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="editMspModal('{{ r.crop_name }}', '{{ r.msp_price_per_kg }}', '{{ r.category }}', '{{ r.season }}', '{{ r.effective_year }}', '{{ r.source }}')" class="btn" style="padding: 4px 8px; font-size: 0.75rem;">Edit</button>
+                            <a href="{{ url_for('admin_msp_toggle', crop_name=r.crop_name) }}" class="btn" style="padding: 4px 8px; font-size: 0.75rem; {% if r.status == 'active' %}background: #e74c3c; border-color: #e74c3c; color: white;{% else %}background: #27ae60; border-color: #27ae60; color: white;{% endif %}">
+                                {% if r.status == 'active' %}Deactivate{% else %}Activate{% endif %}
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 3rem 1rem; color: var(--secondary-text);">No MSP reference available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add / Edit MSP Modal -->
+<div id="mspModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 500px; width: 90%; background: var(--bg-color); padding: 2rem; position: relative;">
+        <h3 id="modalMspTitle" style="margin-top: 0;">Add MSP Reference</h3>
+        <form method="POST" action="{{ url_for('admin_msp_save') }}">
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin: 1.5rem 0;">
+                <div>
+                    <label style="font-weight: 600; font-size: 0.85rem;">Crop Name</label>
+                    <input type="text" id="inputCropName" name="crop_name" required placeholder="e.g. Rice, Wheat...">
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 0.85rem;">MSP Price per kg (₹)</label>
+                    <input type="number" step="0.01" id="inputPriceKg" name="msp_price_per_kg" required placeholder="e.g. 21.83">
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 0.85rem;">Category</label>
+                    <input type="text" id="inputCategory" name="category" value="Cereals" required>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 0.85rem;">Season</label>
+                    <select id="selectSeason" name="season" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--input-border); background: var(--bg-color); color: var(--text-color);">
+                        <option value="Kharif">Kharif</option>
+                        <option value="Rabi">Rabi</option>
+                        <option value="All Season">All Season</option>
+                        <option value="Commercial">Commercial</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 0.85rem;">Marketing Year</label>
+                    <input type="number" id="inputYear" name="effective_year" value="2025" required>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 0.85rem;">Source Benchmark</label>
+                    <input type="text" id="inputSource" name="source" value="Ministry of Agriculture & Farmers Welfare, Govt of India" required>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="submit" class="btn" style="flex: 2; background: #27ae60; border-color: #27ae60; color: white;">Save MSP Reference</button>
+                <button type="button" onclick="closeMspModal()" class="btn" style="flex: 1; background: var(--nav-bg); color: var(--text-color); border: 1px solid var(--nav-border);">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openMspModal() {
+    document.getElementById('modalMspTitle').innerText = 'Add MSP Reference';
+    document.getElementById('inputCropName').value = '';
+    document.getElementById('inputCropName').readOnly = false;
+    document.getElementById('inputPriceKg').value = '';
+    document.getElementById('mspModal').style.display = 'flex';
+}
+function editMspModal(crop, price, cat, season, yr, source) {
+    document.getElementById('modalMspTitle').innerText = `Edit MSP Reference — ${crop}`;
+    document.getElementById('inputCropName').value = crop;
+    document.getElementById('inputCropName').readOnly = true;
+    document.getElementById('inputPriceKg').value = price;
+    document.getElementById('inputCategory').value = cat;
+    document.getElementById('selectSeason').value = season;
+    document.getElementById('inputYear').value = yr;
+    document.getElementById('inputSource').value = source;
+    document.getElementById('mspModal').style.display = 'flex';
+}
+function closeMspModal() {
+    document.getElementById('mspModal').style.display = 'none';
+}
+</script>
+{% endblock %}

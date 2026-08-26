@@ -565,10 +565,22 @@ def buyer_dashboard():
     
     filtered_crops = db.get_crops(search=search, location=location)
     for c in filtered_crops:
-        c['msp_value'] = MSP_DATA.get(c['crop_name'].lower(), 0)
+        msp_record = db.get_msp_by_crop(c['crop_name'])
+        if msp_record:
+            msp_val = float(msp_record['msp_price_per_kg'])
+            c['msp_value'] = msp_val
+            farmer_price = float(c['price_per_kg'])
+            diff_pct = round(((farmer_price - msp_val) / msp_val) * 100, 1)
+            c['msp_diff_pct'] = diff_pct
+            c['msp_diff_text'] = f"+{diff_pct}% above MSP" if diff_pct >= 0 else f"{diff_pct}% below MSP"
+        else:
+            c['msp_value'] = None
+            c['msp_diff_pct'] = None
+            c['msp_diff_text'] = 'N/A'
 
     orders = db.get_orders_for_buyer(session['buyer_user']['id'])
     return render_template('buyer_dashboard.html', crops=filtered_crops, orders=orders, msp_data=MSP_DATA)
+
 
 @app.route('/place_order', methods=['POST'])
 def place_order():
@@ -603,8 +615,8 @@ def place_order():
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
-    stats = db.get_admin_stats()
-    return render_template('admin/dashboard.html', stats=stats)
+    stats = db.get_admin_dashboard_stats()
+    return render_template('admin/dashboard.html', stats=stats, active_page='dashboard')
 
 @app.route('/admin/farmers')
 @admin_required
@@ -612,7 +624,7 @@ def admin_farmers():
     search = request.args.get('search', '').strip()
     status_filter = request.args.get('status', 'all').strip()
     farmers = db.get_all_farmers(search=search, status_filter=status_filter)
-    return render_template('admin/farmers.html', farmers=farmers, search=search, status_filter=status_filter)
+    return render_template('admin/farmers.html', farmers=farmers, search=search, status_filter=status_filter, active_page='farmers')
 
 @app.route('/admin/farmers/<farmer_id>', methods=['GET', 'POST'])
 @admin_required
@@ -650,7 +662,7 @@ def admin_farmer_detail(farmer_id):
                 flash(f'Farmer account status updated to {new_status}.', 'success')
         return redirect(url_for('admin_farmer_detail', farmer_id=farmer_id))
 
-    return render_template('admin/farmer_detail.html', farmer=farmer)
+    return render_template('admin/farmer_detail.html', farmer=farmer, active_page='farmers')
 
 @app.route('/admin/buyers')
 @admin_required
@@ -658,7 +670,7 @@ def admin_buyers():
     search = request.args.get('search', '').strip()
     status_filter = request.args.get('status', 'all').strip()
     buyers = db.get_all_buyers(search=search, status_filter=status_filter)
-    return render_template('admin/buyers.html', buyers=buyers, search=search, status_filter=status_filter)
+    return render_template('admin/buyers.html', buyers=buyers, search=search, status_filter=status_filter, active_page='buyers')
 
 @app.route('/admin/buyers/<buyer_id>', methods=['GET', 'POST'])
 @admin_required
@@ -697,10 +709,85 @@ def admin_buyer_detail(buyer_id):
                 flash(f'Buyer account status updated to {new_status}.', 'success')
         return redirect(url_for('admin_buyer_detail', buyer_id=buyer_id))
 
-    return render_template('admin/buyer_detail.html', buyer=buyer)
+    return render_template('admin/buyer_detail.html', buyer=buyer, active_page='buyers')
 
+@app.route('/admin/listings')
+@admin_required
+def admin_listings():
+    listings = db.get_all_listings_admin()
+    return render_template('admin/listings.html', listings=listings, active_page='listings')
 
+@app.route('/admin/listings/status/<crop_id>/<status>')
+@admin_required
+def admin_listing_status(crop_id, status):
+    if status not in ('available', 'disabled', 'archived'):
+        flash('Invalid status.', 'error')
+        return redirect(url_for('admin_listings'))
+    admin_id = session.get('admin_user', {}).get('id')
+    db.update_listing_status_admin(crop_id, status, admin_id=admin_id)
+    flash(f'Listing status updated to {status}.', 'success')
+    return redirect(url_for('admin_listings'))
 
+@app.route('/admin/orders')
+@admin_required
+def admin_orders():
+    status_filter = request.args.get('status', 'All').strip()
+    orders = db.get_all_orders_admin(status_filter=status_filter)
+    return render_template('admin/orders.html', orders=orders, status_filter=status_filter, active_page='orders')
+
+@app.route('/admin/msp')
+@admin_required
+def admin_msp():
+    search = request.args.get('search', '').strip()
+    season = request.args.get('season', 'All').strip()
+    year = request.args.get('year', 'All').strip()
+    msp_records = db.get_all_msp_references(search=search, season=season, year=year)
+    return render_template('admin/msp.html', msp_records=msp_records, search=search, season=season, year=year, active_page='msp')
+
+@app.route('/admin/msp/save', methods=['POST'])
+@admin_required
+def admin_msp_save():
+    crop_name = request.form.get('crop_name', '').strip()
+    price_per_kg = request.form.get('msp_price_per_kg', '').strip()
+    category = request.form.get('category', 'Cereals').strip()
+    season = request.form.get('season', 'Kharif').strip()
+    effective_year = request.form.get('effective_year', '2025').strip()
+    source = request.form.get('source', 'Ministry of Agriculture & Farmers Welfare, Govt of India').strip()
+
+    if not crop_name or not price_per_kg:
+        flash('Crop name and MSP price are required.', 'error')
+        return redirect(url_for('admin_msp'))
+
+    try:
+        db.save_msp_reference(
+            crop_name=crop_name,
+            msp_price_per_kg=float(price_per_kg),
+            category=category,
+            season=season,
+            effective_year=int(effective_year),
+            source=source
+        )
+        admin_id = session.get('admin_user', {}).get('id')
+        db.log_admin_action(admin_id, f"Admin updated MSP for {crop_name} to ₹{price_per_kg}/kg")
+        flash(f'MSP reference for {crop_name} saved successfully.', 'success')
+    except Exception as e:
+        flash(f'Error saving MSP reference: {e}', 'error')
+
+    return redirect(url_for('admin_msp'))
+
+@app.route('/admin/msp/toggle/<crop_name>')
+@admin_required
+def admin_msp_toggle(crop_name):
+    record = db.get_msp_by_crop(crop_name)
+    if not record:
+        flash('MSP reference not found.', 'error')
+        return redirect(url_for('admin_msp'))
+    new_status = 'inactive' if record.get('status') == 'active' else 'active'
+    db.toggle_msp_status(crop_name, new_status)
+    admin_id = session.get('admin_user', {}).get('id')
+    db.log_admin_action(admin_id, f"Admin toggled MSP status for {crop_name} to {new_status}")
+    flash(f'MSP status for {crop_name} set to {new_status}.', 'success')
+    return redirect(url_for('admin_msp'))
 
 @app.route('/admin/create_user', methods=['GET', 'POST'])
 @admin_required
@@ -717,16 +804,16 @@ def admin_create_user():
 
         if not all([role, name, email, password]):
             flash('Role, Name, Email, and Password are required.', 'error')
-            return render_template('admin/create_user.html')
+            return render_template('admin/create_user.html', active_page='create_user')
 
         if role not in ('farmer', 'buyer'):
             flash('Invalid role selected.', 'error')
-            return render_template('admin/create_user.html')
+            return render_template('admin/create_user.html', active_page='create_user')
 
         existing = db.get_user_by_email(email)
         if existing:
             flash(f'User with email {email} already exists.', 'error')
-            return render_template('admin/create_user.html')
+            return render_template('admin/create_user.html', active_page='create_user')
 
         try:
             pwd_hash = generate_password_hash(password, method='pbkdf2:sha256')
@@ -749,9 +836,9 @@ def admin_create_user():
         except Exception as e:
             print("[!] Error creating user:", e)
             flash(f'Error creating user: {str(e)}', 'error')
-            return render_template('admin/create_user.html')
+            return render_template('admin/create_user.html', active_page='create_user')
 
-    return render_template('admin/create_user.html')
+    return render_template('admin/create_user.html', active_page='create_user')
 
 
 # --- SETTINGS & LOGOUT ---
@@ -767,62 +854,6 @@ def settings():
 def logout():
     session.clear()
     return redirect(url_for('home'))
-
-@app.route('/price-trends')
-def price_trends():
-    crops = db.get_available_trend_crops()
-    locations = db.get_available_trend_locations()
-
-    selected_crop = request.args.get('crop', '').strip()
-    selected_location = request.args.get('location', 'All Locations').strip()
-    selected_period = request.args.get('period', '30d').strip()
-
-    if not selected_crop and crops:
-        selected_crop = crops[0]
-    elif selected_crop not in crops and crops:
-        match = next((c for c in crops if c.lower() == selected_crop.lower()), None)
-        selected_crop = match or crops[0]
-
-    trends_data = db.get_crop_price_trends(
-        crop_name=selected_crop,
-        location=selected_location,
-        period=selected_period
-    )
-
-    user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
-
-    return render_template(
-        'price_trends.html',
-        selected_crop=selected_crop,
-        selected_location=selected_location,
-        selected_period=selected_period,
-        crops=crops,
-        locations=locations,
-        trends=trends_data,
-        session_user=user
-    )
-
-@app.route('/api/price-trends')
-def api_price_trends():
-    crops = db.get_available_trend_crops()
-    selected_crop = request.args.get('crop', '').strip()
-    selected_location = request.args.get('location', 'All Locations').strip()
-    selected_period = request.args.get('period', '30d').strip()
-
-    if not selected_crop and crops:
-        selected_crop = crops[0]
-    elif selected_crop not in crops and crops:
-        match = next((c for c in crops if c.lower() == selected_crop.lower()), None)
-        selected_crop = match or crops[0]
-
-    trends_data = db.get_crop_price_trends(
-        crop_name=selected_crop,
-        location=selected_location,
-        period=selected_period
-    )
-    return jsonify(trends_data)
-
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
