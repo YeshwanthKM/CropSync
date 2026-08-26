@@ -511,7 +511,26 @@ def get_audit_logs(limit=50):
         return []
 
 
+def delete_user(user_id):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        cursor.execute(f"DELETE FROM farmer_profiles WHERE user_id = {ph}", (str(user_id),))
+        cursor.execute(f"DELETE FROM buyer_profiles WHERE user_id = {ph}", (str(user_id),))
+        cursor.execute(f"DELETE FROM crops WHERE farmer_id = {ph}", (str(user_id),))
+        cursor.execute(f"DELETE FROM orders WHERE buyer_id = {ph} OR farmer_id = {ph}", (str(user_id), str(user_id)))
+        cursor.execute(f"DELETE FROM users WHERE id = {ph}", (str(user_id),))
+        if db_type == "sqlite":
+            conn.commit()
+    finally:
+        conn.close()
+
 def update_user_status(user_id, status, reason=None):
+    if status == 'suspended':
+        delete_user(user_id)
+        return
+
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
@@ -527,6 +546,7 @@ def update_user_status(user_id, status, reason=None):
             conn.commit()
     finally:
         conn.close()
+
 
 def update_user_profile(user_id, name, phone="", address="", location="", organization=""):
     conn, db_type = get_connection()

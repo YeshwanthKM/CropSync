@@ -609,9 +609,16 @@ def admin_farmer_detail(farmer_id):
         elif action == 'update_status':
             new_status = request.form.get('status')
             reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
-            db.update_user_status(farmer_id, new_status, reason=reason)
-            db.log_admin_action(admin_id, f'UPDATE_STATUS_{new_status.upper()}', farmer_id, reason)
-            flash(f'Farmer account status updated to {new_status}.', 'success')
+            if new_status == 'suspended':
+                email = farmer['email']
+                db.log_admin_action(admin_id, 'SUSPEND_AND_PURGE_USER', farmer_id, reason or 'Account suspended and purged by admin')
+                db.delete_user(farmer_id)
+                flash(f'Account for {email} has been completely removed. The email is now available for new registrations.', 'success')
+                return redirect(url_for('admin_farmers'))
+            else:
+                db.update_user_status(farmer_id, new_status, reason=reason)
+                db.log_admin_action(admin_id, f'UPDATE_STATUS_{new_status.upper()}', farmer_id, reason)
+                flash(f'Farmer account status updated to {new_status}.', 'success')
         return redirect(url_for('admin_farmer_detail', farmer_id=farmer_id))
 
     return render_template('admin/farmer_detail.html', farmer=farmer)
@@ -648,12 +655,20 @@ def admin_buyer_detail(buyer_id):
         elif action == 'update_status':
             new_status = request.form.get('status')
             reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
-            db.update_user_status(buyer_id, new_status, reason=reason)
-            db.log_admin_action(admin_id, f'UPDATE_STATUS_{new_status.upper()}', buyer_id, reason)
-            flash(f'Buyer account status updated to {new_status}.', 'success')
+            if new_status == 'suspended':
+                email = buyer['email']
+                db.log_admin_action(admin_id, 'SUSPEND_AND_PURGE_USER', buyer_id, reason or 'Account suspended and purged by admin')
+                db.delete_user(buyer_id)
+                flash(f'Account for {email} has been completely removed. The email is now available for new registrations.', 'success')
+                return redirect(url_for('admin_buyers'))
+            else:
+                db.update_user_status(buyer_id, new_status, reason=reason)
+                db.log_admin_action(admin_id, f'UPDATE_STATUS_{new_status.upper()}', buyer_id, reason)
+                flash(f'Buyer account status updated to {new_status}.', 'success')
         return redirect(url_for('admin_buyer_detail', buyer_id=buyer_id))
 
     return render_template('admin/buyer_detail.html', buyer=buyer)
+
 
 
 @app.route('/admin/create_user', methods=['GET', 'POST'])
