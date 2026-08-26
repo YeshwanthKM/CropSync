@@ -1104,11 +1104,23 @@ def seed_government_msp_data():
             conn.commit()
     except Exception as e:
         print("[!] Error in seed_government_msp_data:", e)
+def sync_existing_crops_to_history():
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        sql = "SELECT id, crop_name, location, price_per_kg, created_at FROM crops"
+        cursor.execute(sql)
+        crops = [_dict_row(r) for r in cursor.fetchall()]
+        for c in crops:
+            record_price_observation(c['id'], c['crop_name'], c['location'], c['price_per_kg'], recorded_at=c.get('created_at'))
+    except Exception as e:
+        print("[!] Error in sync_existing_crops_to_history:", e)
     finally:
         conn.close()
 
 def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30d'):
     seed_government_msp_data()
+    sync_existing_crops_to_history()
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
@@ -1144,7 +1156,6 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
         govt_msp = float(msp_row['msp_price_per_kg'] if isinstance(msp_row, dict) else msp_row[0]) if msp_row else None
 
         # Build SQL filters (exact or substring match on crop_name)
-        c_clean = crop_name.strip()
         where_clauses = [f"(LOWER(crop_name) = LOWER({ph}) OR LOWER(crop_name) LIKE '%' || LOWER({ph}) || '%' OR LOWER({ph}) LIKE '%' || LOWER(crop_name) || '%')"]
         params = [c_clean, c_clean, c_clean]
 
@@ -1154,7 +1165,6 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
 
         where_sql = " AND ".join(where_clauses)
 
-        
         # Fetch current period observations
         sql_current = f"""
             SELECT price_per_kg, recorded_at 
@@ -1164,6 +1174,17 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
         """
         cursor.execute(sql_current, tuple(params + [start_date]))
         current_rows = [_dict_row(r) for r in cursor.fetchall()]
+
+        # Fallback to all observations if current period filtering yields 0 rows
+        if not current_rows:
+            sql_all = f"""
+                SELECT price_per_kg, recorded_at 
+                FROM crop_price_history 
+                WHERE {where_sql}
+                ORDER BY recorded_at ASC
+            """
+            cursor.execute(sql_all, tuple(params))
+            current_rows = [_dict_row(r) for r in cursor.fetchall()]
 
         # Fetch previous period observations
         sql_prev = f"""
@@ -1182,10 +1203,11 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
                 "location": location,
                 "period": period,
                 "total_observations": 0,
-                "message": "No CropSync price data available for this crop and location.",
+                "message": "No CropSync price data available for this crop.",
                 "has_data": False,
                 "govt_msp": govt_msp
             }
+
 
         if total_obs < 2:
             single_price = float(current_rows[0]['price_per_kg'])
