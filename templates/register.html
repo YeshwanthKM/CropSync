@@ -41,18 +41,19 @@
 
             <form method="POST" action="{{ url_for('register') }}">
                 <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="font-weight: 600;">I am a:</label>
-                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                        <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--input-border); border-radius: var(--border-radius); cursor: pointer; background: var(--nav-bg);">
-                            <input type="radio" name="role" value="farmer" checked onclick="toggleRoleFields('farmer')">
-                            <strong>🌾 Farmer</strong>
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">I am a:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <label id="role-card-farmer" class="role-card active" style="display: flex; align-items: center; justify-content: center; gap: 0.6rem; padding: 1rem; border-radius: 10px; border: 2px solid #27ae60; background: rgba(39, 174, 96, 0.1); cursor: pointer; transition: all 0.2s ease; user-select: none;">
+                            <input type="radio" name="role" value="farmer" checked onclick="selectRole('farmer')" style="accent-color: #27ae60; width: 1.1rem; height: 1.1rem; margin: 0; cursor: pointer;">
+                            <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-color);">🌾 Farmer</span>
                         </label>
-                        <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--input-border); border-radius: var(--border-radius); cursor: pointer; background: var(--nav-bg);">
-                            <input type="radio" name="role" value="buyer" onclick="toggleRoleFields('buyer')">
-                            <strong>🛒 Buyer</strong>
+                        <label id="role-card-buyer" class="role-card" style="display: flex; align-items: center; justify-content: center; gap: 0.6rem; padding: 1rem; border-radius: 10px; border: 1px solid var(--input-border, #444); background: var(--nav-bg, #1a1a1a); cursor: pointer; transition: all 0.2s ease; user-select: none;">
+                            <input type="radio" name="role" value="buyer" onclick="selectRole('buyer')" style="accent-color: #27ae60; width: 1.1rem; height: 1.1rem; margin: 0; cursor: pointer;">
+                            <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-color);">🛒 Buyer</span>
                         </label>
                     </div>
                 </div>
+
 
                 <div class="form-group">
                     <label>{{ get_text('name') }} *</label>
@@ -98,17 +99,29 @@
         </div>
 
         <script>
-            function toggleRoleFields(role) {
+            function selectRole(role) {
+                const farmerCard = document.getElementById('role-card-farmer');
+                const buyerCard = document.getElementById('role-card-buyer');
                 const farmerFields = document.getElementById('farmerFields');
                 const buyerFields = document.getElementById('buyerFields');
+
                 if (role === 'farmer') {
+                    farmerCard.style.border = '2px solid #27ae60';
+                    farmerCard.style.background = 'rgba(39, 174, 96, 0.15)';
+                    buyerCard.style.border = '1px solid var(--input-border, #444)';
+                    buyerCard.style.background = 'var(--nav-bg, #1a1a1a)';
                     farmerFields.style.display = 'block';
                     buyerFields.style.display = 'none';
                 } else {
+                    buyerCard.style.border = '2px solid #27ae60';
+                    buyerCard.style.background = 'rgba(39, 174, 96, 0.15)';
+                    farmerCard.style.border = '1px solid var(--input-border, #444)';
+                    farmerCard.style.background = 'var(--nav-bg, #1a1a1a)';
                     farmerFields.style.display = 'none';
                     buyerFields.style.display = 'block';
                 }
             }
+
 
             document.getElementById('theme-toggle').addEventListener('click', () => {
                 const currentTheme = document.documentElement.getAttribute('data-theme');
