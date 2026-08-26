@@ -67,3 +67,44 @@ class SupabaseAuthService:
         except Exception as e:
             print("[!] Supabase Auth unexpected error:", e)
             return None, str(e)
+
+    @staticmethod
+    def delete_user_by_email(email):
+        """
+        Purges user record from Supabase Auth so the email is 100% freed up for new registrations.
+        """
+        service_key = (
+            os.environ.get('SUPABASE_SERVICE_KEY') or 
+            os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or 
+            SUPABASE_KEY
+        )
+        if not SUPABASE_URL or not service_key:
+            return
+
+        endpoint_search = f"{SUPABASE_URL.rstrip('/')}/auth/v1/admin/users"
+        headers = {
+            "apikey": service_key,
+            "Authorization": f"Bearer {service_key}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+
+            req = urllib.request.Request(endpoint_search, headers=headers, method='GET')
+            with urllib.request.urlopen(req, context=ctx) as resp:
+                users_data = json.loads(resp.read().decode('utf-8'))
+                users_list = users_data.get('users', []) if isinstance(users_data, dict) else (users_data if isinstance(users_data, list) else [])
+                for u in users_list:
+                    if u.get('email', '').lower() == email.lower():
+                        uid = u.get('id')
+                        del_endpoint = f"{SUPABASE_URL.rstrip('/')}/auth/v1/admin/users/{uid}"
+                        del_req = urllib.request.Request(del_endpoint, headers=headers, method='DELETE')
+                        with urllib.request.urlopen(del_req, context=ctx) as _:
+                            print(f"[+] Successfully purged user {email} ({uid}) from Supabase Auth")
+                        break
+        except Exception as e:
+            print("[!] Notice during Supabase Auth user delete:", e)
+

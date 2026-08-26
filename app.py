@@ -225,6 +225,12 @@ def register():
         try:
             # Register with Supabase Auth API (Dispatches real email verification link to user's inbox)
             auth_res, auth_err = SupabaseAuthService.signup(email, password, user_data={'name': name, 'role': role})
+            if auth_err and ('already registered' in str(auth_err).lower() or 'already exists' in str(auth_err).lower()):
+                # Purge stale Supabase Auth record if local user was deleted
+                print(f"[!] Purging stale Supabase Auth user for {email} and retrying signup...")
+                SupabaseAuthService.delete_user_by_email(email)
+                auth_res, auth_err = SupabaseAuthService.signup(email, password, user_data={'name': name, 'role': role})
+            
             if auth_err:
                 print("[!] Supabase Auth signup notification:", auth_err)
 
@@ -255,6 +261,7 @@ def register():
             return render_template('register.html')
 
     return render_template('register.html')
+
 
 @app.route('/verify-email-pending')
 def verify_email_pending():
@@ -625,6 +632,7 @@ def admin_farmer_detail(farmer_id):
             reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
             if new_status == 'suspended':
                 email = farmer['email']
+                SupabaseAuthService.delete_user_by_email(email)
                 db.log_admin_action(admin_id, 'SUSPEND_AND_PURGE_USER', farmer_id, reason or 'Account suspended and purged by admin')
                 db.delete_user(farmer_id)
                 flash(f'Account for {email} has been completely removed. The email is now available for new registrations.', 'success')
@@ -671,6 +679,7 @@ def admin_buyer_detail(buyer_id):
             reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
             if new_status == 'suspended':
                 email = buyer['email']
+                SupabaseAuthService.delete_user_by_email(email)
                 db.log_admin_action(admin_id, 'SUSPEND_AND_PURGE_USER', buyer_id, reason or 'Account suspended and purged by admin')
                 db.delete_user(buyer_id)
                 flash(f'Account for {email} has been completely removed. The email is now available for new registrations.', 'success')
@@ -682,6 +691,7 @@ def admin_buyer_detail(buyer_id):
         return redirect(url_for('admin_buyer_detail', buyer_id=buyer_id))
 
     return render_template('admin/buyer_detail.html', buyer=buyer)
+
 
 
 
