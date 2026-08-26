@@ -9,8 +9,15 @@ env_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(env_path):
     load_dotenv(dotenv_path=env_path)
 
-# Check for PostgreSQL connection URL (e.g., Supabase DB URL)
-DB_URL = os.environ.get('DATABASE_URL') or os.environ.get('SUPABASE_DB_URL')
+# Check for PostgreSQL connection URL across all common environment variable names
+DB_URL = (
+    os.environ.get('DATABASE_URL') or
+    os.environ.get('SUPABASE_DB_URL') or
+    os.environ.get('POSTGRES_URL') or
+    os.environ.get('POSTGRES_PRISMA_URL') or
+    os.environ.get('SUPABASE_DATABASE_URL')
+)
+
 
 def get_connection():
     if DB_URL:
