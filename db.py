@@ -1253,12 +1253,13 @@ def get_available_trend_locations():
         """
         cursor.execute(sql)
         rows = cursor.fetchall()
-        locations = [r['location'].title() if isinstance(r, dict) else r[0].title() for r in rows if r]
-        return locations or ["Salem", "Coimbatore", "Madurai", "Chennai", "Tiruppur"]
+        locations = [r['location'].title() if isinstance(r, dict) else r[0].title() for r in rows if r and (isinstance(r, dict) and r.get('location') or r[0])]
+        return locations
     except Exception:
-        return ["Salem", "Coimbatore", "Madurai", "Chennai", "Tiruppur"]
+        return []
     finally:
         conn.close()
+
 
 
 
