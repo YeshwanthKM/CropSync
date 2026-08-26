@@ -769,15 +769,18 @@ def logout():
 
 @app.route('/price-trends')
 def price_trends():
-    selected_crop = request.args.get('crop', 'Rice').strip()
-    selected_location = request.args.get('location', 'All Locations').strip()
-    selected_period = request.args.get('period', '30d').strip()
-
     crops = db.get_available_trend_crops()
     locations = db.get_available_trend_locations()
 
-    if selected_crop not in crops and crops:
+    selected_crop = request.args.get('crop', '').strip()
+    selected_location = request.args.get('location', 'All Locations').strip()
+    selected_period = request.args.get('period', '30d').strip()
+
+    if not selected_crop and crops:
         selected_crop = crops[0]
+    elif selected_crop not in crops and crops:
+        match = next((c for c in crops if c.lower() == selected_crop.lower()), None)
+        selected_crop = match or crops[0]
 
     trends_data = db.get_crop_price_trends(
         crop_name=selected_crop,
@@ -800,9 +803,16 @@ def price_trends():
 
 @app.route('/api/price-trends')
 def api_price_trends():
-    selected_crop = request.args.get('crop', 'Rice').strip()
+    crops = db.get_available_trend_crops()
+    selected_crop = request.args.get('crop', '').strip()
     selected_location = request.args.get('location', 'All Locations').strip()
     selected_period = request.args.get('period', '30d').strip()
+
+    if not selected_crop and crops:
+        selected_crop = crops[0]
+    elif selected_crop not in crops and crops:
+        match = next((c for c in crops if c.lower() == selected_crop.lower()), None)
+        selected_crop = match or crops[0]
 
     trends_data = db.get_crop_price_trends(
         crop_name=selected_crop,
@@ -810,6 +820,7 @@ def api_price_trends():
         period=selected_period
     )
     return jsonify(trends_data)
+
 
 
 if __name__ == '__main__':

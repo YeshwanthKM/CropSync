@@ -1143,16 +1143,17 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
         msp_row = cursor.fetchone()
         govt_msp = float(msp_row['msp_price_per_kg'] if isinstance(msp_row, dict) else msp_row[0]) if msp_row else None
 
-        # Build SQL filters
-        where_clauses = [f"LOWER(crop_name) = LOWER({ph})"]
-        params = [c_clean]
-
+        # Build SQL filters (exact or substring match on crop_name)
+        c_clean = crop_name.strip()
+        where_clauses = [f"(LOWER(crop_name) = LOWER({ph}) OR LOWER(crop_name) LIKE '%' || LOWER({ph}) || '%' OR LOWER({ph}) LIKE '%' || LOWER(crop_name) || '%')"]
+        params = [c_clean, c_clean, c_clean]
 
         if location and location != 'All Locations':
             where_clauses.append(f"LOWER(location) = LOWER({ph})")
             params.append(location)
 
         where_sql = " AND ".join(where_clauses)
+
         
         # Fetch current period observations
         sql_current = f"""
