@@ -122,9 +122,10 @@ class EmailService:
     @staticmethod
     def send_verification_email(email, token):
         confirm_url = f"https://crop-sync.vercel.app/confirm-email?token={token}"
-        gmail_user = os.environ.get('GMAIL_USER') or os.environ.get('SMTP_USER')
-        gmail_pass = os.environ.get('GMAIL_APP_PASSWORD') or os.environ.get('SMTP_PASS')
-        resend_api_key = os.environ.get('RESEND_API_KEY')
+        gmail_user = (os.environ.get('GMAIL_USER') or os.environ.get('SMTP_USER') or '').strip()
+        gmail_pass = (os.environ.get('GMAIL_APP_PASSWORD') or os.environ.get('SMTP_PASS') or '').strip().replace(' ', '')
+        resend_api_key = (os.environ.get('RESEND_API_KEY') or '').strip()
+
         
         # Method 1: Direct Gmail / Custom SMTP Dispatch via Python smtplib (Sends to ANY email)
         if gmail_user and gmail_pass:
