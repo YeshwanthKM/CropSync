@@ -97,8 +97,19 @@
                     <div class="grid">
                         <div class="form-group">
                             <label>{{ get_text('crop_name') }}</label>
-                            <input type="text" name="crop_name" placeholder="rice, wheat..." required>
+                            <select name="crop_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--input-border); background: var(--bg-color); color: var(--text-color); font-size: 0.95rem; font-weight: 600;">
+                                <option value="" disabled selected>Select crop...</option>
+                                <option value="Rice">Rice</option>
+                                <option value="Wheat">Wheat</option>
+                                <option value="Cotton">Cotton</option>
+                                <option value="Tomato">Tomato</option>
+                                <option value="Potato">Potato</option>
+                                <option value="Maize">Maize</option>
+                                <option value="Pulses">Pulses</option>
+                                <option value="Sugarcane">Sugarcane</option>
+                            </select>
                         </div>
+
                         <div class="form-group">
                             <label>{{ get_text('quantity') }} (kg)</label>
                             <input type="number" step="1" name="quantity" required>
