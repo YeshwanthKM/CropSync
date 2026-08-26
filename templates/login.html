@@ -47,45 +47,10 @@
                 </div>
                 <button type="submit" style="width: 100%;">{{ get_text('login') }}</button>
 
-                <div style="text-align: center; margin-top: 1rem;">
+                <div style="text-align: center; margin-top: 1.5rem;">
                     <a href="{{ url_for('register') }}" style="color: var(--primary-color, #27ae60); font-weight: 600; text-decoration: none;">Don't have an account? Create / Register Here →</a>
                 </div>
-
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
-                    <button type="button" onclick="fillDemo('farmer1@gmail.com', 'farmer123')" style="flex: 1; min-width: 100px; background: transparent; border: 1px solid var(--nav-border); color: inherit;">Farmer Login</button>
-                    <button type="button" onclick="fillDemo('buyer1@gmail.com', 'buyer123')" style="flex: 1; min-width: 100px; background: transparent; border: 1px solid var(--nav-border); color: inherit;">Buyer Login</button>
-                    <button type="button" onclick="fillDemo('admin@cropsync.com', 'admin123')" style="flex: 1; min-width: 100px; background: #ff9800; border: 1px solid #ff9800; color: #ffffff; font-weight: 600;">Admin Login</button>
-                </div>
             </form>
-
-
-            <div style="margin-top: 2rem; padding: 1.5rem; background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: var(--border-radius);">
-                <h3 style="margin-bottom: 1rem; text-align: center;">{{ get_text('demo_credentials') }}</h3>
-                
-                <div style="margin-bottom: 1.25rem;">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--secondary-text);">{{ get_text('farmer_accounts') }}</h4>
-                    <ul style="list-style: none; padding: 0; font-size: 0.9rem;">
-                        <li><strong>farmer1@gmail.com, farmer2@gmail.com</strong></li>
-                        <li>Password: <strong>farmer123</strong></li>
-                    </ul>
-                </div>
-
-                <div style="margin-bottom: 1.25rem;">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--secondary-text);">{{ get_text('buyer_accounts') }}</h4>
-                    <ul style="list-style: none; padding: 0; font-size: 0.9rem;">
-                        <li><strong>buyer1@gmail.com, buyer2@gmail.com</strong></li>
-                        <li>Password: <strong>buyer123</strong></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 style="margin-bottom: 0.5rem; color: #ff9800;">Admin Account</h4>
-                    <ul style="list-style: none; padding: 0; font-size: 0.9rem;">
-                        <li><strong>admin@cropsync.com</strong></li>
-                        <li>Password: <strong>admin123</strong></li>
-                    </ul>
-                </div>
-            </div>
         </div>
 
         <script>
@@ -95,13 +60,6 @@
                 document.documentElement.setAttribute('data-theme', newTheme);
                 localStorage.setItem('theme', newTheme);
             });
-
-            function fillDemo(email, password) {
-                document.getElementById('emailInput').value = email;
-                document.getElementById('passwordInput').value = password;
-                document.querySelector('form').submit();
-            }
-
         </script>
     </div>
 </body>
