@@ -387,15 +387,8 @@ def login():
         except Exception as _e:
             print("[!] DB Error during login:", _e)
 
-        # 2. Trigger auto-migration if DB is cold / missing user
-        if not user:
-            try:
-                migrate_data.run_migration()
-                user = db.get_user_by_email(email)
-            except Exception as _e:
-                print("[!] Auto-migration trigger warning:", _e)
+        # 2. Fallback demo user object if DB user lookup returns None
 
-        # 3. Fallback demo user object if DB user lookup returns None
         if not user:
             if email == 'admin@cropsync.com' and password in ('admin123', 'admin'):
                 user = {'id': 'admin1', 'email': 'admin@cropsync.com', 'role': 'admin', 'name': 'System Administrator', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}

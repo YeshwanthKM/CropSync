@@ -18,16 +18,34 @@ DB_URL = (
     os.environ.get('SUPABASE_DATABASE_URL')
 )
 
+import threading
+
+_thread_local = threading.local()
+
 def get_connection():
     if DB_URL:
         import psycopg2
         import psycopg2.extras
+        
+        conn = getattr(_thread_local, 'conn', None)
+        if conn is not None and not conn.closed:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+                return conn, "postgres"
+            except Exception:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
         url = DB_URL
         if 'sslmode' not in url.lower():
             sep = '&' if '?' in url else '?'
             url = f"{url}{sep}sslmode=require"
-        conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor, connect_timeout=5)
         conn.autocommit = True
+        _thread_local.conn = conn
         return conn, "postgres"
     else:
         # Fallback to local SQLite database
@@ -36,6 +54,7 @@ def get_connection():
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         return conn, "sqlite"
+
 
 def init_db():
     try:
