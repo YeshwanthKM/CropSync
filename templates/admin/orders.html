@@ -67,7 +67,8 @@
                             <span style="background: rgba(127, 127, 127, 0.15); color: #7f8c8d; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">{{ o.status }}</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--secondary-text);">{{ str(o.created_at)[:10] }}</td>
+                    <td style="padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--secondary-text);">{{ (o.created_at|string)[:10] }}</td>
+
                     <td style="padding: 0.75rem 1rem;">
                         <button onclick="viewOrderModal('{{ o.id }}', '{{ o.crop_name }}', '{{ o.farmer_name }}', '{{ o.farmer_email }}', '{{ o.buyer_name }}', '{{ o.buyer_email }}', '{{ o.quantity }}', '{{ o.unit_price or 0 }}', '{{ o.total_price }}', '{{ o.status }}', '{{ o.created_at }}', '{{ o.updated_at }}')" class="btn" style="padding: 4px 8px; font-size: 0.75rem;">Details</button>
                     </td>

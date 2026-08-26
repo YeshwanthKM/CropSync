@@ -62,7 +62,8 @@
                             <span style="background: rgba(127, 127, 127, 0.15); color: #7f8c8d; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">{{ l.status|capitalize }}</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--secondary-text);">{{ str(l.created_at)[:10] }}</td>
+                    <td style="padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--secondary-text);">{{ (l.created_at|string)[:10] }}</td>
+
                     <td style="padding: 0.75rem 1rem;">
                         <div style="display: flex; gap: 0.5rem;">
                             <button onclick="viewListingModal('{{ l.id }}', '{{ l.crop_name }}', '{{ l.farmer_name }}', '{{ l.farmer_email }}', '{{ l.location }}', '{{ l.quantity }}', '{{ l.price_per_kg }}', '{{ l.msp_reference or 'N/A' }}', '{{ l.status }}', '{{ l.created_at }}', '{{ l.updated_at }}')" class="btn" style="padding: 4px 8px; font-size: 0.75rem;">View</button>
