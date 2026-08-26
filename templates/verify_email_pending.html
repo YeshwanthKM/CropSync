@@ -47,9 +47,21 @@
                 <p style="color: var(--secondary-text); font-size: 0.95rem; background: var(--nav-bg); padding: 1rem; border-radius: var(--border-radius); border: 1px solid var(--nav-border);">
                     📩 <strong>Action Required:</strong> Please open your email inbox (and check your Spam/Junk folder if needed), click the verification link sent by Supabase Auth, and your account will be activated instantly!
                 </p>
+
+                {% if auth_err %}
+                <div style="background: rgba(255, 152, 0, 0.15); border: 1px solid #ff9800; padding: 1rem; border-radius: var(--border-radius); text-align: left; font-size: 0.88rem; color: var(--text-color);">
+                    <strong style="color: #ff9800;">⚠️ Supabase Rate Limit Notice:</strong><br>
+                    Supabase Auth limits default test email dispatches to 4 per hour (<code>{{ auth_err }}</code>).<br>
+                    To continue testing without waiting 1 hour, click below:
+                </div>
+                {% endif %}
+
+                <a href="{{ url_for('confirm_email') }}" class="btn" style="background: #27ae60; color: #fff; text-decoration: none; font-weight: 600; text-align: center;">
+                    ⚡ Activate Account Now (Development Option)
+                </a>
                 
                 <form method="POST" action="{{ url_for('resend_email_verification') }}">
-                    <button type="submit" class="btn" style="width: 100%; background: var(--primary-color, #27ae60); color: #fff; border: none; font-weight: 600;">
+                    <button type="submit" class="btn" style="width: 100%; background: transparent; border: 1px solid var(--nav-border); color: inherit;">
                         🔄 Resend Verification Email
                     </button>
                 </form>
@@ -58,6 +70,7 @@
                     ← Back to Login
                 </a>
             </div>
+
 
         </div>
 

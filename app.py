@@ -244,8 +244,10 @@ def register():
 
             session['pending_user_id'] = user_id
             session['pending_email'] = email
+            if auth_err:
+                session['auth_err'] = str(auth_err)
 
-            flash('Account created! A verification email has been sent to your inbox. Please check your email to activate your account.', 'success')
+            flash('Account created! Please check your email to activate your account.', 'success')
             return redirect(url_for('verify_email_pending'))
         except Exception as e:
             print("[!] Registration error:", e)
@@ -259,7 +261,9 @@ def verify_email_pending():
     email = session.get('pending_email') or session.get('pending_user', {}).get('email')
     if not email:
         return redirect(url_for('login'))
-    return render_template('verify_email_pending.html', email=email)
+    auth_err = session.get('auth_err')
+    return render_template('verify_email_pending.html', email=email, auth_err=auth_err)
+
 
 @app.route('/confirm-email')
 def confirm_email():
