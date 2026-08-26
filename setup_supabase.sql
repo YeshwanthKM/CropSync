@@ -74,3 +74,10 @@ CREATE INDEX IF NOT EXISTS idx_crops_farmer_id ON crops(farmer_id);
 CREATE INDEX IF NOT EXISTS idx_crops_crop_name ON crops(crop_name);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_farmer_id ON orders(farmer_id);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE farmer_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE buyer_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
