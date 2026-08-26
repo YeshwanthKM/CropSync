@@ -159,16 +159,21 @@
             <!-- Section: My Orders -->
             <div id="section-my-orders" class="dashboard-section" style="display: none;">
                 <h2>{{ get_text('my_orders') }}</h2>
+                <div style="background-color: rgba(39, 174, 96, 0.08); border-left: 4px solid #27ae60; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-color); line-height: 1.4;">
+                    <strong>💡 Direct Farmer–Buyer Trade Notice:</strong><br>
+                    CropSync connects farmers directly with buyers. CropSync does not process payments or provide physical delivery services. Payment and collection/delivery arrangements are made directly between the buyer and farmer once an order is accepted.
+                </div>
                 <div class="card" style="padding: 0;">
                     <div class="table-container">
                         <table>
                         <thead>
                             <tr>
                                 <th>{{ get_text('crop_name') }}</th>
-                                <th>Farmer</th>
+                                <th>Farmer Details</th>
                                 <th>{{ get_text('quantity') }}</th>
                                 <th>{{ get_text('total_price') }}</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -176,8 +181,9 @@
                             <tr>
                                 <td style="text-transform: capitalize; font-weight: 700;">{{ order.crop_name }}</td>
                                 <td>
-                                    <div>{{ order.farmer_name }}</div>
-                                    {% if order.status == 'Accepted' %}
+                                    <div><strong>{{ order.farmer_name }}</strong></div>
+                                    {% if order.status in ('Accepted', 'Completed') %}
+                                        <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">📧 {{ order.farmer_email or 'N/A' }}</div>
                                         <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">📞 {{ order.farmer_phone or 'Contact Provided' }}</div>
                                     {% else %}
                                         <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon acceptance</div>
@@ -190,18 +196,29 @@
                                         {{ order.status }}
                                     </span>
                                 </td>
+                                <td>
+                                    {% if order.status == 'Accepted' %}
+                                        <a href="{{ url_for('complete_order', order_id=order.id) }}" class="btn-small" style="background: #1565c0; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;" onclick="return confirm('Mark this order as Completed?')">Mark Completed</a>
+                                    {% elif order.status == 'Pending' %}
+                                        <span style="color: var(--secondary-text); font-size: 0.75rem; font-style: italic;">Waiting for farmer</span>
+                                    {% elif order.status == 'Rejected' %}
+                                        <span style="color: #c62828; font-size: 0.75rem;">Rejected</span>
+                                    {% else %}
+                                        <span style="color: #27ae60; font-size: 0.75rem; font-weight: bold;">✓ Completed</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" style="text-align: center; color: var(--secondary-text);">You haven't placed any orders yet.</td>
+                                <td colspan="6" style="text-align: center; color: var(--secondary-text);">You haven't placed any orders yet.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
-
                     </table>
                 </div>
             </div>
         </div>
+
 
         <!-- Section: MSP Reference -->
             <div id="section-msp-reference" class="dashboard-section" style="display: none;">

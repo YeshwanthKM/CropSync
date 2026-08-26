@@ -56,6 +56,7 @@
                     <td style="padding: 0.75rem 1rem; font-weight: 800; color: #27ae60;">₹{{ "%.2f"|format(o.total_price or 0) }}</td>
                     <td style="padding: 0.75rem 1rem;">
                         {% if o.status == 'Pending' %}
+
                             <span style="background: rgba(243, 156, 18, 0.15); color: #f39c12; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Pending</span>
                         {% elif o.status == 'Accepted' %}
                             <span style="background: rgba(39, 174, 96, 0.15); color: #27ae60; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">Accepted</span>
@@ -66,12 +67,24 @@
                         {% else %}
                             <span style="background: rgba(127, 127, 127, 0.15); color: #7f8c8d; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">{{ o.status }}</span>
                         {% endif %}
+
+                        {% if o.email_logs %}
+                            {% set last_log = o.email_logs[0] %}
+                            {% if last_log.status == 'SENT' %}
+                                <div style="font-size: 0.7rem; color: #27ae60; font-weight: bold; margin-top: 4px;">✓ Email Sent</div>
+                            {% elif last_log.status == 'FAILED' %}
+                                <div style="font-size: 0.7rem; color: #e74c3c; font-weight: bold; margin-top: 4px;">✗ Email Failed</div>
+                            {% else %}
+                                <div style="font-size: 0.7rem; color: #f39c12; font-weight: bold; margin-top: 4px;">⏳ Email Pending</div>
+                            {% endif %}
+                        {% endif %}
                     </td>
                     <td style="padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--secondary-text);">{{ (o.created_at|string)[:10] }}</td>
 
                     <td style="padding: 0.75rem 1rem;">
-                        <button onclick="viewOrderModal('{{ o.id }}', '{{ o.crop_name }}', '{{ o.farmer_name }}', '{{ o.farmer_email }}', '{{ o.buyer_name }}', '{{ o.buyer_email }}', '{{ o.quantity }}', '{{ o.unit_price or 0 }}', '{{ o.total_price }}', '{{ o.status }}', '{{ o.created_at }}', '{{ o.updated_at }}')" class="btn" style="padding: 4px 8px; font-size: 0.75rem;">Details</button>
+                        <button onclick="viewOrderModal('{{ o.id }}', '{{ o.crop_name }}', '{{ o.farmer_name }}', '{{ o.farmer_email }}', '{{ o.buyer_name }}', '{{ o.buyer_email }}', '{{ o.quantity }}', '{{ o.unit_price or 0 }}', '{{ o.total_price }}', '{{ o.status }}', '{{ (o.email_logs[0].status if o.email_logs else 'None') }}', '{{ o.created_at }}', '{{ o.updated_at }}')" class="btn" style="padding: 4px 8px; font-size: 0.75rem;">Details</button>
                     </td>
+
                 </tr>
                 {% else %}
                 <tr>

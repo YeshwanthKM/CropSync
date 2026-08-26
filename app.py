@@ -11,6 +11,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import db
 import migrate_data
 from otp_service import OTPService
+import services.email_service as email_service
+
 
 
 app = Flask(__name__)
@@ -530,18 +532,23 @@ def accept_order(order_id):
         return redirect(url_for('login'))
     
     farmer_id = session['farmer_user']['id']
-    orders = db.get_orders_for_farmer(farmer_id)
-    order = next((o for o in orders if str(o['id']) == str(order_id)), None)
+    success, msg = db.accept_order_atomic(order_id, farmer_id)
     
-    if order and order['status'] == 'Pending':
-        crop = db.get_crop_by_id(order['crop_id'])
-        if crop and float(crop['quantity']) >= float(order['quantity']):
-            new_qty = float(crop['quantity']) - float(order['quantity'])
-            db.update_crop_quantity(order['crop_id'], new_qty)
-            db.update_order_status(order_id, 'Accepted')
-            flash('Order accepted and stock updated!', 'success')
-        else:
-            flash('Cannot accept: Insufficient stock.', 'error')
+    if success:
+        flash('Order accepted and stock updated!', 'success')
+        # Dispatch notification email to buyer
+        try:
+            orders = db.get_orders_for_farmer(farmer_id)
+            order = next((o for o in orders if str(o['id']) == str(order_id)), None)
+            if order:
+                buyer = db.get_user_by_id(order['buyer_id'])
+                farmer = db.get_user_by_id(farmer_id)
+                if buyer and farmer:
+                    email_service.send_order_accepted_email(order, buyer, farmer)
+        except Exception as e:
+            print("[!] Error dispatching order accepted email:", e)
+    else:
+        flash(f'Cannot accept order: {msg}', 'error')
             
     return redirect(url_for('farmer_dashboard', section='sold-items'))
 
@@ -549,9 +556,66 @@ def accept_order(order_id):
 def reject_order(order_id):
     if 'farmer_user' not in session:
         return redirect(url_for('login'))
+    
+    farmer_id = session['farmer_user']['id']
+    orders = db.get_orders_for_farmer(farmer_id)
+    order = next((o for o in orders if str(o['id']) == str(order_id)), None)
+    
+    if not order:
+        flash('Order not found or unauthorized.', 'error')
+        return redirect(url_for('farmer_dashboard', section='sold-items'))
+
+    # Duplicate Action Protection
+    if order['status'] != 'Pending':
+        flash(f'Order is already {order["status"]}.', 'error')
+        return redirect(url_for('farmer_dashboard', section='sold-items'))
+
     db.update_order_status(order_id, 'Rejected')
     flash('Order rejected.', 'success')
+
+    # Dispatch rejection email to buyer
+    try:
+        buyer = db.get_user_by_id(order['buyer_id'])
+        if buyer:
+            email_service.send_order_rejected_email(order, buyer)
+    except Exception as e:
+        print("[!] Error dispatching order rejected email:", e)
+
     return redirect(url_for('farmer_dashboard', section='sold-items'))
+
+@app.route('/complete_order/<order_id>')
+def complete_order(order_id):
+    user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
+    if not user:
+        return redirect(url_for('login'))
+
+    user_id = user['id']
+    role = user['role']
+    success, msg = db.complete_order_atomic(order_id, user_id, role)
+
+    if success:
+        flash('Order marked as Completed!', 'success')
+        # Dispatch completion email
+        try:
+            order = db.get_order_by_id_admin(order_id)
+            if order:
+                buyer = db.get_user_by_id(order['buyer_id'])
+                farmer = db.get_user_by_id(order['farmer_id'])
+                if buyer:
+                    email_service.send_order_completed_email(order, buyer, 'buyer')
+                if farmer:
+                    email_service.send_order_completed_email(order, farmer, 'farmer')
+        except Exception as e:
+            print("[!] Error dispatching order completed email:", e)
+    else:
+        flash(f'Error completing order: {msg}', 'error')
+
+    if role == 'farmer':
+        return redirect(url_for('farmer_dashboard', section='sold-items'))
+    elif role == 'buyer':
+        return redirect(url_for('buyer_dashboard', section='my-orders'))
+    else:
+        return redirect(url_for('admin_orders'))
 
 # --- BUYER PORTAL ROUTES ---
 
@@ -596,8 +660,8 @@ def place_order():
     
     crop = db.get_crop_by_id(crop_id)
     if crop and float(crop['quantity']) >= quantity:
-        total_price = quantity * float(crop['price_per_kg'])
-        db.create_order(
+        total_price = round(quantity * float(crop['price_per_kg']), 2)
+        order_id = db.create_order(
             buyer_id=session['buyer_user']['id'],
             farmer_id=crop['farmer_id'],
             crop_id=crop['id'],
@@ -606,9 +670,27 @@ def place_order():
             total_price=total_price
         )
         flash('Order placed! Waiting for farmer approval.', 'success')
+
+        # Dispatch email notification to farmer
+        try:
+            farmer = db.get_user_by_id(crop['farmer_id'])
+            buyer = db.get_user_by_id(session['buyer_user']['id'])
+            order = {
+                'id': order_id,
+                'crop_name': crop['crop_name'],
+                'quantity': quantity,
+                'unit_price': crop['price_per_kg'],
+                'total_price': total_price,
+                'location': crop.get('location')
+            }
+            if farmer:
+                email_service.send_new_order_email(order, farmer, buyer)
+        except Exception as e:
+            print("[!] Error dispatching new order email:", e)
     else:
         flash('Low stock or invalid order.', 'error')
     return redirect(url_for('buyer_dashboard', section='my-orders'))
+
 
 # --- ADMIN PORTAL ROUTES ---
 
@@ -733,7 +815,20 @@ def admin_listing_status(crop_id, status):
 def admin_orders():
     status_filter = request.args.get('status', 'All').strip()
     orders = db.get_all_orders_admin(status_filter=status_filter)
+    all_notifs = db.get_all_email_notifications_admin()
+    
+    notif_map = {}
+    for n in all_notifs:
+        oid = str(n.get('order_id'))
+        if oid not in notif_map:
+            notif_map[oid] = []
+        notif_map[oid].append(n)
+        
+    for o in orders:
+        o['email_logs'] = notif_map.get(str(o['id']), [])
+
     return render_template('admin/orders.html', orders=orders, status_filter=status_filter, active_page='orders')
+
 
 @app.route('/admin/msp')
 @admin_required

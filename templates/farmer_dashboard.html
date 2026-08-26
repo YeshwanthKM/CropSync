@@ -258,9 +258,12 @@
                                         <a href="{{ url_for('accept_order', order_id=order.id) }}" class="btn-small" style="background: #2e7d32; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;">Accept</a>
                                         <a href="{{ url_for('reject_order', order_id=order.id) }}" class="btn-small" style="background: #c62828; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;">Reject</a>
                                     </div>
+                                    {% elif order.status == 'Accepted' %}
+                                    <a href="{{ url_for('complete_order', order_id=order.id) }}" class="btn-small" style="background: #1565c0; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;" onclick="return confirm('Mark this order as Completed?')">Mark Completed</a>
                                     {% else %}
-                                    <span style="color: var(--secondary-text); font-size: 0.75rem;">Done</span>
+                                    <span style="color: var(--secondary-text); font-size: 0.75rem;">{{ order.status }}</span>
                                     {% endif %}
+
                                 </td>
                             </tr>
                             {% endfor %}

@@ -164,6 +164,17 @@ def init_db():
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS email_notifications (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+                    recipient_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                    notification_type TEXT NOT NULL CHECK (notification_type IN ('NEW_ORDER', 'ORDER_ACCEPTED', 'ORDER_REJECTED', 'ORDER_COMPLETED')),
+                    recipient_email TEXT NOT NULL,
+                    status TEXT DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SENT', 'FAILED')) NOT NULL,
+                    error_message TEXT,
+                    sent_at TIMESTAMP WITH TIME ZONE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
             """)
             # Drop obsolete table if exists
             try:
@@ -255,8 +266,20 @@ def init_db():
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS email_notifications (
+                    id TEXT PRIMARY KEY,
+                    order_id TEXT REFERENCES orders(id) ON DELETE CASCADE,
+                    recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+                    notification_type TEXT NOT NULL,
+                    recipient_email TEXT NOT NULL,
+                    status TEXT DEFAULT 'PENDING' NOT NULL,
+                    error_message TEXT,
+                    sent_at TEXT,
+                    created_at TEXT NOT NULL
+                );
                 DROP TABLE IF EXISTS crop_price_history;
             """)
+
 
             try:
                 cursor.execute("SELECT count(*) FROM users")
@@ -286,8 +309,43 @@ def init_db():
                 except Exception:
                     pass
 
+            if db_type == "postgres":
+                try:
+                    cursor.execute("ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check")
+                    cursor.execute("ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed'))")
+                except Exception:
+                    pass
+            else:
+                try:
+                    cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='orders'")
+                    row = cursor.fetchone()
+                    if row and 'Completed' not in row[0]:
+                        cursor.execute("PRAGMA foreign_keys=OFF")
+                        cursor.execute("CREATE TABLE orders_new AS SELECT * FROM orders")
+                        cursor.execute("DROP TABLE orders")
+                        cursor.execute("""
+                            CREATE TABLE orders (
+                                id TEXT PRIMARY KEY,
+                                crop_id TEXT REFERENCES crops(id) ON DELETE CASCADE NOT NULL,
+                                buyer_id TEXT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                                farmer_id TEXT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                                crop_name TEXT NOT NULL,
+                                quantity REAL NOT NULL,
+                                total_price REAL NOT NULL,
+                                status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed')) NOT NULL,
+                                payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')) NOT NULL,
+                                created_at TEXT NOT NULL,
+                                updated_at TEXT NOT NULL
+                            )
+                        """)
+                        cursor.execute("INSERT INTO orders SELECT * FROM orders_new")
+                        cursor.execute("DROP TABLE orders_new")
+                        cursor.execute("PRAGMA foreign_keys=ON")
+                except Exception:
+                    pass
 
             conn.commit()
+
 
     except Exception as e:
         print("[!] Error executing DDL in init_db:", e)
@@ -976,22 +1034,134 @@ def get_orders_for_buyer(buyer_id):
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             sql = f"""
-                SELECT o.*, fp.name as farmer_name, fp.phone as farmer_phone
+                SELECT o.*, fp.name as farmer_name, fp.phone as farmer_phone, u.email as farmer_email
                 FROM orders o
-                JOIN farmer_profiles fp ON o.farmer_id = fp.user_id
+                JOIN users u ON o.farmer_id = u.id
+                LEFT JOIN farmer_profiles fp ON o.farmer_id = fp.user_id
                 WHERE o.buyer_id = {ph}
                 ORDER BY o.created_at DESC
             """
             cursor.execute(sql, (str(buyer_id),))
             rows = cursor.fetchall()
-            return [_dict_row(r) for r in rows]
+            orders = [_dict_row(r) for r in rows]
+            # Server-Side Privacy Rule: Mask farmer phone and email unless order status is Accepted or Completed
+            for o in orders:
+                if o.get('status') not in ('Accepted', 'Completed'):
+                    o['farmer_phone'] = None
+                    o['farmer_email'] = None
+            return orders
         finally:
             conn.close()
     except Exception as e:
         print("[!] Error in get_orders_for_buyer:", e)
         return []
 
+# --- PHASE 4 EMAIL NOTIFICATIONS LOG & ORDER COMPLETION SERVICES ---
+
+def log_email_notification(order_id, recipient_user_id, notification_type, recipient_email, status='PENDING', error_message=None):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        nid = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        ph = "%s" if db_type == "postgres" else "?"
+        sent_at = now if status == 'SENT' else None
+        sql = f"""
+            INSERT INTO email_notifications (id, order_id, recipient_user_id, notification_type, recipient_email, status, error_message, sent_at, created_at)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+        """
+        cursor.execute(sql, (
+            nid,
+            str(order_id) if order_id else None,
+            str(recipient_user_id) if recipient_user_id else None,
+            notification_type,
+            recipient_email,
+            status,
+            error_message,
+            sent_at,
+            now
+        ))
+        conn.commit()
+        return nid
+    except Exception as e:
+        print("[!] Error logging email notification:", e)
+        return None
+    finally:
+        conn.close()
+
+def get_email_notifications_for_order(order_id):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"SELECT * FROM email_notifications WHERE order_id = {ph} ORDER BY created_at DESC"
+        cursor.execute(sql, (str(order_id),))
+        rows = cursor.fetchall()
+        return [_dict_row(r) for r in rows]
+    except Exception as e:
+        print(f"[!] Error in get_email_notifications_for_order({order_id}):", e)
+        return []
+    finally:
+        conn.close()
+
+def get_all_email_notifications_admin():
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        sql = "SELECT * FROM email_notifications ORDER BY created_at DESC"
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        return [_dict_row(r) for r in rows]
+    except Exception as e:
+        print("[!] Error in get_all_email_notifications_admin:", e)
+        return []
+    finally:
+        conn.close()
+
+def complete_order_atomic(order_id, user_id, role):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        
+        # 1. Fetch order
+        sql_o = f"SELECT * FROM orders WHERE id = {ph}"
+        cursor.execute(sql_o, (str(order_id),))
+        order_row = cursor.fetchone()
+        order = _dict_row(order_row)
+        if not order:
+            return False, "Order not found."
+
+        # Check authorization
+        if role == 'farmer' and str(order['farmer_id']) != str(user_id):
+            return False, "Unauthorized action."
+        elif role == 'buyer' and str(order['buyer_id']) != str(user_id):
+            return False, "Unauthorized action."
+        elif role not in ('farmer', 'buyer', 'admin'):
+            return False, "Unauthorized role."
+
+        # Duplicate Protection
+        if order['status'] == 'Completed':
+            return False, "Order is already completed."
+        elif order['status'] != 'Accepted':
+            return False, f"Cannot complete an order with status '{order['status']}'."
+
+        # Update order status to Completed
+        sql_u = f"UPDATE orders SET status = 'Completed', updated_at = {ph} WHERE id = {ph}"
+        cursor.execute(sql_u, (now, str(order_id)))
+        conn.commit()
+        return True, "Order successfully marked as Completed."
+    except Exception as e:
+        print("[!] Error in complete_order_atomic:", e)
+        try: conn.rollback()
+        except: pass
+        return False, f"Server error: {e}"
+    finally:
+        conn.close()
+
 def create_order(buyer_id, farmer_id, crop_id, crop_name, quantity, total_price, order_id=None):
+
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
@@ -1030,12 +1200,20 @@ def accept_order_atomic(order_id, farmer_id):
         now = datetime.utcnow().isoformat()
         
         # 1. Fetch order
-        sql_o = f"SELECT * FROM orders WHERE id = {ph} AND farmer_id = {ph}"
-        cursor.execute(sql_o, (str(order_id), str(farmer_id)))
+        sql_o = f"SELECT * FROM orders WHERE id = {ph}"
+        cursor.execute(sql_o, (str(order_id),))
         order_row = cursor.fetchone()
         order = _dict_row(order_row)
-        if not order or order['status'] != 'Pending':
-            return False, "Order not found or not pending."
+        if not order:
+            return False, "Order not found."
+
+        if str(order['farmer_id']) != str(farmer_id):
+            return False, "Unauthorized action."
+
+        if order['status'] == 'Accepted':
+            return False, "Order is already accepted."
+        elif order['status'] != 'Pending':
+            return False, f"Order is not pending (current status: {order['status']})."
             
         # 2. Fetch crop listing
         sql_c = f"SELECT * FROM crops WHERE id = {ph}"
@@ -1053,6 +1231,7 @@ def accept_order_atomic(order_id, farmer_id):
 
         # 3. Update stock and crop status
         new_qty = curr_qty - order_qty
+
         new_crop_status = 'sold' if new_qty == 0 else crop['status']
 
         sql_u_crop = f"UPDATE crops SET quantity = {ph}, status = {ph}, updated_at = {ph} WHERE id = {ph}"

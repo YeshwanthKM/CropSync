@@ -105,6 +105,19 @@ CREATE TABLE IF NOT EXISTS government_msp (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 8. Email Notifications Log Table
+CREATE TABLE IF NOT EXISTS email_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+    recipient_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    notification_type TEXT NOT NULL CHECK (notification_type IN ('NEW_ORDER', 'ORDER_ACCEPTED', 'ORDER_REJECTED', 'ORDER_COMPLETED')),
+    recipient_email TEXT NOT NULL,
+    status TEXT DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SENT', 'FAILED')) NOT NULL,
+    error_message TEXT,
+    sent_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
@@ -114,6 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_crops_crop_name ON crops(crop_name);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_farmer_id ON orders(farmer_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_email_notifications_order_id ON email_notifications(order_id);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -123,6 +137,8 @@ ALTER TABLE crops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE government_msp ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_notifications ENABLE ROW LEVEL SECURITY;
+
 
 
 

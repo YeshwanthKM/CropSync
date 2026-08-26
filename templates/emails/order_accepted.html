@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Accepted</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; color: #333333;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e0e0e0;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #27ae60; padding: 25px 20px; text-align: center; color: #ffffff;">
+                            <h1 style="margin: 0; font-size: 24px; font-weight: bold;">🌾 CropSync</h1>
+                            <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">✓ Order Accepted</p>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            <p style="font-size: 16px; line-height: 1.5; margin-top: 0;">Hello <strong>{{ buyer_name }}</strong>,</p>
+                            <p style="font-size: 15px; line-height: 1.5; color: #27ae60; font-weight: bold;">
+                                Good news! Your order request has been accepted by the farmer.
+                            </p>
+                            
+                            <!-- Order Summary Box -->
+                            <table role="presentation" width="100%" style="background-color: #f9fbf9; border: 1px solid #e2ece2; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 6px 0; font-size: 14px;"><strong>Order ID:</strong></td>
+                                    <td style="padding: 6px 0; font-size: 14px; text-align: right; font-family: monospace;">#{{ order_id[:8] }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px 0; font-size: 14px;"><strong>Crop:</strong></td>
+                                    <td style="padding: 6px 0; font-size: 14px; text-align: right;">{{ crop_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px 0; font-size: 14px;"><strong>Quantity:</strong></td>
+                                    <td style="padding: 6px 0; font-size: 14px; text-align: right;">{{ quantity }} kg</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px 0; font-size: 14px;"><strong>Total Price:</strong></td>
+                                    <td style="padding: 6px 0; font-size: 14px; text-align: right; font-weight: bold; color: #27ae60;">₹{{ "%.2f"|format(total) }}</td>
+                                </tr>
+                            </table>
+
+                            <!-- Farmer Contact Info -->
+                            <div style="background-color: #eef9f2; border-left: 4px solid #27ae60; padding: 15px; border-radius: 0 6px 6px 0; margin: 20px 0;">
+                                <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 15px;">Farmer Contact Details</h4>
+                                <p style="margin: 3px 0; font-size: 14px;"><strong>Name:</strong> {{ farmer_name }}</p>
+                                <p style="margin: 3px 0; font-size: 14px;"><strong>Email:</strong> {{ farmer_email }}</p>
+                                {% if farmer_phone and farmer_phone != 'N/A' %}
+                                <p style="margin: 3px 0; font-size: 14px;"><strong>Phone:</strong> {{ farmer_phone }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Direct Coordination Disclaimer -->
+                            <p style="font-size: 13px; color: #d35400; background-color: #fdf5e6; padding: 12px; border-radius: 6px; border: 1px solid #f5e0be; line-height: 1.4;">
+                                💡 <strong>Direct Coordination Notice:</strong> Please contact the farmer directly to coordinate payment and collection/delivery. CropSync connects farmers and buyers directly but does not process payments or provide physical delivery services.
+                            </p>
+
+                            <!-- CTA Button -->
+                            <table role="presentation" width="100%" style="margin: 25px 0 15px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ view_url }}" style="background-color: #27ae60; color: #ffffff; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 15px; display: inline-block;">
+                                            View Order Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f4f7f6; padding: 15px; text-align: center; font-size: 12px; color: #888888; border-top: 1px solid #eeeeee;">
+                            CropSync Direct Agriculture Marketplace &bull; Connecting Farmers & Buyers Directly
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
