@@ -127,6 +127,34 @@ class EmailService:
         resend_api_key = (os.environ.get('RESEND_API_KEY') or '').strip()
 
         
+        try:
+            from flask import render_template
+            html_content = render_template('emails/verify_email.html', confirm_url=confirm_url)
+        except Exception:
+            html_content = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 25px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+                <h2 style="color: #27ae60; text-align: center; margin-top: 0;">🌾 Welcome to CropSync</h2>
+                <p style="font-size: 15px; color: #333; line-height: 1.6;">
+                    Thank you for joining CropSync — your direct agricultural trade marketplace. Please verify your email address to activate your account:
+                </p>
+                <div style="background-color: #f8faf8; border: 1px solid #e2ece2; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 4px 0; font-size: 14px; color: #27ae60; font-weight: bold;">🚜 Farmers: List crops & compare prices with Govt MSP</p>
+                    <p style="margin: 4px 0; font-size: 14px; color: #27ae60; font-weight: bold;">🛍️ Buyers: Buy directly from local farmers</p>
+                </div>
+                <div style="text-align: center; margin: 25px 0;">
+                    <a href="{confirm_url}" style="background-color: #27ae60; color: #ffffff; padding: 13px 28px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 15px; display: inline-block;">
+                        ✓ Confirm Email Address
+                    </a>
+                </div>
+                <p style="font-size: 13px; color: #777; text-align: center; line-height: 1.5;">
+                    Or copy and paste this link into your browser:<br>
+                    <a href="{confirm_url}" style="color: #27ae60;">{confirm_url}</a>
+                </p>
+            </div>
+            """
+
+        text_content = f"Welcome to CropSync!\n\nPlease verify your email address by opening this link in your browser:\n{confirm_url}\n\nThank you,\nCropSync Team"
+
         # Method 1: Direct Gmail / Custom SMTP Dispatch via Python smtplib (Sends to ANY email)
         if gmail_user and gmail_pass:
             try:
@@ -134,33 +162,13 @@ class EmailService:
                 smtp_port = int(os.environ.get('SMTP_PORT') or 587)
 
                 msg = MIMEMultipart('alternative')
-                msg['Subject'] = "CropSync Email Verification"
+                msg['Subject'] = "🌾 Verify your CropSync Email Address"
                 msg['From'] = f"CropSync Team <{gmail_user}>"
                 msg['Reply-To'] = gmail_user
                 msg['To'] = email
 
-
-                text_content = f"Welcome to CropSync!\n\nPlease verify your email address by opening this link in your browser:\n{confirm_url}\n\nThank you,\nCropSync Team"
-                html_content = f"""
-                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                    <h2 style="color: #27ae60; text-align: center;">🌾 Welcome to CropSync</h2>
-                    <p style="font-size: 16px; color: #333; line-height: 1.5;">
-                        Thank you for registering! Please click the button below to confirm your email address and activate your account:
-                    </p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="{confirm_url}" style="background-color: #27ae60; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; font-size: 16px; display: inline-block;">
-                            ✓ Confirm Email Address
-                        </a>
-                    </div>
-                    <p style="font-size: 14px; color: #777; text-align: center;">
-                        Or copy and paste this URL into your browser:<br>
-                        <a href="{confirm_url}" style="color: #27ae60;">{confirm_url}</a>
-                    </p>
-                </div>
-                """
                 msg.attach(MIMEText(text_content, 'plain'))
                 msg.attach(MIMEText(html_content, 'html'))
-
 
                 with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
                     server.starttls()
@@ -184,24 +192,9 @@ class EmailService:
                 "from": "CropSync <onboarding@resend.dev>",
                 "to": [email],
                 "subject": "🌾 Verify your CropSync Email Address",
-                "html": f"""
-                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                    <h2 style="color: #27ae60; text-align: center;">🌾 Welcome to CropSync</h2>
-                    <p style="font-size: 16px; color: #333; line-height: 1.5;">
-                        Thank you for registering! Please click the button below to confirm your email address and activate your account:
-                    </p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="{confirm_url}" style="background-color: #27ae60; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; font-size: 16px; display: inline-block;">
-                            ✓ Confirm Email Address
-                        </a>
-                    </div>
-                    <p style="font-size: 14px; color: #777; text-align: center;">
-                        Or copy and paste this URL into your browser:<br>
-                        <a href="{confirm_url}" style="color: #27ae60;">{confirm_url}</a>
-                    </p>
-                </div>
-                """
+                "html": html_content
             }
+
             try:
                 ctx = ssl.create_default_context()
                 ctx.check_hostname = False
