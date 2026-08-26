@@ -1180,8 +1180,14 @@ def seed_market_intelligence_data():
         conn.close()
 
 
+_market_intel_cache = {}
+_benchmarks_cache = None
+
 def get_market_intelligence(crop_name='Rice', location='Salem'):
-    seed_market_intelligence_data()
+    cache_key = f"{crop_name.lower()}_{location.lower()}"
+    if cache_key in _market_intel_cache:
+        return _market_intel_cache[cache_key]
+
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
@@ -1230,7 +1236,7 @@ def get_market_intelligence(crop_name='Rice', location='Salem'):
         change_pct = round(((current_avg - prev_avg) / prev_avg) * 100, 1) if prev_avg else 0.0
         msp_variance = round(((current_avg - govt_msp) / govt_msp) * 100, 1) if govt_msp else 0.0
 
-        return {
+        res = {
             "crop_name": crop_name,
             "location": location,
             "current_avg_price": current_avg,
@@ -1242,6 +1248,8 @@ def get_market_intelligence(crop_name='Rice', location='Salem'):
             "msps": msps,
             "trends": trends
         }
+        _market_intel_cache[cache_key] = res
+        return res
     except Exception as e:
         print("[!] Error in get_market_intelligence:", e)
         return {
@@ -1286,7 +1294,10 @@ def get_all_market_locations():
         conn.close()
 
 def get_all_crop_benchmarks():
-    seed_market_intelligence_data()
+    global _benchmarks_cache
+    if _benchmarks_cache is not None:
+        return _benchmarks_cache
+
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
@@ -1310,10 +1321,12 @@ def get_all_crop_benchmarks():
             row_dict['msp_price_per_kg'] = round(msp_p, 2)
             row_dict['variance_pct'] = diff_pct
             results.append(row_dict)
+        _benchmarks_cache = results
         return results
     except Exception as e:
         print("[!] Error in get_all_crop_benchmarks:", e)
         return []
     finally:
         conn.close()
+
 
