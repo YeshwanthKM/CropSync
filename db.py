@@ -1050,7 +1050,10 @@ def record_price_observation(crop_id, crop_name, location, price_per_kg, recorde
         return hid
     except Exception as e:
         print("[!] Error in record_price_observation:", e)
+        try: conn.rollback()
+        except: pass
         return None
+
     finally:
         conn.close()
 
@@ -1179,7 +1182,7 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
         cursor.execute(sql_current, tuple(params + [start_date]))
         current_rows = [_dict_row(r) for r in cursor.fetchall()]
 
-        # Fallback to all observations if current period filtering yields 0 rows
+        # Fallback 1: Query all observations from history if current period yields 0 rows
         if not current_rows:
             sql_all = f"""
                 SELECT price_per_kg, recorded_at 
@@ -1188,6 +1191,17 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
                 ORDER BY recorded_at ASC
             """
             cursor.execute(sql_all, tuple(params))
+            current_rows = [_dict_row(r) for r in cursor.fetchall()]
+
+        # Fallback 2: Direct query from active marketplace crops table if history is empty
+        if not current_rows:
+            sql_crops_direct = f"""
+                SELECT price_per_kg, created_at AS recorded_at 
+                FROM crops 
+                WHERE {where_sql}
+                ORDER BY created_at ASC
+            """
+            cursor.execute(sql_crops_direct, tuple(params))
             current_rows = [_dict_row(r) for r in cursor.fetchall()]
 
         # Fetch previous period observations
@@ -1211,6 +1225,7 @@ def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30
                 "has_data": False,
                 "govt_msp": govt_msp
             }
+
 
 
         if total_obs < 2:
