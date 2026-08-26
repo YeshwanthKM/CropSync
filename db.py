@@ -26,18 +26,19 @@ def get_connection():
     if DB_URL:
         import psycopg2
         import psycopg2.extras
+        import psycopg2.extensions
         
         conn = getattr(_thread_local, 'conn', None)
         if conn is not None and not conn.closed:
             try:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT 1")
-                return conn, "postgres"
+                if getattr(conn, 'status', None) == psycopg2.extensions.STATUS_READY:
+                    return conn, "postgres"
             except Exception:
                 try:
                     conn.close()
                 except Exception:
                     pass
+
 
         url = DB_URL
         if 'sslmode' not in url.lower():
@@ -622,7 +623,6 @@ def ensure_seed_users():
 
 def get_all_farmers(search=None, status_filter=None):
     try:
-        ensure_seed_users()
         conn, db_type = get_connection()
         try:
             cursor = conn.cursor()
@@ -670,7 +670,6 @@ def get_all_farmers(search=None, status_filter=None):
 
 def get_all_buyers(search=None, status_filter=None):
     try:
-        ensure_seed_users()
         conn, db_type = get_connection()
         try:
             cursor = conn.cursor()
@@ -720,8 +719,8 @@ def get_all_buyers(search=None, status_filter=None):
 
 def get_admin_stats():
     try:
-        ensure_seed_users()
         conn, db_type = get_connection()
+
         try:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as count FROM users WHERE role = 'farmer'")
