@@ -23,6 +23,11 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Ensure users_account_status_check allows ('pending', 'active', 'suspended')
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_account_status_check;
+ALTER TABLE users ADD CONSTRAINT users_account_status_check CHECK (account_status IN ('pending', 'active', 'suspended'));
+
+
 -- 2. Farmer Profiles Table
 CREATE TABLE IF NOT EXISTS farmer_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
