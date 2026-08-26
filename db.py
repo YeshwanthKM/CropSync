@@ -306,6 +306,17 @@ def _dict_row(row):
             d[k] = str(v)
     return d
 
+def _val(row, default=0):
+    if row is None:
+        return default
+    if isinstance(row, dict):
+        return list(row.values())[0] if row else default
+    try:
+        return row[0]
+    except Exception:
+        return default
+
+
 
 # --- USER FUNCTIONS ---
 
@@ -1089,7 +1100,7 @@ def seed_government_msp_data(force=False):
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT count(*) FROM government_msp")
-            count = cursor.fetchone()[0]
+            count = _val(cursor.fetchone(), 0)
             if count >= 12 and not force:
                 _msp_seeded = True
                 return
@@ -1123,6 +1134,7 @@ def seed_government_msp_data(force=False):
         print("[!] Error in seed_government_msp_data:", e)
     finally:
         conn.close()
+
 
 def get_all_msp_references(search=None, season=None, year=None):
     seed_government_msp_data()
@@ -1390,26 +1402,26 @@ def get_admin_dashboard_stats():
     try:
         cursor = conn.cursor()
         
-        cursor.execute("SELECT count(*) FROM users WHERE role = 'farmer'")
-        total_farmers = cursor.fetchone()[0]
+        cursor.execute("SELECT count(*) AS count FROM users WHERE role = 'farmer'")
+        total_farmers = int(_val(cursor.fetchone(), 0))
 
-        cursor.execute("SELECT count(*) FROM users WHERE role = 'buyer'")
-        total_buyers = cursor.fetchone()[0]
+        cursor.execute("SELECT count(*) AS count FROM users WHERE role = 'buyer'")
+        total_buyers = int(_val(cursor.fetchone(), 0))
 
-        cursor.execute("SELECT count(*) FROM crops WHERE status = 'available'")
-        active_listings = cursor.fetchone()[0]
+        cursor.execute("SELECT count(*) AS count FROM crops WHERE status = 'available'")
+        active_listings = int(_val(cursor.fetchone(), 0))
 
-        cursor.execute("SELECT COALESCE(SUM(quantity), 0) FROM crops WHERE status = 'available'")
-        total_listed_qty = float(cursor.fetchone()[0])
+        cursor.execute("SELECT COALESCE(SUM(quantity), 0) AS total_qty FROM crops WHERE status = 'available'")
+        total_listed_qty = float(_val(cursor.fetchone(), 0.0))
 
-        cursor.execute("SELECT count(*) FROM orders WHERE status = 'Pending'")
-        pending_orders = cursor.fetchone()[0]
+        cursor.execute("SELECT count(*) AS count FROM orders WHERE status = 'Pending'")
+        pending_orders = int(_val(cursor.fetchone(), 0))
 
-        cursor.execute("SELECT count(*) FROM orders WHERE status = 'Accepted'")
-        accepted_orders = cursor.fetchone()[0]
+        cursor.execute("SELECT count(*) AS count FROM orders WHERE status = 'Accepted'")
+        accepted_orders = int(_val(cursor.fetchone(), 0))
 
-        cursor.execute("SELECT count(*) FROM orders WHERE status = 'Completed'")
-        completed_orders = cursor.fetchone()[0]
+        cursor.execute("SELECT count(*) AS count FROM orders WHERE status = 'Completed'")
+        completed_orders = int(_val(cursor.fetchone(), 0))
 
         return {
             'total_farmers': total_farmers,
@@ -1428,6 +1440,7 @@ def get_admin_dashboard_stats():
         }
     finally:
         conn.close()
+
 
 def log_admin_action(admin_id, action, target_user_id=None, reason=None):
     conn, db_type = get_connection()
