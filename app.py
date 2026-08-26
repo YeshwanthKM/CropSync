@@ -266,9 +266,22 @@ def confirm_email():
     email = request.args.get('email', '').strip().lower() or session.get('pending_email')
     user_id = session.get('pending_user_id')
 
-    if email and not user_id:
+    if not user_id and email:
         u = db.get_user_by_email(email)
         if u: user_id = u['id']
+
+    # Fallback for cross-device or new browser link clicks
+    if not user_id:
+        try:
+            conn, db_type = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, email, role FROM users WHERE account_status = 'pending' ORDER BY created_at DESC LIMIT 1")
+            row = cursor.fetchone()
+            if row:
+                u = db._dict_row(row)
+                user_id = u['id']
+        except Exception as e:
+            print("[!] Confirm email fallback lookup error:", e)
 
     if user_id:
         db.update_email_verified(user_id, True)
@@ -286,6 +299,7 @@ def confirm_email():
     else:
         flash('Email verified! Please log in to access your account.', 'success')
         return redirect(url_for('login'))
+
 
 
 
