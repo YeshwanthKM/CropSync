@@ -94,7 +94,7 @@ def send_new_order_email(order, farmer, buyer=None):
         location = order.get('location') or farmer.get('location') or 'Marketplace'
         
         base_url = get_app_base_url()
-        view_url = f"{base_url}/farmer/dashboard"
+        view_url = f"{base_url}/login"
 
         subject = f"New Order Request on CropSync — Order #{order_id[:8]}"
 
@@ -124,7 +124,7 @@ def send_new_order_email(order, farmer, buyer=None):
                     <p><strong>Total Amount:</strong> ₹{total_price}</p>
                 </div>
                 <p style="text-align: center;">
-                    <a href="{view_url}" style="background: #27ae60; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Order on Dashboard</a>
+                    <a href="{view_url}" style="background: #27ae60; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Log In to View Order</a>
                 </p>
             </div>
             """
@@ -160,7 +160,7 @@ def send_order_accepted_email(order, buyer, farmer):
         location = order.get('location') or farmer.get('location') or 'Marketplace'
 
         base_url = get_app_base_url()
-        view_url = f"{base_url}/buyer/dashboard"
+        view_url = f"{base_url}/login"
 
         subject = f"Your CropSync Order Has Been Accepted — #{order_id[:8]}"
 
@@ -200,7 +200,7 @@ def send_order_accepted_email(order, buyer, farmer):
                 </div>
                 <p style="color: #e67e22; font-weight: bold;">Notice: Please contact the farmer directly to coordinate payment and collection/delivery. CropSync connects farmers and buyers directly but does not process payments or provide physical delivery services.</p>
                 <p style="text-align: center;">
-                    <a href="{view_url}" style="background: #27ae60; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Order Details</a>
+                    <a href="{view_url}" style="background: #27ae60; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Log In to View Order Details</a>
                 </p>
             </div>
             """
@@ -232,7 +232,7 @@ def send_order_rejected_email(order, buyer):
         crop_name = order.get('crop_name')
 
         base_url = get_app_base_url()
-        browse_url = f"{base_url}/buyer/dashboard"
+        browse_url = f"{base_url}/login"
 
         subject = f"Your CropSync Order Update — #{order_id[:8]}"
 
@@ -252,7 +252,7 @@ def send_order_rejected_email(order, buyer):
                 <p>Unfortunately, your order request for <strong>{crop_name}</strong> (Order #{order_id[:8]}) could not be accepted by the farmer at this time.</p>
                 <p>You can continue browsing CropSync for other available listings.</p>
                 <p style="text-align: center; margin-top: 25px;">
-                    <a href="{browse_url}" style="background: #27ae60; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Browse Marketplace</a>
+                    <a href="{browse_url}" style="background: #27ae60; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Log In to Browse Marketplace</a>
                 </p>
             </div>
             """
@@ -286,7 +286,8 @@ def send_order_completed_email(order, recipient_user, role):
         total_price = order.get('total_price')
 
         base_url = get_app_base_url()
-        dashboard_url = f"{base_url}/{role}/dashboard" if role in ('farmer', 'buyer') else f"{base_url}/admin/orders"
+        dashboard_url = f"{base_url}/login"
+
 
         subject = f"CropSync Order Completed — #{order_id[:8]}"
 
