@@ -90,6 +90,27 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 7. Government Minimum Support Price (MSP) Benchmarks (Phase 3 Market Intelligence)
+CREATE TABLE IF NOT EXISTS government_msp (
+    crop_name TEXT PRIMARY KEY,
+    msp_price_per_kg NUMERIC NOT NULL CHECK (msp_price_per_kg >= 0),
+    category TEXT NOT NULL,
+    season TEXT NOT NULL,
+    effective_year INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 8. Market Historical Price Trends Table (Phase 3 Market Intelligence)
+CREATE TABLE IF NOT EXISTS market_prices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    crop_name TEXT NOT NULL,
+    location TEXT NOT NULL,
+    month TEXT NOT NULL,
+    avg_price NUMERIC NOT NULL CHECK (avg_price >= 0),
+    msp_price NUMERIC NOT NULL CHECK (msp_price >= 0),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
@@ -99,6 +120,7 @@ CREATE INDEX IF NOT EXISTS idx_crops_crop_name ON crops(crop_name);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_farmer_id ON orders(farmer_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_market_prices_lookup ON market_prices(crop_name, location);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -107,3 +129,6 @@ ALTER TABLE buyer_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE crops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE government_msp ENABLE ROW LEVEL SECURITY;
+ALTER TABLE market_prices ENABLE ROW LEVEL SECURITY;
+

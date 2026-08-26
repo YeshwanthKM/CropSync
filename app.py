@@ -3,7 +3,8 @@ import json
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -766,6 +767,36 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
+@app.route('/market-intelligence')
+
+def market_intelligence():
+    selected_crop = request.args.get('crop', 'Rice').strip()
+    selected_location = request.args.get('location', 'Salem').strip()
+    
+    crops = db.get_all_market_crops()
+    locations = db.get_all_market_locations()
+    
+    intel_data = db.get_market_intelligence(crop_name=selected_crop, location=selected_location)
+    benchmarks = db.get_all_crop_benchmarks()
+    
+    return render_template(
+        'market_intelligence.html',
+        selected_crop=selected_crop,
+        selected_location=selected_location,
+        crops=crops,
+        locations=locations,
+        intel=intel_data,
+        benchmarks=benchmarks
+    )
+
+@app.route('/api/market-intelligence')
+def api_market_intelligence():
+    selected_crop = request.args.get('crop', 'Rice').strip()
+    selected_location = request.args.get('location', 'Salem').strip()
+    intel_data = db.get_market_intelligence(crop_name=selected_crop, location=selected_location)
+    return jsonify(intel_data)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)
+

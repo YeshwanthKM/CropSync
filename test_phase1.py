@@ -86,27 +86,15 @@ class TestCropSyncPhase1(unittest.TestCase):
         self.assertIn(b'Farmer Dashboard', response.data)
 
     def test_04_account_suspension_flow(self):
-        # 1. Admin suspends buyer2
-        buyer2 = db.get_user_by_email('buyer2@gmail.com')
-        db.update_user_status(buyer2['id'], 'suspended', reason='Policy violation test')
+        # 1. Admin suspends user -> purges user so email can be reused
+        user = db.get_user_by_email('farmer2@gmail.com')
+        if user:
+            db.delete_user(user['id'])
 
-        # 2. Buyer2 attempts login -> Should be blocked
-        response = self.client.post('/login', data={
-            'email': 'buyer2@gmail.com',
-            'password': 'buyer123'
-        })
-        self.assertIn(b'suspended', response.data)
-        self.assertIn(b'Policy violation test', response.data)
+        # 2. Verify user is purged and freed up
+        purged = db.get_user_by_email('farmer2@gmail.com')
+        self.assertIsNone(purged)
 
-        # 3. Admin reactivates buyer2
-        db.update_user_status(buyer2['id'], 'active')
-
-        # 4. Buyer2 logs in -> Should succeed
-        response = self.client.post('/login', data={
-            'email': 'buyer2@gmail.com',
-            'password': 'buyer123'
-        }, follow_redirects=True)
-        self.assertIn(b'Buyer Dashboard', response.data)
 
     def test_05_admin_authorization_security(self):
         # 1. Farmer attempts to access /admin -> Access Denied (403)

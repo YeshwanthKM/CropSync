@@ -20,7 +20,9 @@
                 <button class="sidebar-link" onclick="showSection('add-listing')">{{ get_text('list_new_crop') }}</button>
                 <button class="sidebar-link" onclick="showSection('my-listings')">{{ get_text('my_crop_listings') }}</button>
                 <button class="sidebar-link" onclick="showSection('sold-items')">Orders & Sales</button>
+                <a href="{{ url_for('market_intelligence') }}" class="sidebar-link" style="color: #27ae60; font-weight: 700; text-decoration: none; display: block; padding: 0.75rem 1rem;">📊 Market Intelligence</a>
                 <button class="sidebar-link" onclick="showSection('msp-reference')">{{ get_text('msp_reference') }}</button>
+
             </nav>
             <div class="sidebar-footer">
                 <a href="{{ url_for('settings', role='farmer') }}" class="sidebar-link">{{ get_text('settings') }}</a>

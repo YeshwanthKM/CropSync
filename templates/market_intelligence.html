@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CropSync - Market Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+    <style>
+        .intel-header {
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(41, 128, 185, 0.15));
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            border: 1px solid var(--nav-border);
+            text-align: center;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            background: var(--nav-bg);
+            padding: 1.25rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--nav-border);
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .filter-group select {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--nav-bg);
+            border: 1px solid var(--nav-border);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .metric-card .value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary-color, #27ae60);
+            margin: 0.5rem 0;
+        }
+
+        .metric-card .label {
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            font-weight: 600;
+        }
+
+        .chart-container {
+            background: var(--nav-bg);
+            border: 1px solid var(--nav-border);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .benchmark-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .benchmark-table th, .benchmark-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--nav-border);
+        }
+
+        .benchmark-table th {
+            background: rgba(39, 174, 96, 0.1);
+            font-weight: 700;
+        }
+
+        .badge-positive {
+            background: rgba(39, 174, 96, 0.2);
+            color: #27ae60;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .badge-negative {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <div class="nav">
+            <div style="font-weight: 800;">
+                <a href="{{ url_for('home') }}" style="border:none; padding:0; background:none; color:inherit;">CropSync</a>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('market_intelligence') }}" style="color: #27ae60; font-weight: 700;">📊 Market Intelligence</a>
+                {% if session.get('farmer_user') %}
+                    <a href="{{ url_for('farmer_dashboard') }}">🌾 Farmer Dashboard</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                {% elif session.get('buyer_user') %}
+                    <a href="{{ url_for('buyer_dashboard') }}">🛒 Buyer Portal</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                {% elif session.get('admin_user') %}
+                    <a href="{{ url_for('admin_dashboard') }}">👑 Admin Portal</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Login</a>
+                    <a href="{{ url_for('register') }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #27ae60; border-color: #27ae60; color: #ffffff; text-decoration: none;">Register</a>
+                {% endif %}
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓 Theme</button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="intel-header">
+            <h1 style="margin-bottom: 0.5rem;">📊 CropSync Market Intelligence</h1>
+            <p style="color: var(--secondary-text); font-size: 1.1rem; max-width: 650px; margin: 0 auto;">
+                Real-time agricultural market prices compared against Government Minimum Support Price (MSP) benchmarks across Tamil Nadu.
+            </p>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="cropSelect" style="font-weight: 700;">🌾 Select Crop:</label>
+                <select id="cropSelect" onchange="updateMarketData()">
+                    {% for c in crops %}
+                    <option value="{{ c }}" {% if c == selected_crop %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="locationSelect" style="font-weight: 700;">📍 Select Location / Region:</label>
+                <select id="locationSelect" onchange="updateMarketData()">
+                    {% for l in locations %}
+                    <option value="{{ l }}" {% if l == selected_location %}selected{% endif %}>{{ l }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Active View Subheader -->
+        <h2 id="activeHeader" style="text-align: center; margin-bottom: 1.5rem;">
+            🌾 <span id="cropTitle">{{ intel.crop_name }}</span> — <span id="locationTitle">{{ intel.location }}</span>
+        </h2>
+
+        <!-- Key Metrics Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="label">Current Average Price</div>
+                <div class="value" id="currentAvgVal">₹{{ "%.2f"|format(intel.current_avg_price) }}/kg</div>
+                <div style="font-size: 0.85rem; color: var(--secondary-text);">CropSync Marketplace Avg</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="label">Government MSP</div>
+                <div class="value" style="color: #2980b9;" id="govtMspVal">₹{{ "%.2f"|format(intel.govt_msp) }}/kg</div>
+                <div style="font-size: 0.85rem; color: var(--secondary-text);">Official Support Benchmark</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="label">Change This Month</div>
+                <div class="value" id="changePctVal" style="color: {% if intel.change_pct >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                    {% if intel.change_pct >= 0 %}+{% endif %}{{ intel.change_pct }}%
+                </div>
+                <div style="font-size: 0.85rem; color: var(--secondary-text);">Compared to last month</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="label">Variance Over MSP</div>
+                <div class="value" id="mspVarianceVal" style="color: {% if intel.msp_variance >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                    {% if intel.msp_variance >= 0 %}+{% endif %}{{ intel.msp_variance }}%
+                </div>
+                <div style="font-size: 0.85rem; color: var(--secondary-text);">Premium above Govt MSP</div>
+            </div>
+        </div>
+
+        <!-- Chart Visualization -->
+        <div class="chart-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+                <h3 style="margin: 0;">📈 Monthly Price Trend (Price / kg)</h3>
+                <div style="display: flex; gap: 1.5rem; font-size: 0.9rem; font-weight: 600;">
+                    <span style="color: #27ae60;">─── Average CropSync Price</span>
+                    <span style="color: #2980b9;">- - - Government MSP</span>
+                </div>
+            </div>
+            <div style="position: relative; height: 350px; width: 100%;">
+                <canvas id="marketChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Government MSP & Market Benchmark Table -->
+        <div style="background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 3rem;">
+            <h3 style="margin-bottom: 1rem;">🏛️ All-Crop Government MSP & Market Price Benchmarks</h3>
+            <div style="overflow-x: auto;">
+                <table class="benchmark-table">
+                    <thead>
+                        <tr>
+                            <th>Crop Name</th>
+                            <th>Category</th>
+                            <th>Season</th>
+                            <th>Govt MSP (₹/kg)</th>
+                            <th>CropSync Market Avg (₹/kg)</th>
+                            <th>Premium over MSP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in benchmarks %}
+                        <tr>
+                            <td><strong>{{ b.crop_name }}</strong></td>
+                            <td>{{ b.category }}</td>
+                            <td>{{ b.season }}</td>
+                            <td style="font-weight: 700; color: #2980b9;">₹{{ b.msp_price_per_kg }}</td>
+                            <td style="font-weight: 700; color: #27ae60;">₹{{ b.avg_market_price }}</td>
+                            <td>
+                                {% if b.variance_pct >= 0 %}
+                                    <span class="badge-positive">+{{ b.variance_pct }}%</span>
+                                {% else %}
+                                    <span class="badge-negative">{{ b.variance_pct }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <script>
+            // Theme toggle
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                if (priceChart) priceChart.update();
+            });
+
+            // Initial chart data
+            const initialMonths = {{ intel.months | tojson }};
+            const initialPrices = {{ intel.prices | tojson }};
+            const initialMsps = {{ intel.msps | tojson }};
+
+            const ctx = document.getElementById('marketChart').getContext('2d');
+            let priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: initialMonths,
+                    datasets: [
+                        {
+                            label: 'Average CropSync Price (₹/kg)',
+                            data: initialPrices,
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#27ae60',
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Government MSP (₹/kg)',
+                            data: initialMsps,
+                            borderColor: '#2980b9',
+                            borderWidth: 2,
+                            borderDash: [6, 6],
+                            pointRadius: 0,
+                            tension: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ₹' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: 'rgba(127, 127, 127, 0.15)' },
+                            ticks: {
+                                callback: function(value) { return '₹' + value; },
+                                color: 'inherit'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'inherit' }
+                        }
+                    }
+                }
+            });
+
+            async function updateMarketData() {
+                const crop = document.getElementById('cropSelect').value;
+                const location = document.getElementById('locationSelect').value;
+
+                document.getElementById('cropTitle').innerText = crop;
+                document.getElementById('locationTitle').innerText = location;
+
+                try {
+                    const response = await fetch(`/api/market-intelligence?crop=${encodeURIComponent(crop)}&location=${encodeURIComponent(location)}`);
+                    const data = await response.json();
+
+                    document.getElementById('currentAvgVal').innerText = `₹${data.current_avg_price.toFixed(2)}/kg`;
+                    document.getElementById('govtMspVal').innerText = `₹${data.govt_msp.toFixed(2)}/kg`;
+                    
+                    const changeEl = document.getElementById('changePctVal');
+                    changeEl.innerText = `${data.change_pct >= 0 ? '+' : ''}${data.change_pct}%`;
+                    changeEl.style.color = data.change_pct >= 0 ? '#27ae60' : '#e74c3c';
+
+                    const varianceEl = document.getElementById('mspVarianceVal');
+                    varianceEl.innerText = `${data.msp_variance >= 0 ? '+' : ''}${data.msp_variance}%`;
+                    varianceEl.style.color = data.msp_variance >= 0 ? '#27ae60' : '#e74c3c';
+
+                    priceChart.data.labels = data.months;
+                    priceChart.data.datasets[0].data = data.prices;
+                    priceChart.data.datasets[1].data = data.msps;
+                    priceChart.update();
+
+                    // Update URL without page refresh
+                    const newUrl = `${window.location.pathname}?crop=${encodeURIComponent(crop)}&location=${encodeURIComponent(location)}`;
+                    window.history.pushState({ path: newUrl }, '', newUrl);
+                } catch (err) {
+                    console.error('Error fetching market intelligence data:', err);
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>
