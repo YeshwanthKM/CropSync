@@ -159,16 +159,6 @@
             </div>
 
             <div class="filter-group">
-                <label for="locationSelect">Location:</label>
-                <select id="locationSelect" onchange="updateTrendsData()">
-                    <option value="All Locations" {% if selected_location == 'All Locations' %}selected{% endif %}>[ All Locations ]</option>
-                    {% for l in locations %}
-                    <option value="{{ l }}" {% if l == selected_location %}selected{% endif %}>{{ l }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="filter-group">
                 <label for="periodSelect">Period:</label>
                 <select id="periodSelect" onchange="updateTrendsData()">
                     <option value="7d" {% if selected_period == '7d' %}selected{% endif %}>7 Days</option>
@@ -183,7 +173,7 @@
         <!-- Title Block -->
         <div style="text-align: center; margin-bottom: 1.5rem;">
             <h2 id="chartTitle" style="margin-bottom: 0.25rem;">
-                <span id="cropNameHeading">{{ trends.crop_name }}</span> — <span id="locationHeading">{{ trends.location }}</span>
+                <span id="cropNameHeading">{{ trends.crop_name }}</span>
             </h2>
             <div style="font-size: 0.95rem; color: var(--secondary-text); font-weight: 600;">
                 CropSync Marketplace Price Trend
@@ -256,7 +246,7 @@
         <div id="emptyStateBox" class="empty-state-box" {% if trends.has_data %}style="display: none;"{% endif %}>
             <div style="font-size: 3rem; margin-bottom: 0.5rem;">📉</div>
             <h3 id="emptyMessageTitle" style="margin: 0; color: var(--text-color);">No Price Trend Data</h3>
-            <p id="emptyMessageText">{{ trends.message or "No CropSync price data available for this crop and location." }}</p>
+            <p id="emptyMessageText">{{ trends.message or "No CropSync price data available for this crop." }}</p>
         </div>
 
         <div style="text-align: center; color: var(--secondary-text); font-size: 0.85rem; margin-bottom: 2rem;">
@@ -344,14 +334,12 @@
 
             async function updateTrendsData() {
                 const crop = document.getElementById('cropSelect').value;
-                const location = document.getElementById('locationSelect').value;
                 const period = document.getElementById('periodSelect').value;
 
                 document.getElementById('cropNameHeading').innerText = crop;
-                document.getElementById('locationHeading').innerText = location;
 
                 try {
-                    const response = await fetch(`/api/price-trends?crop=${encodeURIComponent(crop)}&location=${encodeURIComponent(location)}&period=${encodeURIComponent(period)}`);
+                    const response = await fetch(`/api/price-trends?crop=${encodeURIComponent(crop)}&period=${encodeURIComponent(period)}`);
                     const data = await response.json();
 
                     const dataContainer = document.getElementById('dataContainer');
@@ -360,7 +348,7 @@
                     if (!data.has_data) {
                         dataContainer.style.display = 'none';
                         emptyBox.style.display = 'block';
-                        document.getElementById('emptyMessageText').innerText = data.message || "No CropSync price data available for this crop and location.";
+                        document.getElementById('emptyMessageText').innerText = data.message || "No CropSync price data available for this crop.";
                         return;
                     }
 
@@ -405,13 +393,14 @@
                     ];
                     trendChart.update();
 
-                    const newUrl = `${window.location.pathname}?crop=${encodeURIComponent(crop)}&location=${encodeURIComponent(location)}&period=${encodeURIComponent(period)}`;
+                    const newUrl = `${window.location.pathname}?crop=${encodeURIComponent(crop)}&period=${encodeURIComponent(period)}`;
                     window.history.pushState({ path: newUrl }, '', newUrl);
                 } catch (err) {
                     console.error('Error fetching crop price trends:', err);
                 }
             }
         </script>
+
     </div>
 </body>
 
