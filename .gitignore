@@ -9,3 +9,4 @@ ENV/
 .flaskenv
 .DS_Store
 .vercel/
+*.db

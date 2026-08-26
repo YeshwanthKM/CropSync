@@ -1,0 +1,81 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "buyers" %}
+{% block title %}Manage Buyer - {{ buyer.name }}{% endblock %}
+{% block header_title %}Buyer Account Details{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('admin_buyers') }}" class="btn">&larr; Back to Buyers List</a>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <!-- Profile Edit Form -->
+    <div class="card">
+        <h3>Profile Information</h3>
+        <form method="POST" action="{{ url_for('admin_buyer_detail', buyer_id=buyer.id) }}" style="box-shadow: none; border: none; padding: 0; margin: 0;">
+            <input type="hidden" name="action" value="update_profile">
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" value="{{ buyer.email }}" disabled style="opacity: 0.7;">
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="name" value="{{ buyer.name }}" required>
+            </div>
+            <div class="form-group">
+                <label>Organization / Business Name</label>
+                <input type="text" name="organization" value="{{ buyer.organization or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" name="phone" value="{{ buyer.phone or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" name="address" value="{{ buyer.address or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Location / City</label>
+                <input type="text" name="location" value="{{ buyer.location or '' }}">
+            </div>
+            <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Save Profile Changes</button>
+        </form>
+    </div>
+
+    <!-- Account Status Management Form -->
+    <div class="card">
+        <h3>Account Status & Security</h3>
+        <div style="margin-bottom: 1.5rem;">
+            <strong>Current Status:</strong>
+            {% if buyer.account_status == 'active' %}
+            <span class="btn badge-accepted" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border: none; margin-left: 0.5rem;">Active</span>
+            {% else %}
+            <span class="btn badge-rejected" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border: none; margin-left: 0.5rem;">Suspended</span>
+            {% endif %}
+        </div>
+        {% if buyer.suspension_reason %}
+        <div style="background: var(--hover-bg); padding: 1rem; border-radius: var(--border-radius); margin-bottom: 1.5rem;">
+            <strong style="color: #f44336;">Suspension Reason:</strong>
+            <p style="margin: 0.5rem 0 0 0; color: var(--secondary-text);">{{ buyer.suspension_reason }}</p>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('admin_buyer_detail', buyer_id=buyer.id) }}" style="box-shadow: none; border: none; padding: 0; margin: 0;">
+            <input type="hidden" name="action" value="update_status">
+            
+            {% if buyer.account_status == 'active' %}
+            <input type="hidden" name="status" value="suspended">
+            <div class="form-group">
+                <label>Suspension Reason (Required when suspending)</label>
+                <input type="text" name="reason" placeholder="e.g. Non-payment or invalid contact details" required>
+            </div>
+            <button type="submit" class="btn badge-rejected" style="width: 100%; border: none;">Suspend Account</button>
+            {% else %}
+            <input type="hidden" name="status" value="active">
+            <p style="color: var(--secondary-text); font-size: 0.875rem; margin-bottom: 1rem;">Reactivating this account will restore marketplace access for the buyer.</p>
+            <button type="submit" class="btn badge-accepted" style="width: 100%; border: none;">Reactivate Account</button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

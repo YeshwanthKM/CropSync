@@ -1,70 +1,22 @@
 import os
 import json
 import secrets
+from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from werkzeug.security import generate_password_hash, check_password_hash
+
+import db
+import migrate_data
 
 app = Flask(__name__)
 app.secret_key = 'cropsync-demo-secret-key-stable'
 
-# Data File Paths - support serverless read-only filesystems (e.g. Vercel)
-DATA_DIR = '/tmp' if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME') else '.'
-USERS_FILE = os.path.join(DATA_DIR, 'users.json')
-CROPS_FILE = os.path.join(DATA_DIR, 'crops.json')
-ORDERS_FILE = os.path.join(DATA_DIR, 'orders.json')
-
-# Demo Credentials for Seeding
-DEMO_PASSWORD = 'farmer123' # Same for farmers and buyers for demo ease
-SEED_USERS = [
-    {"id": "f1", "name": "Farmer 1", "email": "farmer1@gmail.com", "password": DEMO_PASSWORD, "role": "farmer", "phone": "9876543210", "address": "Village A, State X", "location": "Coimbatore"},
-    {"id": "f2", "name": "Farmer 2", "email": "farmer2@gmail.com", "password": DEMO_PASSWORD, "role": "farmer", "phone": "9876543211", "address": "Village B, State Y", "location": "Madurai"},
-    {"id": "f3", "name": "Farmer 3", "email": "farmer3@gmail.com", "password": DEMO_PASSWORD, "role": "farmer", "phone": "9876543212", "address": "Village C, State Z", "location": "Salem"},
-    {"id": "f4", "name": "Farmer 4", "email": "farmer4@gmail.com", "password": DEMO_PASSWORD, "role": "farmer", "phone": "9876543213", "address": "Village D, State W", "location": "Erode"},
-    {"id": "b1", "name": "Buyer 1", "email": "buyer1@gmail.com", "password": "buyer123", "role": "buyer", "phone": "8876543210", "address": "City X, State A", "location": "Chennai"},
-    {"id": "b2", "name": "Buyer 2", "email": "buyer2@gmail.com", "password": "buyer123", "role": "buyer", "phone": "8876543211", "address": "City Y, State B", "location": "Bangalore"},
-    {"id": "b3", "name": "Buyer 3", "email": "buyer3@gmail.com", "password": "buyer123", "role": "buyer", "phone": "8876543212", "address": "City Z, State C", "location": "Trichy"},
-    {"id": "b4", "name": "Buyer 4", "email": "buyer4@gmail.com", "password": "buyer123", "role": "buyer", "phone": "8876543213", "address": "City W, State D", "location": "Nellai"},
-]
-
-def load_data(file_path):
-    if not os.path.exists(file_path):
-        initial = SEED_USERS if 'users' in file_path else []
-        try:
-            save_data(file_path, initial)
-        except Exception:
-            pass
-        return initial
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            if 'users' in file_path and not data:
-                return SEED_USERS
-            return data
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        if 'users' in file_path:
-            return SEED_USERS
-        return []
-
-def save_data(file_path, data):
-    try:
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
-    except OSError:
-        tmp_path = os.path.join('/tmp', os.path.basename(file_path))
-        with open(tmp_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
-
-def reset_demo_data():
-    """Resets the demo environment to a clean state on startup."""
-    # Reset Users to only the SEED_USERS
-    save_data(USERS_FILE, SEED_USERS)
-    # Clear all dynamic data
-    save_data(CROPS_FILE, [])
-    save_data(ORDERS_FILE, [])
-
-def ensure_demo_users():
-    users = load_data(USERS_FILE)
-    if not users:
-        save_data(USERS_FILE, SEED_USERS)
+# Auto-initialize database & run migration on startup
+try:
+    db.init_db()
+    migrate_data.run_migration()
+except Exception as _e:
+    print("[!] Database initialization warning:", _e)
 
 # MSP Reference Data
 MSP_DATA = {
@@ -91,7 +43,6 @@ TRANSLATIONS = {
         'settings': 'Settings',
         'logout': 'Logout',
         'marketplace': 'Marketplace',
-        'home': 'Home',
         'home_welcome': 'CropSync is a transparent digital marketplace that connects farmers directly with buyers. Our platform ensures fair pricing by integrating Government MSP (Minimum Support Price) data and eliminating unnecessary intermediaries.',
         'welcome': 'CropSync connects farmers directly with buyers to ensure fair pricing and transparency.',
         'get_started': 'Get Started',
@@ -148,14 +99,14 @@ TRANSLATIONS = {
         'tamil': 'Tamil',
         'project_overview': 'Project Overview',
         'problem_statement': 'Problem Statement',
-        'problem_desc': 'Agriculture supports nearly 45% of India’s workforce, yet many small and marginal farmers struggle to receive fair prices for their crops due to dependence on intermediaries and lack of direct buyer access. Limited transparency in agricultural trade reduces their bargaining power and affects income stability.',
+        'problem_desc': 'Agriculture supports nearly 45% of India’s workforce, yet many small and marginal farmers struggle to receive fair prices for their crops due to dependence on intermediaries and lack of direct buyer access.',
         'our_objective': 'Our Objective',
         'obj_1': 'Provide direct farmer-to-buyer connectivity',
         'obj_2': 'Ensure fair crop pricing using MSP validation',
         'obj_3': 'Increase farmer income and transparency',
         'obj_4': 'Promote digital inclusion in agriculture',
         'our_solution': 'Our Solution – CropSync',
-        'sol_desc': 'CropSync is a digital marketplace where farmers can list their crops and buyers can search and purchase directly from them. The platform improves transparency, promotes fair pricing, and helps reduce dependency on middlemen.',
+        'sol_desc': 'CropSync is a digital marketplace where farmers can list their crops and buyers can search and purchase directly from them.',
         'sol_f_title': 'Farmer Dashboard',
         'sol_f1': 'List available crops',
         'sol_f2': 'View MSP reference price',
@@ -166,21 +117,21 @@ TRANSLATIONS = {
         'sol_b2': 'Compare farmer price with MSP',
         'sol_b3': 'Place secure orders',
         'fair_pricing': 'Fair Pricing Mechanism',
-        'pricing_desc': 'The system integrates MSP (Minimum Support Price) reference values to prevent underpricing, protect farmer income, and promote transparent transactions.',
-        'pricing_gov': 'MSP values are based on guidelines issued by the Government of India through the Commission for Agricultural Costs and Prices.',
+        'pricing_desc': 'The system integrates MSP reference values to prevent underpricing and protect farmer income.',
+        'pricing_gov': 'MSP values are based on guidelines issued by the Government of India.',
         'expected_impact': 'Impact Section',
-        'impact_desc': 'CropSync helps improve farmer income, reduces dependency on middlemen, and promotes a transparent digital agricultural marketplace.',
+        'impact_desc': 'CropSync helps improve farmer income and promotes a transparent digital agricultural marketplace.',
         'impact_1': 'Improved farmer income',
         'impact_2': 'Reduced dependency on middlemen',
         'impact_3': 'Transparent digital marketplace',
         'impact_4': 'Direct coordination',
         'tech_used': 'Technology Used',
         'tech_1': 'Python Flask',
-        'tech_2': 'JSON Database Storage',
+        'tech_2': 'Supabase PostgreSQL Database',
         'tech_3': 'HTML5 & CSS3 Responsive UI',
-        'tech_4': 'Gunicorn & Render Deployment',
+        'tech_4': 'Vercel Serverless Deployment',
         'short_about': 'About CropSync',
-        'short_desc': 'CropSync is a digital marketplace designed to eliminate middlemen and ensure fair crop pricing. By integrating MSP-based validation, the platform protects farmers from underpayment while providing buyers with transparent and direct access to agricultural produce.',
+        'short_desc': 'CropSync is a digital marketplace designed to eliminate middlemen and ensure fair crop pricing.',
         'key_features': 'Key Features',
         'feature_msp': 'MSP Price Protection',
         'feature_direct': 'Direct Market Access',
@@ -213,44 +164,72 @@ def inject_translations():
         return TRANSLATIONS['en'].get(key, key)
     return dict(get_text=get_text)
 
+# --- AUTHORIZATION DECORATORS ---
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        admin_user = session.get('admin_user')
+        if not admin_user or admin_user.get('role') != 'admin':
+            flash('Access denied. Admin privileges required.', 'error')
+            return render_template('login.html'), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --- PUBLIC / AUTH ROUTES ---
+
 @app.route('/')
 def home():
     return render_template('home.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    flash('Registration is disabled. Please use the provided demo credentials.', 'error')
+    flash('Public registration is disabled. Please contact the Admin or use demo credentials.', 'error')
     return redirect(url_for('login'))
-    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        users = load_data(USERS_FILE)
-        user = next((u for u in users if u['email'] == email and u['password'] == password), None)
-        if user:
-            if user['role'] == 'farmer':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        
+        user = db.get_user_by_email(email)
+        if user and check_password_hash(user['password_hash'], password):
+            # Check account suspension status
+            if user.get('account_status') == 'suspended':
+                reason = user.get('suspension_reason') or 'No reason specified'
+                flash(f'Your account has been suspended. Reason: {reason}', 'error')
+                return render_template('login.html')
+            
+            # Clear previous session and set role-specific user
+            session.clear()
+            if user['role'] == 'admin':
+                session['admin_user'] = user
+                return redirect(url_for('admin_dashboard'))
+            elif user['role'] == 'farmer':
                 session['farmer_user'] = user
                 return redirect(url_for('farmer_dashboard'))
-            else:
+            elif user['role'] == 'buyer':
                 session['buyer_user'] = user
                 return redirect(url_for('buyer_dashboard'))
+            
         flash('Invalid credentials', 'error')
     return render_template('login.html')
+
+# --- FARMER DASHBOARD ROUTES ---
 
 @app.route('/farmer_dashboard', methods=['GET', 'POST'])
 def farmer_dashboard():
     if 'farmer_user' not in session:
         return redirect(url_for('login'))
 
-    crops = load_data(CROPS_FILE)
+    farmer_id = session['farmer_user']['id']
+
     if request.method == 'POST':
-        crop_name = request.form.get('crop_name', '').lower()
+        crop_name = request.form.get('crop_name', '').strip().lower()
         quantity = request.form.get('quantity')
         price = request.form.get('price_per_kg')
-        location = session['farmer_user'].get('location', 'Unknown')
+        location = session['farmer_user'].get('location') or 'Unknown'
 
         if not all([crop_name, quantity, price]):
             flash('Crop name, quantity, and price are required', 'error')
@@ -263,76 +242,70 @@ def farmer_dashboard():
             if prc < msp:
                 flash(f'Price below MSP (₹{msp})!', 'error')
             else:
-                new_crop = {
-                    'id': secrets.token_hex(8),
-                    'farmer_id': session['farmer_user']['id'],
-                    'crop_name': crop_name,
-                    'quantity': qty,
-                    'price_per_kg': prc,
-                    'location': location
-                }
-                crops.append(new_crop)
-                save_data(CROPS_FILE, crops)
+                db.create_crop(farmer_id, crop_name, qty, prc, location)
                 flash('Listing added!', 'success')
                 return redirect(url_for('farmer_dashboard', section='my-listings'))
         except ValueError:
             flash('Invalid numbers!', 'error')
 
-    user_crops = [c for c in crops if c['farmer_id'] == session['farmer_user']['id']]
-    orders = load_data(ORDERS_FILE)
-    users = load_data(USERS_FILE)
-    buyer_map = {u['id']: {'name': u['name'], 'phone': u.get('phone', 'N/A')} for u in users}
-    
-    sold_orders = []
-    for o in orders:
-        if o['farmer_id'] == session['farmer_user']['id']:
-            o_copy = o.copy()
-            buyer_info = buyer_map.get(o['buyer_id'], {'name': 'Unknown', 'phone': 'N/A'})
-            o_copy['buyer_name'] = buyer_info['name']
-            o_copy['buyer_phone'] = buyer_info['phone']
-            sold_orders.append(o_copy)
+    user_crops = db.get_crops(farmer_id=farmer_id)
+    sold_orders = db.get_orders_for_farmer(farmer_id=farmer_id)
+    earnings = sum(float(o['total_price']) for o in sold_orders if o['status'] == 'Accepted')
 
-    earnings = sum(o['total_price'] for o in sold_orders if o['status'] == 'Accepted') # only count accepted ones
     return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders)
 
 @app.route('/delete_crop/<crop_id>')
 def delete_crop(crop_id):
     if 'farmer_user' not in session:
         return redirect(url_for('login'))
-    crops = load_data(CROPS_FILE)
-    crops = [c for c in crops if not (c['id'] == crop_id and c['farmer_id'] == session['farmer_user']['id'])]
-    save_data(CROPS_FILE, crops)
+    db.delete_crop(crop_id, session['farmer_user']['id'])
     flash('Listing deleted!', 'success')
     return redirect(url_for('farmer_dashboard', section='my-listings'))
+
+@app.route('/accept_order/<order_id>')
+def accept_order(order_id):
+    if 'farmer_user' not in session:
+        return redirect(url_for('login'))
+    
+    farmer_id = session['farmer_user']['id']
+    orders = db.get_orders_for_farmer(farmer_id)
+    order = next((o for o in orders if str(o['id']) == str(order_id)), None)
+    
+    if order and order['status'] == 'Pending':
+        crop = db.get_crop_by_id(order['crop_id'])
+        if crop and float(crop['quantity']) >= float(order['quantity']):
+            new_qty = float(crop['quantity']) - float(order['quantity'])
+            db.update_crop_quantity(order['crop_id'], new_qty)
+            db.update_order_status(order_id, 'Accepted')
+            flash('Order accepted and stock updated!', 'success')
+        else:
+            flash('Cannot accept: Insufficient stock.', 'error')
+            
+    return redirect(url_for('farmer_dashboard', section='sold-items'))
+
+@app.route('/reject_order/<order_id>')
+def reject_order(order_id):
+    if 'farmer_user' not in session:
+        return redirect(url_for('login'))
+    db.update_order_status(order_id, 'Rejected')
+    flash('Order rejected.', 'success')
+    return redirect(url_for('farmer_dashboard', section='sold-items'))
+
+# --- BUYER PORTAL ROUTES ---
 
 @app.route('/buyer_dashboard')
 def buyer_dashboard():
     if 'buyer_user' not in session:
         return redirect(url_for('login'))
 
-    search = request.args.get('search', '').lower()
-    location = request.args.get('location', '').lower()
+    search = request.args.get('search', '').strip().lower()
+    location = request.args.get('location', '').strip().lower()
     
-    crops = load_data(CROPS_FILE)
-    users = load_data(USERS_FILE)
-    farmer_map = {u['id']: {'name': u['name'], 'phone': u.get('phone', 'N/A')} for u in users}
-    
-    filtered_crops = []
-    for c in crops:
-        if (not search or search in c['crop_name']) and (not location or location in c['location'].lower()):
-            c_copy = c.copy()
-            f_info = farmer_map.get(c['farmer_id'], {'name': 'Unknown', 'phone': 'N/A'})
-            c_copy['farmer_name'] = f_info['name']
-            c_copy['farmer_phone'] = f_info['phone']
-            c_copy['msp_value'] = MSP_DATA.get(c['crop_name'].lower(), 0)
-            filtered_crops.append(c_copy)
+    filtered_crops = db.get_crops(search=search, location=location)
+    for c in filtered_crops:
+        c['msp_value'] = MSP_DATA.get(c['crop_name'].lower(), 0)
 
-    orders = [o for o in load_data(ORDERS_FILE) if o['buyer_id'] == session['buyer_user']['id']]
-    for o in orders:
-        f_info = farmer_map.get(o['farmer_id'], {'name': 'Unknown', 'phone': 'N/A'})
-        o['farmer_name'] = f_info['name']
-        o['farmer_phone'] = f_info['phone']
-
+    orders = db.get_orders_for_buyer(session['buyer_user']['id'])
     return render_template('buyer_dashboard.html', crops=filtered_crops, orders=orders, msp_data=MSP_DATA)
 
 @app.route('/place_order', methods=['POST'])
@@ -343,95 +316,159 @@ def place_order():
     crop_id = request.form.get('crop_id')
     try:
         quantity = float(request.form.get('quantity'))
-    except:
+    except (ValueError, TypeError):
         flash('Invalid quantity!', 'error')
         return redirect(url_for('buyer_dashboard'))
     
-    crops = load_data(CROPS_FILE)
-    crop = next((c for c in crops if c['id'] == crop_id), None)
-    
-    if crop and crop['quantity'] >= quantity:
-        # Don't reduce quantity yet. Reserved until farmer accepts.
-        orders = load_data(ORDERS_FILE)
-        orders.append({
-            'id': secrets.token_hex(8),
-            'buyer_id': session['buyer_user']['id'],
-            'farmer_id': crop['farmer_id'],
-            'crop_id': crop['id'],
-            'crop_name': crop['crop_name'],
-            'quantity': quantity,
-            'total_price': quantity * crop['price_per_kg'],
-            'status': 'Pending'
-        })
-        save_data(ORDERS_FILE, orders)
+    crop = db.get_crop_by_id(crop_id)
+    if crop and float(crop['quantity']) >= quantity:
+        total_price = quantity * float(crop['price_per_kg'])
+        db.create_order(
+            buyer_id=session['buyer_user']['id'],
+            farmer_id=crop['farmer_id'],
+            crop_id=crop['id'],
+            crop_name=crop['crop_name'],
+            quantity=quantity,
+            total_price=total_price
+        )
         flash('Order placed! Waiting for farmer approval.', 'success')
     else:
         flash('Low stock or invalid order.', 'error')
     return redirect(url_for('buyer_dashboard', section='my-orders'))
 
-@app.route('/accept_order/<order_id>')
-def accept_order(order_id):
-    if 'farmer_user' not in session: return redirect(url_for('login'))
-    
-    orders = load_data(ORDERS_FILE)
-    order = next((o for o in orders if o['id'] == order_id), None)
-    
-    if order and order['status'] == 'Pending':
-        crops = load_data(CROPS_FILE)
-        crop = next((c for c in crops if c['id'] == order.get('crop_id')), None)
-        
-        if crop and crop['quantity'] >= order['quantity']:
-            crop['quantity'] -= order['quantity']
-            order['status'] = 'Accepted'
-            save_data(CROPS_FILE, crops)
-            save_data(ORDERS_FILE, orders)
-            flash('Order accepted and stock updated!', 'success')
-        else:
-            flash('Cannot accept: Insufficient stock.', 'error')
-            
-    return redirect(url_for('farmer_dashboard', section='sold-items'))
+# --- ADMIN PORTAL ROUTES ---
 
-@app.route('/reject_order/<order_id>')
-def reject_order(order_id):
-    if 'farmer_user' not in session: return redirect(url_for('login'))
-    orders = load_data(ORDERS_FILE)
-    order = next((o for o in orders if o['id'] == order_id), None)
-    if order:
-        order['status'] = 'Rejected'
-        save_data(ORDERS_FILE, orders)
-        flash('Order rejected.', 'success')
-    return redirect(url_for('farmer_dashboard', section='sold-items'))
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    stats = db.get_admin_stats()
+    return render_template('admin/dashboard.html', stats=stats)
+
+@app.route('/admin/farmers')
+@admin_required
+def admin_farmers():
+    search = request.args.get('search', '').strip()
+    farmers = db.get_all_farmers(search=search)
+    return render_template('admin/farmers.html', farmers=farmers, search=search)
+
+@app.route('/admin/farmers/<farmer_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_farmer_detail(farmer_id):
+    farmer = db.get_user_by_id(farmer_id)
+    if not farmer or farmer['role'] != 'farmer':
+        flash('Farmer record not found', 'error')
+        return redirect(url_for('admin_farmers'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'update_profile':
+            name = request.form.get('name', '').strip()
+            phone = request.form.get('phone', '').strip()
+            address = request.form.get('address', '').strip()
+            location = request.form.get('location', '').strip()
+            if name:
+                db.update_user_profile(farmer_id, name=name, phone=phone, address=address, location=location)
+                flash('Farmer profile updated successfully.', 'success')
+        elif action == 'update_status':
+            new_status = request.form.get('status')
+            reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
+            db.update_user_status(farmer_id, new_status, reason=reason)
+            flash(f'Farmer account status updated to {new_status}.', 'success')
+        return redirect(url_for('admin_farmer_detail', farmer_id=farmer_id))
+
+    return render_template('admin/farmer_detail.html', farmer=farmer)
+
+@app.route('/admin/buyers')
+@admin_required
+def admin_buyers():
+    search = request.args.get('search', '').strip()
+    buyers = db.get_all_buyers(search=search)
+    return render_template('admin/buyers.html', buyers=buyers, search=search)
+
+@app.route('/admin/buyers/<buyer_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_buyer_detail(buyer_id):
+    buyer = db.get_user_by_id(buyer_id)
+    if not buyer or buyer['role'] != 'buyer':
+        flash('Buyer record not found', 'error')
+        return redirect(url_for('admin_buyers'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'update_profile':
+            name = request.form.get('name', '').strip()
+            phone = request.form.get('phone', '').strip()
+            organization = request.form.get('organization', '').strip()
+            address = request.form.get('address', '').strip()
+            location = request.form.get('location', '').strip()
+            if name:
+                db.update_user_profile(buyer_id, name=name, phone=phone, address=address, location=location, organization=organization)
+                flash('Buyer profile updated successfully.', 'success')
+        elif action == 'update_status':
+            new_status = request.form.get('status')
+            reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
+            db.update_user_status(buyer_id, new_status, reason=reason)
+            flash(f'Buyer account status updated to {new_status}.', 'success')
+        return redirect(url_for('admin_buyer_detail', buyer_id=buyer_id))
+
+    return render_template('admin/buyer_detail.html', buyer=buyer)
+
+@app.route('/admin/create_user', methods=['GET', 'POST'])
+@admin_required
+def admin_create_user():
+    if request.method == 'POST':
+        role = request.form.get('role')
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        phone = request.form.get('phone', '').strip()
+        organization = request.form.get('organization', '').strip()
+        location = request.form.get('location', '').strip()
+        address = request.form.get('address', '').strip()
+
+        if not all([role, name, email, password]):
+            flash('Role, Name, Email, and Password are required.', 'error')
+            return render_template('admin/create_user.html')
+
+        if role not in ('farmer', 'buyer'):
+            flash('Invalid role selected.', 'error')
+            return render_template('admin/create_user.html')
+
+        existing = db.get_user_by_email(email)
+        if existing:
+            flash(f'User with email {email} already exists.', 'error')
+            return render_template('admin/create_user.html')
+
+        pwd_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        db.create_user(
+            email=email,
+            password_hash=pwd_hash,
+            role=role,
+            name=name,
+            phone=phone,
+            address=address,
+            location=location,
+            organization=organization
+        )
+        flash(f'Successfully created new {role} account for {email}.', 'success')
+        return redirect(url_for('admin_farmers' if role == 'farmer' else 'admin_buyers'))
+
+    return render_template('admin/create_user.html')
+
+# --- SETTINGS & LOGOUT ---
 
 @app.route('/settings')
 def settings():
-    role = request.args.get('role')
-    user = None
-    if role == 'farmer':
-        user = session.get('farmer_user')
-    elif role == 'buyer':
-        user = session.get('buyer_user')
-    
+    user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
     if not user:
-        user = session.get('farmer_user') or session.get('buyer_user')
-        if not user:
-            return redirect(url_for('login'))
-        role = user['role']
-
-    return render_template('settings.html', session_user=user, active_role=role)
+        return redirect(url_for('login'))
+    return render_template('settings.html', session_user=user, active_role=user['role'])
 
 @app.route('/logout')
 def logout():
-    role = request.args.get('role')
-    if role == 'farmer':
-        session.pop('farmer_user', None)
-    elif role == 'buyer':
-        session.pop('buyer_user', None)
-    else:
-        session.clear()
+    session.clear()
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    reset_demo_data() # Reset data every time server starts (perfect for Render sleep logic)
-    ensure_demo_users()
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)

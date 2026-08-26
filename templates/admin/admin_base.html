@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CropSync Admin - {% block title %}Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+        <!-- Admin Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-logo">CropSync <span style="font-size: 0.8rem; font-weight: normal; color: #ff9800;">Admin</span></div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}">
+                    Dashboard
+                </a>
+                <a href="{{ url_for('admin_farmers') }}" class="sidebar-link {% if active_page == 'farmers' %}active{% endif %}">
+                    Farmers Management
+                </a>
+                <a href="{{ url_for('admin_buyers') }}" class="sidebar-link {% if active_page == 'buyers' %}active{% endif %}">
+                    Buyers Management
+                </a>
+                <a href="{{ url_for('admin_create_user') }}" class="sidebar-link {% if active_page == 'create_user' %}active{% endif %}">
+                    + Create New User
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="theme-toggle" class="sidebar-link">Theme</button>
+                <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #e74c3c;">Logout</a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <button class="mobile-toggle" onclick="toggleSidebar()" style="position: absolute; top: 1.5rem; left: 1.25rem; z-index: 1001;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="dashboard-header">
+                <h1 style="margin: 0;">{% block header_title %}Admin Portal{% endblock %}</h1>
+                <div style="font-size: 0.875rem; color: var(--secondary-text);">
+                    Logged in as <strong>{{ session.get('admin_user', {}).get('email', 'Admin') }}</strong>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            document.querySelector('.dashboard-layout').classList.toggle('sidebar-active');
+        }
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    </script>
+</body>
+</html>

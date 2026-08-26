@@ -1,0 +1,42 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "dashboard" %}
+{% block title %}Dashboard Overview{% endblock %}
+{% block header_title %}System Overview{% endblock %}
+
+{% block content %}
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2.5rem;">
+    <div class="card" style="text-align: center;">
+        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem;">{{ stats.total_farmers }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Total Farmers</p>
+    </div>
+    <div class="card" style="text-align: center;">
+        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem;">{{ stats.total_buyers }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Total Buyers</p>
+    </div>
+    <div class="card" style="text-align: center;">
+        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem;">{{ stats.active_listings }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Active Listings</p>
+    </div>
+    <div class="card" style="text-align: center;">
+        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem;">{{ stats.active_orders }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Pending Orders</p>
+    </div>
+    <div class="card" style="text-align: center; border-color: {% if stats.suspended_accounts > 0 %}#f44336{% else %}var(--nav-border){% endif %};">
+        <h3 style="margin-bottom: 0.5rem; font-size: 2.25rem; color: {% if stats.suspended_accounts > 0 %}#f44336{% else %}inherit{% endif %};">{{ stats.suspended_accounts }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600;">Suspended Accounts</p>
+    </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <div class="card">
+        <h3>Farmer Management</h3>
+        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Review, edit, activate, or suspend registered farmer accounts across regions.</p>
+        <a href="{{ url_for('admin_farmers') }}" class="btn" style="width: 100%;">Manage Farmers &rarr;</a>
+    </div>
+    <div class="card">
+        <h3>Buyer Management</h3>
+        <p style="color: var(--secondary-text); margin-bottom: 1.5rem;">Review, edit, activate, or suspend registered buyer accounts and organizations.</p>
+        <a href="{{ url_for('admin_buyers') }}" class="btn" style="width: 100%;">Manage Buyers &rarr;</a>
+    </div>
+</div>
+{% endblock %}
