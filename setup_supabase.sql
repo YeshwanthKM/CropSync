@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 7. Government Minimum Support Price (MSP) Benchmarks (Phase 3 Market Intelligence)
+-- 7. Government Minimum Support Price (MSP) Benchmarks
 CREATE TABLE IF NOT EXISTS government_msp (
     crop_name TEXT PRIMARY KEY,
     msp_price_per_kg NUMERIC NOT NULL CHECK (msp_price_per_kg >= 0),
@@ -100,15 +100,14 @@ CREATE TABLE IF NOT EXISTS government_msp (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 8. Market Historical Price Trends Table (Phase 3 Market Intelligence)
-CREATE TABLE IF NOT EXISTS market_prices (
+-- 8. Crop Price History Table (CropSync Marketplace Price Trends)
+CREATE TABLE IF NOT EXISTS crop_price_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    crop_id UUID REFERENCES crops(id) ON DELETE CASCADE,
     crop_name TEXT NOT NULL,
     location TEXT NOT NULL,
-    month TEXT NOT NULL,
-    avg_price NUMERIC NOT NULL CHECK (avg_price >= 0),
-    msp_price NUMERIC NOT NULL CHECK (msp_price >= 0),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    price_per_kg NUMERIC NOT NULL CHECK (price_per_kg >= 0),
+    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Indexes for performance
@@ -120,7 +119,11 @@ CREATE INDEX IF NOT EXISTS idx_crops_crop_name ON crops(crop_name);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_farmer_id ON orders(farmer_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(created_at);
-CREATE INDEX IF NOT EXISTS idx_market_prices_lookup ON market_prices(crop_name, location);
+
+CREATE INDEX IF NOT EXISTS idx_price_history_crop_name ON crop_price_history(crop_name);
+CREATE INDEX IF NOT EXISTS idx_price_history_location ON crop_price_history(location);
+CREATE INDEX IF NOT EXISTS idx_price_history_crop_id ON crop_price_history(crop_id);
+CREATE INDEX IF NOT EXISTS idx_price_history_recorded_at ON crop_price_history(recorded_at);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -130,5 +133,6 @@ ALTER TABLE crops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE government_msp ENABLE ROW LEVEL SECURITY;
-ALTER TABLE market_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE crop_price_history ENABLE ROW LEVEL SECURITY;
+
 

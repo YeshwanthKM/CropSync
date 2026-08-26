@@ -19,7 +19,8 @@
                 <button class="sidebar-link active" onclick="showSection('home')">{{ get_text('home') }}</button>
                 <button class="sidebar-link" onclick="showSection('marketplace')">{{ get_text('marketplace') }}</button>
                 <button class="sidebar-link" onclick="showSection('my-orders')">{{ get_text('my_orders') }}</button>
-                <a href="{{ url_for('market_intelligence') }}" class="sidebar-link" style="color: #27ae60; font-weight: 700; text-decoration: none; display: block; padding: 0.75rem 1rem;">📊 Market Intelligence</a>
+                <a href="{{ url_for('price_trends') }}" class="sidebar-link" style="color: #27ae60; font-weight: 700; text-decoration: none; display: block; padding: 0.75rem 1rem;">📉 Crop Price Trends</a>
+
                 <button class="sidebar-link" onclick="showSection('msp-reference')">{{ get_text('msp_reference') }}</button>
 
             </nav>

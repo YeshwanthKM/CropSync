@@ -1,7 +1,8 @@
 import os
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
+
 from dotenv import load_dotenv
 
 # Load environment variables safely from local workspace .env if present
@@ -159,14 +160,13 @@ def init_db():
                     effective_year INTEGER NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
-                CREATE TABLE IF NOT EXISTS market_prices (
+                CREATE TABLE IF NOT EXISTS crop_price_history (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    crop_id UUID REFERENCES crops(id) ON DELETE CASCADE,
                     crop_name TEXT NOT NULL,
                     location TEXT NOT NULL,
-                    month TEXT NOT NULL,
-                    avg_price NUMERIC NOT NULL,
-                    msp_price NUMERIC NOT NULL,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                    price_per_kg NUMERIC NOT NULL CHECK (price_per_kg >= 0),
+                    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
             """)
         else:
@@ -249,15 +249,15 @@ def init_db():
                     effective_year INTEGER NOT NULL,
                     created_at TEXT NOT NULL
                 );
-                CREATE TABLE IF NOT EXISTS market_prices (
+                CREATE TABLE IF NOT EXISTS crop_price_history (
                     id TEXT PRIMARY KEY,
+                    crop_id TEXT REFERENCES crops(id) ON DELETE CASCADE,
                     crop_name TEXT NOT NULL,
                     location TEXT NOT NULL,
-                    month TEXT NOT NULL,
-                    avg_price REAL NOT NULL,
-                    msp_price REAL NOT NULL,
-                    created_at TEXT NOT NULL
+                    price_per_kg REAL NOT NULL,
+                    recorded_at TEXT NOT NULL
                 );
+
             """)
             try:
                 cursor.execute("SELECT count(*) FROM users")
@@ -897,12 +897,14 @@ def create_crop(farmer_id, crop_name, quantity, price_per_kg, location, crop_id=
             INSERT INTO crops (id, farmer_id, crop_name, quantity, price_per_kg, location, status, created_at, updated_at)
             VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'available', {ph}, {ph})
         """
-        cursor.execute(sql, (cid, str(farmer_id), crop_name.lower(), float(quantity), float(price_per_kg), location, now, now))
+        cursor.execute(sql, (cid, str(farmer_id), crop_name.strip().title(), float(quantity), float(price_per_kg), location.strip().title(), now, now))
         if db_type == "sqlite":
             conn.commit()
+        record_price_observation(cid, crop_name, location, price_per_kg, recorded_at=now)
         return cid
     finally:
         conn.close()
+
 
 def delete_crop(crop_id, farmer_id):
     conn, db_type = get_connection()
@@ -1008,325 +1010,255 @@ def update_order_status(order_id, status):
         conn.close()
 
 
-# --- MARKET INTELLIGENCE FUNCTIONS (PHASE 3) ---
+# --- CROP PRICE TRENDS FUNCTIONS ---
 
-SEED_GOVT_MSP = [
-    ("Rice", 23.00, "Cereals", "Kharif", 2025),
-    ("Wheat", 22.75, "Cereals", "Rabi", 2025),
-    ("Cotton", 66.20, "Commercial", "Kharif", 2025),
-    ("Tomato", 18.00, "Horticulture", "All Season", 2025),
-    ("Potato", 15.00, "Horticulture", "Rabi", 2025),
-    ("Maize", 20.90, "Coarse Cereals", "Kharif", 2025),
-    ("Pulses", 66.00, "Pulses", "Kharif", 2025),
-    ("Sugarcane", 3.15, "Commercial", "All Season", 2025)
-]
-
-SEED_MARKET_TRENDS = [
-    # Rice
-    ("Rice", "Salem", "Mar", 30.0, 23.0),
-    ("Rice", "Salem", "Apr", 32.0, 23.0),
-    ("Rice", "Salem", "May", 34.0, 23.0),
-    ("Rice", "Salem", "Jun", 36.0, 23.0),
-    ("Rice", "Salem", "Jul", 38.0, 23.0),
-    ("Rice", "Salem", "Aug", 40.0, 23.0),
-
-    ("Rice", "Coimbatore", "Mar", 31.0, 23.0),
-    ("Rice", "Coimbatore", "Apr", 33.0, 23.0),
-    ("Rice", "Coimbatore", "May", 35.0, 23.0),
-    ("Rice", "Coimbatore", "Jun", 37.0, 23.0),
-    ("Rice", "Coimbatore", "Jul", 39.0, 23.0),
-    ("Rice", "Coimbatore", "Aug", 41.0, 23.0),
-
-    ("Rice", "Madurai", "Mar", 29.0, 23.0),
-    ("Rice", "Madurai", "Apr", 31.0, 23.0),
-    ("Rice", "Madurai", "May", 33.0, 23.0),
-    ("Rice", "Madurai", "Jun", 35.0, 23.0),
-    ("Rice", "Madurai", "Jul", 37.0, 23.0),
-    ("Rice", "Madurai", "Aug", 39.0, 23.0),
-
-    ("Rice", "Chennai", "Mar", 34.0, 23.0),
-    ("Rice", "Chennai", "Apr", 36.0, 23.0),
-    ("Rice", "Chennai", "May", 37.0, 23.0),
-    ("Rice", "Chennai", "Jun", 39.0, 23.0),
-    ("Rice", "Chennai", "Jul", 41.0, 23.0),
-    ("Rice", "Chennai", "Aug", 43.0, 23.0),
-
-    ("Rice", "Tiruppur", "Mar", 30.0, 23.0),
-    ("Rice", "Tiruppur", "Apr", 32.0, 23.0),
-    ("Rice", "Tiruppur", "May", 33.0, 23.0),
-    ("Rice", "Tiruppur", "Jun", 35.0, 23.0),
-    ("Rice", "Tiruppur", "Jul", 38.0, 23.0),
-    ("Rice", "Tiruppur", "Aug", 40.0, 23.0),
-
-    # Wheat
-    ("Wheat", "Salem", "Mar", 25.0, 22.75),
-    ("Wheat", "Salem", "Apr", 26.0, 22.75),
-    ("Wheat", "Salem", "May", 28.0, 22.75),
-    ("Wheat", "Salem", "Jun", 29.0, 22.75),
-    ("Wheat", "Salem", "Jul", 30.0, 22.75),
-    ("Wheat", "Salem", "Aug", 32.0, 22.75),
-
-    ("Wheat", "Coimbatore", "Mar", 26.0, 22.75),
-    ("Wheat", "Coimbatore", "Apr", 27.0, 22.75),
-    ("Wheat", "Coimbatore", "May", 29.0, 22.75),
-    ("Wheat", "Coimbatore", "Jun", 30.0, 22.75),
-    ("Wheat", "Coimbatore", "Jul", 31.0, 22.75),
-    ("Wheat", "Coimbatore", "Aug", 33.0, 22.75),
-
-    # Cotton
-    ("Cotton", "Tiruppur", "Mar", 70.0, 66.2),
-    ("Cotton", "Tiruppur", "Apr", 72.0, 66.2),
-    ("Cotton", "Tiruppur", "May", 75.0, 66.2),
-    ("Cotton", "Tiruppur", "Jun", 78.0, 66.2),
-    ("Cotton", "Tiruppur", "Jul", 80.0, 66.2),
-    ("Cotton", "Tiruppur", "Aug", 84.0, 66.2),
-
-    ("Cotton", "Salem", "Mar", 68.0, 66.2),
-    ("Cotton", "Salem", "Apr", 70.0, 66.2),
-    ("Cotton", "Salem", "May", 73.0, 66.2),
-    ("Cotton", "Salem", "Jun", 75.0, 66.2),
-    ("Cotton", "Salem", "Jul", 78.0, 66.2),
-    ("Cotton", "Salem", "Aug", 82.0, 66.2),
-
-    # Tomato
-    ("Tomato", "Coimbatore", "Mar", 20.0, 18.0),
-    ("Tomato", "Coimbatore", "Apr", 22.0, 18.0),
-    ("Tomato", "Coimbatore", "May", 25.0, 18.0),
-    ("Tomato", "Coimbatore", "Jun", 28.0, 18.0),
-    ("Tomato", "Coimbatore", "Jul", 32.0, 18.0),
-    ("Tomato", "Coimbatore", "Aug", 36.0, 18.0),
-
-    ("Tomato", "Salem", "Mar", 18.0, 18.0),
-    ("Tomato", "Salem", "Apr", 20.0, 18.0),
-    ("Tomato", "Salem", "May", 24.0, 18.0),
-    ("Tomato", "Salem", "Jun", 26.0, 18.0),
-    ("Tomato", "Salem", "Jul", 30.0, 18.0),
-    ("Tomato", "Salem", "Aug", 35.0, 18.0),
-
-    # Potato
-    ("Potato", "Coimbatore", "Mar", 18.0, 15.0),
-    ("Potato", "Coimbatore", "Apr", 19.0, 15.0),
-    ("Potato", "Coimbatore", "May", 20.0, 15.0),
-    ("Potato", "Coimbatore", "Jun", 22.0, 15.0),
-    ("Potato", "Coimbatore", "Jul", 24.0, 15.0),
-    ("Potato", "Coimbatore", "Aug", 25.0, 15.0),
-
-    # Maize
-    ("Maize", "Salem", "Mar", 22.0, 20.9),
-    ("Maize", "Salem", "Apr", 23.0, 20.9),
-    ("Maize", "Salem", "May", 24.0, 20.9),
-    ("Maize", "Salem", "Jun", 25.0, 20.9),
-    ("Maize", "Salem", "Jul", 26.0, 20.9),
-    ("Maize", "Salem", "Aug", 28.0, 20.9),
-
-    # Pulses
-    ("Pulses", "Madurai", "Mar", 70.0, 66.0),
-    ("Pulses", "Madurai", "Apr", 72.0, 66.0),
-    ("Pulses", "Madurai", "May", 74.0, 66.0),
-    ("Pulses", "Madurai", "Jun", 76.0, 66.0),
-    ("Pulses", "Madurai", "Jul", 78.0, 66.0),
-    ("Pulses", "Madurai", "Aug", 80.0, 66.0),
-
-    # Sugarcane
-    ("Sugarcane", "Salem", "Mar", 3.5, 3.15),
-    ("Sugarcane", "Salem", "Apr", 3.6, 3.15),
-    ("Sugarcane", "Salem", "May", 3.7, 3.15),
-    ("Sugarcane", "Salem", "Jun", 3.8, 3.15),
-    ("Sugarcane", "Salem", "Jul", 4.0, 3.15),
-    ("Sugarcane", "Salem", "Aug", 4.2, 3.15)
-]
-
-def seed_market_intelligence_data():
+def record_price_observation(crop_id, crop_name, location, price_per_kg, recorded_at=None):
+    if not crop_name or not location or price_per_kg is None:
+        return None
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
+        rec_time = recorded_at or datetime.utcnow().isoformat()
         
-        # Seed Government MSP benchmarks
-        for crop, msp, cat, season, yr in SEED_GOVT_MSP:
-            if db_type == "postgres":
-                sql = """
-                    INSERT INTO government_msp (crop_name, msp_price_per_kg, category, season, effective_year)
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (crop_name) DO UPDATE SET msp_price_per_kg = EXCLUDED.msp_price_per_kg
-                """
-                cursor.execute(sql, (crop, msp, cat, season, yr))
-            else:
-                sql = """
-                    INSERT OR REPLACE INTO government_msp (crop_name, msp_price_per_kg, category, season, effective_year, created_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
-                """
-                cursor.execute(sql, (crop, msp, cat, season, yr))
+        # Avoid duplicate observations for the same crop_id and exact price within 60 seconds
+        if crop_id:
+            check_sql = f"""
+                SELECT id FROM crop_price_history 
+                WHERE crop_id = {ph} AND price_per_kg = {ph}
+                ORDER BY recorded_at DESC LIMIT 1
+            """
+            cursor.execute(check_sql, (str(crop_id), float(price_per_kg)))
+            if cursor.fetchone():
+                return None
 
-        # Seed Market Monthly Trends
-        for crop, loc, mo, avg_p, msp_p in SEED_MARKET_TRENDS:
-            check_sql = f"SELECT id FROM market_prices WHERE crop_name = {ph} AND location = {ph} AND month = {ph}"
-            cursor.execute(check_sql, (crop, loc, mo))
-            if not cursor.fetchone():
-                mid = str(uuid.uuid4())
-                now = datetime.utcnow().isoformat()
-                if db_type == "postgres":
-                    ins_sql = "INSERT INTO market_prices (id, crop_name, location, month, avg_price, msp_price, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(ins_sql, (mid, crop, loc, mo, float(avg_p), float(msp_p), now))
-                else:
-                    ins_sql = "INSERT INTO market_prices (id, crop_name, location, month, avg_price, msp_price, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-                    cursor.execute(ins_sql, (mid, crop, loc, mo, float(avg_p), float(msp_p), now))
-        
-        if db_type == "sqlite":
+        hid = str(uuid.uuid4())
+        if db_type == "postgres":
+            ins_sql = """
+                INSERT INTO crop_price_history (id, crop_id, crop_name, location, price_per_kg, recorded_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(ins_sql, (hid, str(crop_id) if crop_id else None, crop_name.strip().title(), location.strip().title(), float(price_per_kg), rec_time))
+        else:
+            ins_sql = """
+                INSERT INTO crop_price_history (id, crop_id, crop_name, location, price_per_kg, recorded_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """
+            cursor.execute(ins_sql, (hid, str(crop_id) if crop_id else None, crop_name.strip().title(), location.strip().title(), float(price_per_kg), rec_time))
             conn.commit()
+        return hid
     except Exception as e:
-        print("[!] Error in seed_market_intelligence_data:", e)
+        print("[!] Error in record_price_observation:", e)
+        return None
     finally:
         conn.close()
 
+def update_crop_price(crop_id, farmer_id, new_price):
+    crop = get_crop_by_id(crop_id)
+    if not crop:
+        return False
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"UPDATE crops SET price_per_kg = {ph}, updated_at = {ph} WHERE id = {ph} AND farmer_id = {ph}"
+        cursor.execute(sql, (float(new_price), now, str(crop_id), str(farmer_id)))
+        if db_type == "sqlite":
+            conn.commit()
+        record_price_observation(crop['id'], crop['crop_name'], crop['location'], new_price)
+        return True
+    finally:
+        conn.close()
 
-_market_intel_cache = {}
-_benchmarks_cache = None
-
-def get_market_intelligence(crop_name='Rice', location='Salem'):
-    cache_key = f"{crop_name.lower()}_{location.lower()}"
-    if cache_key in _market_intel_cache:
-        return _market_intel_cache[cache_key]
-
+def get_crop_price_trends(crop_name='Rice', location='All Locations', period='30d'):
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         
-        # Get MSP
+        # Period start date calculation
+        now = datetime.utcnow()
+        if period == '7d':
+            days = 7
+        elif period == '3m':
+            days = 90
+        elif period == '6m':
+            days = 180
+        elif period == '1y':
+            days = 365
+        else:
+            days = 30  # 30d default
+
+        start_date = (now - timedelta(days=days)).isoformat()
+        prev_start_date = (now - timedelta(days=days * 2)).isoformat()
+
+        # Query Government MSP
         cursor.execute(f"SELECT msp_price_per_kg FROM government_msp WHERE LOWER(crop_name) = LOWER({ph})", (crop_name,))
         msp_row = cursor.fetchone()
-        govt_msp = float(msp_row['msp_price_per_kg'] if isinstance(msp_row, dict) else msp_row[0]) if msp_row else 23.00
+        govt_msp = float(msp_row['msp_price_per_kg'] if isinstance(msp_row, dict) else msp_row[0]) if msp_row else None
+
+        # Build SQL filters
+        where_clauses = [f"LOWER(crop_name) = LOWER({ph})"]
+        params = [crop_name]
+
+        if location and location != 'All Locations':
+            where_clauses.append(f"LOWER(location) = LOWER({ph})")
+            params.append(location)
+
+        where_sql = " AND ".join(where_clauses)
         
-        # Get monthly trend
-        sql = f"""
-            SELECT month, avg_price, msp_price 
-            FROM market_prices 
-            WHERE LOWER(crop_name) = LOWER({ph}) AND LOWER(location) = LOWER({ph})
-            ORDER BY created_at ASC
+        # Fetch current period observations
+        sql_current = f"""
+            SELECT price_per_kg, recorded_at 
+            FROM crop_price_history 
+            WHERE {where_sql} AND recorded_at >= {ph}
+            ORDER BY recorded_at ASC
         """
-        cursor.execute(sql, (crop_name, location))
-        rows = cursor.fetchall()
-        trends = [_dict_row(r) for r in rows]
-        
-        # Fallback trend if specific location/crop combination has no records
-        if not trends:
-            sql_crop = f"SELECT month, avg_price, msp_price FROM market_prices WHERE LOWER(crop_name) = LOWER({ph}) ORDER BY created_at ASC"
-            cursor.execute(sql_crop, (crop_name,))
-            rows = cursor.fetchall()
-            trends = [_dict_row(r) for r in rows]
+        cursor.execute(sql_current, tuple(params + [start_date]))
+        current_rows = [_dict_row(r) for r in cursor.fetchall()]
 
-        if not trends:
-            trends = [
-                {"month": "Mar", "avg_price": 30.0, "msp_price": govt_msp},
-                {"month": "Apr", "avg_price": 32.0, "msp_price": govt_msp},
-                {"month": "May", "avg_price": 34.0, "msp_price": govt_msp},
-                {"month": "Jun", "avg_price": 36.0, "msp_price": govt_msp},
-                {"month": "Jul", "avg_price": 38.0, "msp_price": govt_msp},
-                {"month": "Aug", "avg_price": 40.0, "msp_price": govt_msp}
-            ]
+        # Fetch previous period observations
+        sql_prev = f"""
+            SELECT price_per_kg 
+            FROM crop_price_history 
+            WHERE {where_sql} AND recorded_at >= {ph} AND recorded_at < {ph}
+        """
+        cursor.execute(sql_prev, tuple(params + [prev_start_date, start_date]))
+        prev_rows = [_dict_row(r) for r in cursor.fetchall()]
 
-        months = [t['month'] for t in trends]
-        prices = [float(t['avg_price']) for t in trends]
-        msps = [float(t.get('msp_price') or govt_msp) for t in trends]
+        total_obs = len(current_rows)
 
-        current_avg = prices[-1] if prices else 38.0
-        prev_avg = prices[-2] if len(prices) >= 2 else (current_avg * 0.95)
-        
-        change_pct = round(((current_avg - prev_avg) / prev_avg) * 100, 1) if prev_avg else 0.0
-        msp_variance = round(((current_avg - govt_msp) / govt_msp) * 100, 1) if govt_msp else 0.0
+        if total_obs == 0:
+            return {
+                "crop_name": crop_name,
+                "location": location,
+                "period": period,
+                "total_observations": 0,
+                "message": "No CropSync price data available for this crop and location.",
+                "has_data": False,
+                "govt_msp": govt_msp
+            }
 
-        res = {
-            "crop_name": crop_name,
-            "location": location,
-            "current_avg_price": current_avg,
-            "govt_msp": govt_msp,
-            "change_pct": change_pct,
-            "msp_variance": msp_variance,
-            "months": months,
-            "prices": prices,
-            "msps": msps,
-            "trends": trends
-        }
-        _market_intel_cache[cache_key] = res
-        return res
-    except Exception as e:
-        print("[!] Error in get_market_intelligence:", e)
+        if total_obs < 2:
+            single_price = float(current_rows[0]['price_per_kg'])
+            return {
+                "crop_name": crop_name,
+                "location": location,
+                "period": period,
+                "total_observations": 1,
+                "current_avg_price": round(single_price, 2),
+                "previous_avg_price": None,
+                "change_pct": 0.0,
+                "min_price": round(single_price, 2),
+                "max_price": round(single_price, 2),
+                "trend_direction": "→ Stable",
+                "message": "Limited data available. Trend may not be representative.",
+                "has_data": True,
+                "labels": [str(current_rows[0]['recorded_at'])[:10]],
+                "prices": [round(single_price, 2)],
+                "govt_msp": govt_msp
+            }
+
+        # Calculate statistics from actual observations
+        prices = [float(r['price_per_kg']) for r in current_rows]
+        curr_avg = sum(prices) / len(prices)
+        min_p = min(prices)
+        max_p = max(prices)
+
+        if prev_rows:
+            prev_prices = [float(r['price_per_kg']) for r in prev_rows]
+            prev_avg = sum(prev_prices) / len(prev_prices)
+        else:
+            mid = len(prices) // 2
+            prev_avg = sum(prices[:mid]) / len(prices[:mid]) if mid > 0 else curr_avg
+
+        change_pct = round(((curr_avg - prev_avg) / prev_avg) * 100, 1) if prev_avg else 0.0
+
+        if change_pct > 1.0:
+            trend_direction = "↗ Increasing"
+        elif change_pct < -1.0:
+            trend_direction = "↘ Decreasing"
+        else:
+            trend_direction = "→ Stable"
+
+        chart_labels = []
+        chart_prices = []
+        for r in current_rows:
+            dt_str = str(r['recorded_at'])[:10]
+            chart_labels.append(dt_str)
+            chart_prices.append(round(float(r['price_per_kg']), 2))
+
         return {
             "crop_name": crop_name,
             "location": location,
-            "current_avg_price": 38.0,
-            "govt_msp": 23.00,
-            "change_pct": 5.3,
-            "msp_variance": 65.2,
-            "months": ["Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-            "prices": [30.0, 32.0, 34.0, 36.0, 38.0, 40.0],
-            "msps": [23.0, 23.0, 23.0, 23.0, 23.0, 23.0],
-            "trends": []
+            "period": period,
+            "total_observations": total_obs,
+            "current_avg_price": round(curr_avg, 2),
+            "previous_avg_price": round(prev_avg, 2),
+            "change_pct": change_pct,
+            "min_price": round(min_p, 2),
+            "max_price": round(max_p, 2),
+            "trend_direction": trend_direction,
+            "labels": chart_labels,
+            "prices": chart_prices,
+            "govt_msp": govt_msp,
+            "has_data": True,
+            "message": None
+        }
+    except Exception as e:
+        print("[!] Error in get_crop_price_trends:", e)
+        return {
+            "crop_name": crop_name,
+            "location": location,
+            "period": period,
+            "total_observations": 0,
+            "message": "No CropSync price data available for this crop and location.",
+            "has_data": False,
+            "govt_msp": None
         }
     finally:
         conn.close()
 
-def get_all_market_crops():
+def get_available_trend_crops():
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT crop_name FROM market_prices ORDER BY crop_name ASC")
+        sql = """
+            SELECT DISTINCT crop_name FROM (
+                SELECT crop_name FROM crops
+                UNION
+                SELECT crop_name FROM crop_price_history
+            ) t ORDER BY crop_name ASC
+        """
+        cursor.execute(sql)
         rows = cursor.fetchall()
-        crops = [r['crop_name'] if isinstance(r, dict) else r[0] for r in rows]
+        crops = [r['crop_name'].title() if isinstance(r, dict) else r[0].title() for r in rows if r]
         return crops or ["Rice", "Wheat", "Cotton", "Tomato", "Potato", "Maize", "Pulses", "Sugarcane"]
     except Exception:
         return ["Rice", "Wheat", "Cotton", "Tomato", "Potato", "Maize", "Pulses", "Sugarcane"]
     finally:
         conn.close()
 
-def get_all_market_locations():
+def get_available_trend_locations():
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT location FROM market_prices ORDER BY location ASC")
+        sql = """
+            SELECT DISTINCT location FROM (
+                SELECT location FROM crops
+                UNION
+                SELECT location FROM crop_price_history
+            ) t ORDER BY location ASC
+        """
+        cursor.execute(sql)
         rows = cursor.fetchall()
-        locs = [r['location'] if isinstance(r, dict) else r[0] for r in rows]
-        return locs or ["Salem", "Coimbatore", "Madurai", "Chennai", "Tiruppur"]
+        locations = [r['location'].title() if isinstance(r, dict) else r[0].title() for r in rows if r]
+        return locations or ["Salem", "Coimbatore", "Madurai", "Chennai", "Tiruppur"]
     except Exception:
         return ["Salem", "Coimbatore", "Madurai", "Chennai", "Tiruppur"]
     finally:
         conn.close()
 
-def get_all_crop_benchmarks():
-    global _benchmarks_cache
-    if _benchmarks_cache is not None:
-        return _benchmarks_cache
-
-    conn, db_type = get_connection()
-    try:
-        cursor = conn.cursor()
-        sql = """
-            SELECT m.crop_name, g.msp_price_per_kg, g.season, g.category,
-                   AVG(m.avg_price) as avg_market_price
-            FROM government_msp g
-            LEFT JOIN market_prices m ON LOWER(g.crop_name) = LOWER(m.crop_name)
-            GROUP BY m.crop_name, g.crop_name, g.msp_price_per_kg, g.season, g.category
-            ORDER BY g.crop_name ASC
-        """
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        results = []
-        for r in rows:
-            row_dict = _dict_row(r)
-            avg_p = float(row_dict.get('avg_market_price') or 0.0)
-            msp_p = float(row_dict.get('msp_price_per_kg') or 0.0)
-            diff_pct = round(((avg_p - msp_p) / msp_p) * 100, 1) if msp_p else 0.0
-            row_dict['avg_market_price'] = round(avg_p, 2)
-            row_dict['msp_price_per_kg'] = round(msp_p, 2)
-            row_dict['variance_pct'] = diff_pct
-            results.append(row_dict)
-        _benchmarks_cache = results
-        return results
-    except Exception as e:
-        print("[!] Error in get_all_crop_benchmarks:", e)
-        return []
-    finally:
-        conn.close()
 
 

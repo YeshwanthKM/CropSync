@@ -767,34 +767,50 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
-@app.route('/market-intelligence')
-
-def market_intelligence():
+@app.route('/price-trends')
+def price_trends():
     selected_crop = request.args.get('crop', 'Rice').strip()
-    selected_location = request.args.get('location', 'Salem').strip()
-    
-    crops = db.get_all_market_crops()
-    locations = db.get_all_market_locations()
-    
-    intel_data = db.get_market_intelligence(crop_name=selected_crop, location=selected_location)
-    benchmarks = db.get_all_crop_benchmarks()
-    
-    return render_template(
-        'market_intelligence.html',
-        selected_crop=selected_crop,
-        selected_location=selected_location,
-        crops=crops,
-        locations=locations,
-        intel=intel_data,
-        benchmarks=benchmarks
+    selected_location = request.args.get('location', 'All Locations').strip()
+    selected_period = request.args.get('period', '30d').strip()
+
+    crops = db.get_available_trend_crops()
+    locations = db.get_available_trend_locations()
+
+    if selected_crop not in crops and crops:
+        selected_crop = crops[0]
+
+    trends_data = db.get_crop_price_trends(
+        crop_name=selected_crop,
+        location=selected_location,
+        period=selected_period
     )
 
-@app.route('/api/market-intelligence')
-def api_market_intelligence():
+    user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
+
+    return render_template(
+        'price_trends.html',
+        selected_crop=selected_crop,
+        selected_location=selected_location,
+        selected_period=selected_period,
+        crops=crops,
+        locations=locations,
+        trends=trends_data,
+        session_user=user
+    )
+
+@app.route('/api/price-trends')
+def api_price_trends():
     selected_crop = request.args.get('crop', 'Rice').strip()
-    selected_location = request.args.get('location', 'Salem').strip()
-    intel_data = db.get_market_intelligence(crop_name=selected_crop, location=selected_location)
-    return jsonify(intel_data)
+    selected_location = request.args.get('location', 'All Locations').strip()
+    selected_period = request.args.get('period', '30d').strip()
+
+    trends_data = db.get_crop_price_trends(
+        crop_name=selected_crop,
+        location=selected_location,
+        period=selected_period
+    )
+    return jsonify(trends_data)
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

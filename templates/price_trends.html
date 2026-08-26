@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CropSync - Crop Price Trends</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+    <style>
+        .trend-header {
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.12), rgba(41, 128, 185, 0.12));
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            border: 1px solid var(--nav-border);
+            text-align: center;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            background: var(--nav-bg);
+            padding: 1.25rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--nav-border);
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .filter-group label {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .filter-group select {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--nav-bg);
+            border: 1px solid var(--nav-border);
+            padding: 1.25rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .metric-card .value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary-color, #27ae60);
+            margin: 0.4rem 0;
+        }
+
+        .metric-card .label {
+            font-size: 0.85rem;
+            color: var(--secondary-text);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            background: var(--nav-bg);
+            border: 1px solid var(--nav-border);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .empty-state-box {
+            background: var(--nav-bg);
+            border: 1px dashed var(--nav-border);
+            border-radius: var(--border-radius);
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .empty-state-box p {
+            color: var(--secondary-text);
+            font-size: 1.1rem;
+            margin: 0.5rem 0 0 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <div class="nav">
+            <div style="font-weight: 800;">
+                <a href="{{ url_for('home') }}" style="border:none; padding:0; background:none; color:inherit;">CropSync</a>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('price_trends') }}" style="color: #27ae60; font-weight: 700;">📉 Crop Price Trends</a>
+                {% if session.get('farmer_user') %}
+                    <a href="{{ url_for('farmer_dashboard') }}">🌾 Farmer Dashboard</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                {% elif session.get('buyer_user') %}
+                    <a href="{{ url_for('buyer_dashboard') }}">🛒 Buyer Portal</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                {% elif session.get('admin_user') %}
+                    <a href="{{ url_for('admin_dashboard') }}">👑 Admin Portal</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Login</a>
+                    <a href="{{ url_for('register') }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #27ae60; border-color: #27ae60; color: #ffffff; text-decoration: none;">Register</a>
+                {% endif %}
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓 Theme</button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="trend-header">
+            <h1 style="margin-bottom: 0.5rem;">Crop Price Trends</h1>
+            <p style="color: var(--secondary-text); font-size: 1.05rem; max-width: 650px; margin: 0 auto;">
+                Historical marketplace price observations recorded directly from active CropSync listings.
+            </p>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="cropSelect">Crop:</label>
+                <select id="cropSelect" onchange="updateTrendsData()">
+                    {% for c in crops %}
+                    <option value="{{ c }}" {% if c == selected_crop %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="locationSelect">Location:</label>
+                <select id="locationSelect" onchange="updateTrendsData()">
+                    <option value="All Locations" {% if selected_location == 'All Locations' %}selected{% endif %}>[ All Locations ]</option>
+                    {% for l in locations %}
+                    <option value="{{ l }}" {% if l == selected_location %}selected{% endif %}>{{ l }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="periodSelect">Period:</label>
+                <select id="periodSelect" onchange="updateTrendsData()">
+                    <option value="7d" {% if selected_period == '7d' %}selected{% endif %}>7 Days</option>
+                    <option value="30d" {% if selected_period == '30d' %}selected{% endif %}>30 Days</option>
+                    <option value="3m" {% if selected_period == '3m' %}selected{% endif %}>3 Months</option>
+                    <option value="6m" {% if selected_period == '6m' %}selected{% endif %}>6 Months</option>
+                    <option value="1y" {% if selected_period == '1y' %}selected{% endif %}>1 Year</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Title Block -->
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h2 id="chartTitle" style="margin-bottom: 0.25rem;">
+                <span id="cropNameHeading">{{ trends.crop_name }}</span> — <span id="locationHeading">{{ trends.location }}</span>
+            </h2>
+            <div style="font-size: 0.95rem; color: var(--secondary-text); font-weight: 600;">
+                CropSync Marketplace Price Trend
+            </div>
+        </div>
+
+        <!-- Data Content vs Empty State -->
+        <div id="dataContainer" {% if not trends.has_data %}style="display: none;"{% endif %}>
+            <!-- Summary Metric Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="label">Current Average</div>
+                    <div class="value" id="currentAvgVal">₹{{ "%.2f"|format(trends.current_avg_price or 0.0) }}/kg</div>
+                    <div style="font-size: 0.8rem; color: var(--secondary-text);">CropSync Average</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="label">Previous Period</div>
+                    <div class="value" id="prevAvgVal" style="color: var(--text-color);">
+                        {% if trends.previous_avg_price %}₹{{ "%.2f"|format(trends.previous_avg_price) }}/kg{% else %}—{% endif %}
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--secondary-text);">Prior Period Avg</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="label">Change</div>
+                    <div class="value" id="changeVal" style="color: {% if (trends.change_pct or 0) >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                        {% if (trends.change_pct or 0) >= 0 %}+{% endif %}{{ trends.change_pct or 0.0 }}%
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--secondary-text);">Percentage Shift</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="label">Range</div>
+                    <div class="value" id="rangeVal" style="font-size: 1.4rem;">
+                        ₹{{ trends.min_price or 0 }}–₹{{ trends.max_price or 0 }}/kg
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--secondary-text);">Min – Max Observed</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="label">Trend Indicator</div>
+                    <div class="value" id="trendDirectionVal" style="font-size: 1.4rem; color: {% if trends.trend_direction == '↗ Increasing' %}#27ae60{% elif trends.trend_direction == '↘ Decreasing' %}#e74c3c{% else %}#f39c12{% endif %};">
+                        {{ trends.trend_direction or '→ Stable' }}
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--secondary-text);">Historical Observations</div>
+                </div>
+            </div>
+
+            <!-- Optional Government MSP Notice Banner -->
+            <div id="mspNoticeBar" style="background: rgba(41, 128, 185, 0.1); border: 1px solid rgba(41, 128, 185, 0.3); border-radius: 8px; padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; text-align: center; font-size: 0.95rem; font-weight: 600;">
+                <span id="mspNoticeText">
+                    {% if trends.govt_msp %}
+                        🏛️ Government MSP Reference: <strong>₹{{ "%.2f"|format(trends.govt_msp) }}/kg</strong>
+                    {% else %}
+                        ℹ️ Government MSP reference unavailable for this crop/period.
+                    {% endif %}
+                </span>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="chart-container">
+                <div style="position: relative; height: 360px; width: 100%;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State Container -->
+        <div id="emptyStateBox" class="empty-state-box" {% if trends.has_data %}style="display: none;"{% endif %}>
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📉</div>
+            <h3 id="emptyMessageTitle" style="margin: 0; color: var(--text-color);">No Price Trend Data</h3>
+            <p id="emptyMessageText">{{ trends.message or "No CropSync price data available for this crop and location." }}</p>
+        </div>
+
+        <div style="text-align: center; color: var(--secondary-text); font-size: 0.85rem; margin-bottom: 2rem;">
+            * Price trends are strictly calculated from actual CropSync marketplace listings. No market predictions or AI forecasts are used.
+        </div>
+
+        <script>
+            // Theme toggle
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                if (trendChart) trendChart.update();
+            });
+
+            const initialLabels = {{ (trends.labels or []) | tojson }};
+            const initialPrices = {{ (trends.prices or []) | tojson }};
+            const initialMsp = {{ trends.govt_msp or 'null' }};
+
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            function buildMspDataset(labels, mspValue) {
+                if (!mspValue) return [];
+                return [{
+                    label: 'Government MSP (₹/kg)',
+                    data: new Array(labels.length).fill(mspValue),
+                    borderColor: '#2980b9',
+                    borderWidth: 2,
+                    borderDash: [6, 6],
+                    pointRadius: 0,
+                    fill: false
+                }];
+            }
+
+            let trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: initialLabels,
+                    datasets: [
+                        {
+                            label: 'CropSync Average Price (₹/kg)',
+                            data: initialPrices,
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.12)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#27ae60',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            tension: 0.2,
+                            fill: true
+                        },
+                        ...buildMspDataset(initialLabels, initialMsp)
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ₹' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: 'rgba(127, 127, 127, 0.15)' },
+                            ticks: {
+                                callback: function(value) { return '₹' + value; },
+                                color: 'inherit'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'inherit' }
+                        }
+                    }
+                }
+            });
+
+            async function updateTrendsData() {
+                const crop = document.getElementById('cropSelect').value;
+                const location = document.getElementById('locationSelect').value;
+                const period = document.getElementById('periodSelect').value;
+
+                document.getElementById('cropNameHeading').innerText = crop;
+                document.getElementById('locationHeading').innerText = location;
+
+                try {
+                    const response = await fetch(`/api/price-trends?crop=${encodeURIComponent(crop)}&location=${encodeURIComponent(location)}&period=${encodeURIComponent(period)}`);
+                    const data = await response.json();
+
+                    const dataContainer = document.getElementById('dataContainer');
+                    const emptyBox = document.getElementById('emptyStateBox');
+
+                    if (!data.has_data) {
+                        dataContainer.style.display = 'none';
+                        emptyBox.style.display = 'block';
+                        document.getElementById('emptyMessageText').innerText = data.message || "No CropSync price data available for this crop and location.";
+                        return;
+                    }
+
+                    emptyBox.style.display = 'none';
+                    dataContainer.style.display = 'block';
+
+                    document.getElementById('currentAvgVal').innerText = `₹${(data.current_avg_price || 0).toFixed(2)}/kg`;
+                    document.getElementById('prevAvgVal').innerText = data.previous_avg_price ? `₹${data.previous_avg_price.toFixed(2)}/kg` : '—';
+                    
+                    const changeEl = document.getElementById('changeVal');
+                    changeEl.innerText = `${(data.change_pct || 0) >= 0 ? '+' : ''}${data.change_pct || 0}%`;
+                    changeEl.style.color = (data.change_pct || 0) >= 0 ? '#27ae60' : '#e74c3c';
+
+                    document.getElementById('rangeVal').innerText = `₹${data.min_price || 0}–₹${data.max_price || 0}/kg`;
+                    
+                    const trendDirEl = document.getElementById('trendDirectionVal');
+                    trendDirEl.innerText = data.trend_direction || '→ Stable';
+                    trendDirEl.style.color = data.trend_direction === '↗ Increasing' ? '#27ae60' : (data.trend_direction === '↘ Decreasing' ? '#e74c3c' : '#f39c12');
+
+                    const mspTextEl = document.getElementById('mspNoticeText');
+                    if (data.govt_msp) {
+                        mspTextEl.innerHTML = `🏛️ Government MSP Reference: <strong>₹${data.govt_msp.toFixed(2)}/kg</strong>`;
+                    } else {
+                        mspTextEl.innerHTML = `ℹ️ Government MSP reference unavailable for this crop/period.`;
+                    }
+
+                    trendChart.data.labels = data.labels || [];
+                    trendChart.data.datasets = [
+                        {
+                            label: 'CropSync Average Price (₹/kg)',
+                            data: data.prices || [],
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.12)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#27ae60',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            tension: 0.2,
+                            fill: true
+                        },
+                        ...buildMspDataset(data.labels || [], data.govt_msp)
+                    ];
+                    trendChart.update();
+
+                    const newUrl = `${window.location.pathname}?crop=${encodeURIComponent(crop)}&location=${encodeURIComponent(location)}&period=${encodeURIComponent(period)}`;
+                    window.history.pushState({ path: newUrl }, '', newUrl);
+                } catch (err) {
+                    console.error('Error fetching crop price trends:', err);
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>
