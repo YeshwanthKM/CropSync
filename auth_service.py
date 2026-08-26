@@ -138,6 +138,7 @@ class EmailService:
                 msg['From'] = f"CropSync <{gmail_user}>"
                 msg['To'] = email
 
+                text_content = f"Welcome to CropSync!\n\nPlease verify your email address by opening this link in your browser:\n{confirm_url}\n\nThank you,\nCropSync Team"
                 html_content = f"""
                 <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
                     <h2 style="color: #27ae60; text-align: center;">🌾 Welcome to CropSync</h2>
@@ -155,7 +156,9 @@ class EmailService:
                     </p>
                 </div>
                 """
+                msg.attach(MIMEText(text_content, 'plain'))
                 msg.attach(MIMEText(html_content, 'html'))
+
 
                 with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
                     server.starttls()
