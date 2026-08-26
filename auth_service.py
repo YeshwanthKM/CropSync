@@ -134,9 +134,11 @@ class EmailService:
                 smtp_port = int(os.environ.get('SMTP_PORT') or 587)
 
                 msg = MIMEMultipart('alternative')
-                msg['Subject'] = "🌾 Verify your CropSync Email Address"
-                msg['From'] = f"CropSync <{gmail_user}>"
+                msg['Subject'] = "CropSync Email Verification"
+                msg['From'] = f"CropSync Team <{gmail_user}>"
+                msg['Reply-To'] = gmail_user
                 msg['To'] = email
+
 
                 text_content = f"Welcome to CropSync!\n\nPlease verify your email address by opening this link in your browser:\n{confirm_url}\n\nThank you,\nCropSync Team"
                 html_content = f"""
