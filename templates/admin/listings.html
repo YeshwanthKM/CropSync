@@ -14,8 +14,8 @@
 </div>
 
 <div class="card" style="padding: 0; overflow: hidden;">
-    <div class="table-container">
-        <table style="width: 100%; border-collapse: collapse;">
+    <div class="table-container" style="overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
+        <table style="width: 100%; min-width: 950px; border-collapse: collapse;">
             <thead>
                 <tr style="background: rgba(0,0,0,0.03); border-bottom: 1px solid var(--nav-border); text-align: left;">
                     <th style="padding: 0.75rem 1rem;">Listing ID</th>
@@ -27,7 +27,7 @@
                     <th style="padding: 0.75rem 1rem;">MSP Reference</th>
                     <th style="padding: 0.75rem 1rem;">Status</th>
                     <th style="padding: 0.75rem 1rem;">Created Date</th>
-                    <th style="padding: 0.75rem 1rem;">Actions</th>
+                    <th style="padding: 0.75rem 1rem; text-align: right; white-space: nowrap;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -64,8 +64,8 @@
                     </td>
                     <td style="padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--secondary-text);">{{ (l.created_at|string)[:10] }}</td>
 
-                    <td style="padding: 0.75rem 1rem;">
-                        <div style="display: flex; gap: 0.5rem;">
+                    <td style="padding: 0.75rem 1rem; white-space: nowrap;">
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
                             <button onclick="viewListingModal('{{ l.id }}', '{{ l.crop_name }}', '{{ l.farmer_name }}', '{{ l.farmer_email }}', '{{ l.location }}', '{{ l.quantity }}', '{{ l.price_per_kg }}', '{{ l.msp_reference or 'N/A' }}', '{{ l.status }}', '{{ l.created_at }}', '{{ l.updated_at }}')" class="btn" style="padding: 4px 8px; font-size: 0.75rem;">View</button>
                             {% if l.status == 'available' %}
                                 <a href="{{ url_for('admin_listing_status', crop_id=l.id, status='disabled') }}" class="btn" style="padding: 4px 8px; font-size: 0.75rem; background: #e74c3c; border-color: #e74c3c; color: white;" onclick="return confirm('Disable this listing?')">Disable</a>
@@ -74,6 +74,7 @@
                             {% endif %}
                         </div>
                     </td>
+
                 </tr>
                 {% else %}
                 <tr>

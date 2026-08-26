@@ -222,6 +222,15 @@ body {
     }
 }
 
+/* Global table-container scroll behavior */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+
 h1,
 h2,
 h3 {
