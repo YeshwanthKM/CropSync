@@ -109,13 +109,66 @@ class SupabaseAuthService:
             print("[!] Notice during Supabase Auth user delete:", e)
 
 
+import os
+import json
+import ssl
+import smtplib
+import urllib.request
+import urllib.error
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 class EmailService:
     @staticmethod
     def send_verification_email(email, token):
         confirm_url = f"https://crop-sync.vercel.app/confirm-email?token={token}"
+        gmail_user = os.environ.get('GMAIL_USER') or os.environ.get('SMTP_USER')
+        gmail_pass = os.environ.get('GMAIL_APP_PASSWORD') or os.environ.get('SMTP_PASS')
         resend_api_key = os.environ.get('RESEND_API_KEY')
         
-        if resend_api_key:
+        # Method 1: Direct Gmail / Custom SMTP Dispatch via Python smtplib (Sends to ANY email)
+        if gmail_user and gmail_pass:
+            try:
+                smtp_host = os.environ.get('SMTP_HOST') or 'smtp.gmail.com'
+                smtp_port = int(os.environ.get('SMTP_PORT') or 587)
+
+                msg = MIMEMultipart('alternative')
+                msg['Subject'] = "🌾 Verify your CropSync Email Address"
+                msg['From'] = f"CropSync <{gmail_user}>"
+                msg['To'] = email
+
+                html_content = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                    <h2 style="color: #27ae60; text-align: center;">🌾 Welcome to CropSync</h2>
+                    <p style="font-size: 16px; color: #333; line-height: 1.5;">
+                        Thank you for registering! Please click the button below to confirm your email address and activate your account:
+                    </p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{confirm_url}" style="background-color: #27ae60; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; font-size: 16px; display: inline-block;">
+                            ✓ Confirm Email Address
+                        </a>
+                    </div>
+                    <p style="font-size: 14px; color: #777; text-align: center;">
+                        Or copy and paste this URL into your browser:<br>
+                        <a href="{confirm_url}" style="color: #27ae60;">{confirm_url}</a>
+                    </p>
+                </div>
+                """
+                msg.attach(MIMEText(html_content, 'html'))
+
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+                    server.starttls()
+                    server.login(gmail_user, gmail_pass)
+                    server.sendmail(gmail_user, email, msg.as_string())
+
+                print(f"[+] Verification email sent directly via Gmail SMTP to {email}")
+                return True, None
+            except Exception as e:
+                print(f"[!] Gmail SMTP error sending to {email}:", e)
+                return False, f"SMTP Error: {str(e)}"
+
+        # Method 2: Resend API Dispatch
+        elif resend_api_key:
             endpoint = "https://api.resend.com/emails"
             headers = {
                 "Authorization": f"Bearer {resend_api_key}",
@@ -165,7 +218,8 @@ class EmailService:
                 return False, str(e)
         else:
             print(f"[+] [DEV MODE EMAIL] Verification link for {email}: {confirm_url}")
-            return False, "RESEND_API_KEY not configured"
+            return False, "Email service credentials not configured"
+
 
 
 
