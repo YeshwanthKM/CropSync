@@ -5,10 +5,16 @@
 
 {% block content %}
 <div class="card" style="margin-bottom: 2rem;">
-    <form method="GET" action="{{ url_for('admin_buyers') }}" style="display: flex; gap: 1rem; align-items: center; background: none; border: none; padding: 0; box-shadow: none; margin: 0;">
-        <input type="text" name="search" value="{{ search or '' }}" placeholder="Search buyer by name, email, or location..." style="flex-grow: 1;">
-        <button type="submit" class="btn">Search</button>
-        {% if search %}
+    <form method="GET" action="{{ url_for('admin_buyers') }}" style="display: flex; gap: 1rem; align-items: center; background: none; border: none; padding: 0; box-shadow: none; margin: 0; flex-wrap: wrap;">
+        <input type="text" name="search" value="{{ search or '' }}" placeholder="Search buyer by name, email, or location..." style="flex-grow: 1; min-width: 250px;">
+        <select name="status" style="padding: 0.625rem; border: 1px solid var(--input-border); border-radius: var(--border-radius); background: var(--input-bg); color: var(--text-color);">
+            <option value="all" {% if status_filter == 'all' or not status_filter %}selected{% endif %}>All Accounts</option>
+            <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Verified Active</option>
+            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Verification</option>
+            <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
+        </select>
+        <button type="submit" class="btn">Filter</button>
+        {% if search or (status_filter and status_filter != 'all') %}
         <a href="{{ url_for('admin_buyers') }}" class="btn" style="background: var(--hover-bg);">Clear</a>
         {% endif %}
     </form>
@@ -21,8 +27,8 @@
                 <th>Buyer Name</th>
                 <th>Email</th>
                 <th>Organization</th>
-                <th>Phone</th>
-                <th>Location</th>
+                <th>Email Verified</th>
+                <th>Phone Verified</th>
                 <th>Status</th>
                 <th>Registered At</th>
                 <th>Action</th>
@@ -34,17 +40,30 @@
                 <td><strong>{{ b.name }}</strong></td>
                 <td>{{ b.email }}</td>
                 <td>{{ b.organization or 'N/A' }}</td>
-                <td>{{ b.phone or 'N/A' }}</td>
-                <td>{{ b.location or 'N/A' }}</td>
+                <td>
+                    {% if b.email_verified %}
+                    <span style="color: #27ae60; font-weight: 600;">✓ Email</span>
+                    {% else %}
+                    <span style="color: #e74c3c;">✗ Pending</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if b.phone_verified %}
+                    <span style="color: #27ae60; font-weight: 600;">✓ Phone</span>
+                    {% else %}
+                    <span style="color: #e74c3c;">✗ Pending</span>
+                    {% endif %}
+                </td>
                 <td>
                     {% if b.account_status == 'active' %}
                     <span class="btn badge-accepted" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border: none;">Active</span>
-                    {% else %}
+                    {% elif b.account_status == 'suspended' %}
                     <span class="btn badge-rejected" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border: none;">Suspended</span>
+                    {% else %}
+                    <span class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #ff9800; color: #fff; border: none;">Pending</span>
                     {% endif %}
                 </td>
                 <td>{{ (b.created_at|string)[:10] if b.created_at else 'N/A' }}</td>
-
                 <td>
                     <a href="{{ url_for('admin_buyer_detail', buyer_id=b.id) }}" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Manage</a>
                 </td>
@@ -57,4 +76,5 @@
         </tbody>
     </table>
 </div>
+
 {% endblock %}

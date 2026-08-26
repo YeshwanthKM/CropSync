@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CropSync - Email Verification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="nav">
+            <div style="font-weight: 800;"><a href="{{ url_for('home') }}"
+                    style="border:none; padding:0; background:none; color:inherit;">CropSync</a></div>
+            <div class="nav-links">
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓 Theme</button>
+            </div>
+        </div>
+
+        <div style="max-width: 500px; margin: 4rem auto; text-align: center;">
+            <div style="font-size: 3.5rem; margin-bottom: 1rem;">✉️</div>
+            <h2>Check Your Email</h2>
+            <p style="color: var(--secondary-text); margin: 1rem 0; font-size: 1.1rem; line-height: 1.6;">
+                We've sent a verification link to:<br>
+                <strong style="color: var(--text-color);">{{ email }}</strong>
+            </p>
+            <p style="color: var(--secondary-text); font-size: 0.95rem; margin-bottom: 2rem;">
+                Please verify your email before continuing to phone verification and marketplace access.
+            </p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages" style="margin-bottom: 1.5rem;">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div style="display: flex; gap: 1rem; flex-direction: column;">
+                <a href="{{ url_for('simulate_email_verification') }}" class="btn" style="background: var(--primary-color, #27ae60); color: #fff; text-decoration: none; font-weight: 600;">
+                    ✓ Click Here to Complete Email Verification
+                </a>
+                
+                <form method="POST" action="{{ url_for('resend_email_verification') }}">
+                    <button type="submit" class="btn" style="width: 100%; background: transparent; border: 1px solid var(--nav-border); color: inherit;">
+                        🔄 Resend Verification Email
+                    </button>
+                </form>
+                
+                <a href="{{ url_for('login') }}" style="color: var(--secondary-text); font-size: 0.9rem; text-decoration: none;">
+                    ← Back to Login
+                </a>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        </script>
+    </div>
+</body>
+
+</html>

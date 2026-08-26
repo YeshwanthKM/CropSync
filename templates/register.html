@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ get_text('register') }}</title>
+    <title>CropSync - {{ get_text('create_account') }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
         const theme = localStorage.getItem('theme') || 'light';
@@ -18,25 +18,98 @@
             <div style="font-weight: 800;"><a href="{{ url_for('home') }}"
                     style="border:none; padding:0; background:none; color:inherit;">CropSync</a></div>
             <div class="nav-links">
-                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓
-                    Theme</button>
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓 Theme</button>
                 <a href="{{ url_for('login') }}">{{ get_text('login') }}</a>
             </div>
         </div>
 
-        <div style="max-width: 450px; margin: 4rem auto; text-align: center;">
-            <div style="font-size: 3rem; margin-bottom: 2rem;">🔒</div>
-            <h2>{{ get_text('create_account') }}</h2>
-            <p style="margin: 2rem 0; font-size: 1.1rem; line-height: 1.6;">
-                Self-registration is currently disabled for this demo.<br>
-                Please use the pre-defined accounts available on the login page.
+        <div style="max-width: 500px; margin: 3rem auto;">
+            <h2 style="text-align: center;">{{ get_text('create_account') }}</h2>
+            <p style="text-align: center; color: var(--secondary-text); margin-bottom: 2rem;">
+                Join the CropSync direct agricultural marketplace
             </p>
-            <a href="{{ url_for('login') }}" class="btn" style="width: 100%; border-color: var(--text-color); background: var(--text-color); color: var(--bg-color);">
-                Go to Login Page
-            </a>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('register') }}">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="font-weight: 600;">I am a:</label>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                        <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--input-border); border-radius: var(--border-radius); cursor: pointer; background: var(--nav-bg);">
+                            <input type="radio" name="role" value="farmer" checked onclick="toggleRoleFields('farmer')">
+                            <strong>🌾 Farmer</strong>
+                        </label>
+                        <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--input-border); border-radius: var(--border-radius); cursor: pointer; background: var(--nav-bg);">
+                            <input type="radio" name="role" value="buyer" onclick="toggleRoleFields('buyer')">
+                            <strong>🛒 Buyer</strong>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ get_text('name') }} *</label>
+                    <input type="text" name="name" placeholder="Full Name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ get_text('email') }} *</label>
+                    <input type="email" name="email" placeholder="user@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Mobile Number *</label>
+                    <input type="tel" name="phone" placeholder="9876543210" required pattern="[0-9]{10}">
+                </div>
+
+                <div id="farmerFields" class="form-group">
+                    <label>District / Location *</label>
+                    <input type="text" name="location" placeholder="e.g. Coimbatore, Tamil Nadu">
+                </div>
+
+                <div id="buyerFields" class="form-group" style="display: none;">
+                    <label>Organization / Business Name</label>
+                    <input type="text" name="organization" placeholder="e.g. Fresh Agro Traders">
+                </div>
+
+                <div class="form-group">
+                    <label>{{ get_text('password') }} *</label>
+                    <input type="password" name="password" placeholder="••••••••" required minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm Password *</label>
+                    <input type="password" name="confirm_password" placeholder="••••••••" required minlength="6">
+                </div>
+
+                <button type="submit" style="width: 100%; margin-top: 1rem;">Create Account</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 1.5rem; color: var(--secondary-text);">
+                Already have an account? <a href="{{ url_for('login') }}">{{ get_text('login') }}</a>
+            </div>
         </div>
 
         <script>
+            function toggleRoleFields(role) {
+                const farmerFields = document.getElementById('farmerFields');
+                const buyerFields = document.getElementById('buyerFields');
+                if (role === 'farmer') {
+                    farmerFields.style.display = 'block';
+                    buyerFields.style.display = 'none';
+                } else {
+                    farmerFields.style.display = 'none';
+                    buyerFields.style.display = 'block';
+                }
+            }
+
             document.getElementById('theme-toggle').addEventListener('click', () => {
                 const currentTheme = document.documentElement.getAttribute('data-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';

@@ -68,11 +68,25 @@
                     </div>
                     <div class="form-group">
                         <label>{{ get_text('email') }}</label>
-                        <input type="email" value="{{ session_user['email'] }}" disabled style="opacity: 0.8; cursor: not-allowed;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="email" value="{{ session_user['email'] }}" disabled style="flex-grow: 1; opacity: 0.8; cursor: not-allowed;">
+                            {% if session_user.get('email_verified') %}
+                            <span class="btn badge-accepted" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; border: none; white-space: nowrap;">✓ Email Verified</span>
+                            {% else %}
+                            <span class="btn badge-rejected" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; border: none; white-space: nowrap;">✗ Email Pending</span>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>{{ get_text('phone') }}</label>
-                        <input type="text" value="{{ session_user.get('phone', '') }}" disabled style="opacity: 0.8; cursor: not-allowed;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" value="{{ session_user.get('phone', '') }}" disabled style="flex-grow: 1; opacity: 0.8; cursor: not-allowed;">
+                            {% if session_user.get('phone_verified') %}
+                            <span class="btn badge-accepted" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; border: none; white-space: nowrap;">✓ Phone Verified</span>
+                            {% else %}
+                            <span class="btn badge-rejected" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; border: none; white-space: nowrap;">✗ Phone Pending</span>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>{{ get_text('address') }}</label>
@@ -84,12 +98,15 @@
                     </div>
                 </form>
                 
-                <div style="margin-top: 2rem; padding: 1.5rem; background: var(--nav-bg); border-radius: var(--border-radius); border: 1px solid var(--nav-border); text-align: center;">
-                    <p style="font-size: 0.875rem; color: var(--secondary-text); line-height: 1.5;">
-                        <strong>Note:</strong> These are predefined demo account details and cannot be modified. <br>
-                        Contact support for corporate account changes.
-                    </p>
+                <div style="margin-top: 2rem; padding: 1.5rem; background: var(--nav-bg); border-radius: var(--border-radius); border: 1px solid var(--nav-border);">
+                    <h3 style="margin-bottom: 0.75rem; font-size: 1rem;">Verification & Account Security</h3>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem;">
+                        <div>Email Verification: <strong>{{ '✓ Complete' if session_user.get('email_verified') else '✗ Incomplete' }}</strong></div>
+                        <div>Phone OTP Verification: <strong>{{ '✓ Complete' if session_user.get('phone_verified') else '✗ Incomplete' }}</strong></div>
+                        <div>Account Status: <strong>{{ session_user.get('account_status', 'active')|capitalize }}</strong></div>
+                    </div>
                 </div>
+
             </div>
         </main>
     </div>

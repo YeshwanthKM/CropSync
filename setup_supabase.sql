@@ -1,16 +1,24 @@
--- CropSync Phase 1 Supabase PostgreSQL Schema Definition
+-- CropSync Phase 2 Supabase PostgreSQL Schema Definition
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Users Table
+-- 1. Users Table (Updated for Phase 2 Verification & Audit)
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role TEXT CHECK (role IN ('farmer', 'buyer', 'admin')) NOT NULL,
-    account_status TEXT CHECK (account_status IN ('active', 'suspended')) DEFAULT 'active' NOT NULL,
+    account_status TEXT CHECK (account_status IN ('pending', 'active', 'suspended')) DEFAULT 'pending' NOT NULL,
     suspension_reason TEXT,
+    email_verified BOOLEAN DEFAULT FALSE NOT NULL,
+    email_verified_at TIMESTAMP WITH TIME ZONE,
+    phone_verified BOOLEAN DEFAULT FALSE NOT NULL,
+    phone_verified_at TIMESTAMP WITH TIME ZONE,
+    otp_hash TEXT,
+    otp_expires_at TIMESTAMP WITH TIME ZONE,
+    otp_attempts INTEGER DEFAULT 0,
+    otp_last_sent_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -67,13 +75,25 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 6. Audit Logs Table (Phase 2 Admin Actions)
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    target_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_account_status ON users(account_status);
 CREATE INDEX IF NOT EXISTS idx_crops_farmer_id ON crops(farmer_id);
 CREATE INDEX IF NOT EXISTS idx_crops_crop_name ON crops(crop_name);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_farmer_id ON orders(farmer_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(created_at);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -81,3 +101,4 @@ ALTER TABLE farmer_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE buyer_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE crops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;

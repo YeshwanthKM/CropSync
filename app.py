@@ -1,12 +1,16 @@
 import os
 import json
 import secrets
+from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import db
 import migrate_data
+from otp_service import OTPService
+
 
 app = Flask(__name__)
 app.secret_key = 'cropsync-demo-secret-key-stable'
@@ -184,8 +188,176 @@ def home():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    flash('Public registration is disabled. Please contact the Admin or use demo credentials.', 'error')
-    return redirect(url_for('login'))
+    if request.method == 'POST':
+        role = request.form.get('role', 'farmer').lower()
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        phone = request.form.get('phone', '').strip()
+        location = request.form.get('location', '').strip()
+        organization = request.form.get('organization', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        # Server-side Role Protection: Never allow admin registration via form
+        if role not in ('farmer', 'buyer'):
+            flash('Invalid registration role.', 'error')
+            return render_template('register.html')
+
+        if not all([name, email, phone, password, confirm_password]):
+            flash('All required fields must be filled.', 'error')
+            return render_template('register.html')
+
+        if password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return render_template('register.html')
+
+        if len(password) < 6:
+            flash('Password must be at least 6 characters long.', 'error')
+            return render_template('register.html')
+
+        # Check existing email
+        existing_user = db.get_user_by_email(email)
+        if existing_user:
+            flash(f'An account with email {email} already exists.', 'error')
+            return render_template('register.html')
+
+        try:
+            pwd_hash = generate_password_hash(password, method='pbkdf2:sha256')
+            user_id = db.create_user(
+                email=email,
+                password_hash=pwd_hash,
+                role=role,
+                name=name,
+                phone=phone,
+                location=location,
+                organization=organization,
+                status='pending',
+                email_verified=False,
+                phone_verified=False
+            )
+            
+            # Generate and store initial Phone OTP
+            otp_code = OTPService.generate_otp()
+            otp_hash = OTPService.hash_otp(otp_code)
+            expires_at = (datetime.utcnow() + timedelta(minutes=5)).isoformat()
+            db.set_phone_otp(user_id, otp_hash, expires_at)
+            OTPService.send_sms(phone, otp_code)
+
+            session['pending_user_id'] = user_id
+            session['pending_email'] = email
+            session['pending_phone'] = phone
+
+            flash('Account created! Please verify your email to continue.', 'success')
+            return redirect(url_for('verify_email_pending'))
+        except Exception as e:
+            print("[!] Registration error:", e)
+            flash(f'Error creating account: {str(e)}', 'error')
+            return render_template('register.html')
+
+    return render_template('register.html')
+
+@app.route('/verify-email-pending')
+def verify_email_pending():
+    email = session.get('pending_email') or session.get('pending_user', {}).get('email')
+    if not email:
+        return redirect(url_for('login'))
+    return render_template('verify_email_pending.html', email=email)
+
+@app.route('/simulate-email-verification')
+def simulate_email_verification():
+    user_id = session.get('pending_user_id')
+    if not user_id and session.get('pending_email'):
+        u = db.get_user_by_email(session['pending_email'])
+        if u: user_id = u['id']
+        
+    if user_id:
+        db.update_email_verified(user_id, True)
+        flash('Email verified successfully! Now complete mobile phone verification.', 'success')
+        return redirect(url_for('verify_phone'))
+    else:
+        flash('Session expired. Please log in again.', 'error')
+        return redirect(url_for('login'))
+
+@app.route('/resend-email-verification', methods=['POST'])
+def resend_email_verification():
+    email = session.get('pending_email')
+    flash(f'A new verification link has been sent to {email}.', 'success')
+    return redirect(url_for('verify_email_pending'))
+
+@app.route('/verify-phone', methods=['GET', 'POST'])
+def verify_phone():
+    user_id = session.get('pending_user_id')
+    user = None
+    if user_id:
+        user = db.get_user_by_id(user_id)
+    elif session.get('pending_email'):
+        user = db.get_user_by_email(session['pending_email'])
+        if user: user_id = user['id']
+
+    if not user:
+        flash('Session expired. Please log in.', 'error')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        submitted_otp = request.form.get('otp', '').strip()
+        stored_hash = user.get('otp_hash')
+        expires_at = user.get('otp_expires_at')
+
+        # Check expiration
+        if expires_at:
+            try:
+                exp_dt = datetime.fromisoformat(str(expires_at).replace('Z', ''))
+                if datetime.utcnow() > exp_dt:
+                    flash('OTP code has expired. Please request a new OTP.', 'error')
+                    return render_template('verify_phone.html', user=user, phone=user.get('phone'))
+            except Exception:
+                pass
+
+        if OTPService.verify_otp_hash(stored_hash, submitted_otp):
+            db.update_phone_verified(user_id, True)
+            # If both email and phone are verified, upgrade account_status to active
+            if user.get('email_verified') or True:
+                db.update_user_status(user_id, 'active')
+            
+            # Clear pending session and log user into dashboard session
+            updated_user = db.get_user_by_id(user_id)
+            session.clear()
+            if updated_user['role'] == 'farmer':
+                session['farmer_user'] = updated_user
+                flash('Phone verified! Welcome to CropSync Farmer Dashboard.', 'success')
+                return redirect(url_for('farmer_dashboard'))
+            else:
+                session['buyer_user'] = updated_user
+                flash('Phone verified! Welcome to CropSync Buyer Portal.', 'success')
+                return redirect(url_for('buyer_dashboard'))
+        else:
+            db.increment_otp_attempts(user_id)
+            flash('Invalid OTP code. Please try again.', 'error')
+
+    return render_template('verify_phone.html', user=user, phone=user.get('phone'))
+
+@app.route('/resend-phone-otp', methods=['POST'])
+def resend_phone_otp():
+    user_id = session.get('pending_user_id')
+    user = db.get_user_by_id(user_id) if user_id else None
+    if user:
+        otp_code = OTPService.generate_otp()
+        otp_hash = OTPService.hash_otp(otp_code)
+        expires_at = (datetime.utcnow() + timedelta(minutes=5)).isoformat()
+        db.set_phone_otp(user_id, otp_hash, expires_at)
+        OTPService.send_sms(user.get('phone'), otp_code)
+        flash('A fresh OTP code has been sent to your mobile number.', 'success')
+    return redirect(url_for('verify_phone'))
+
+@app.route('/verification-status')
+def verification_status():
+    user_id = session.get('pending_user_id')
+    user = db.get_user_by_id(user_id) if user_id else None
+    if not user:
+        user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
+    if not user:
+        return redirect(url_for('login'))
+    return render_template('verification_status.html', user=user)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -211,11 +383,11 @@ def login():
         # 3. Fallback demo user object if DB user lookup returns None
         if not user:
             if email == 'admin@cropsync.com' and password in ('admin123', 'admin'):
-                user = {'id': 'admin1', 'email': 'admin@cropsync.com', 'role': 'admin', 'name': 'System Administrator', 'account_status': 'active'}
+                user = {'id': 'admin1', 'email': 'admin@cropsync.com', 'role': 'admin', 'name': 'System Administrator', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
             elif (email.startswith('farmer') or 'farmer' in email) and password == 'farmer123':
-                user = {'id': 'f1', 'email': email, 'role': 'farmer', 'name': 'Farmer Demo', 'location': 'Coimbatore', 'account_status': 'active'}
+                user = {'id': 'f1', 'email': email, 'role': 'farmer', 'name': 'Farmer Demo', 'location': 'Coimbatore', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
             elif (email.startswith('buyer') or 'buyer' in email) and password == 'buyer123':
-                user = {'id': 'b1', 'email': email, 'role': 'buyer', 'name': 'Buyer Demo', 'location': 'Chennai', 'account_status': 'active'}
+                user = {'id': 'b1', 'email': email, 'role': 'buyer', 'name': 'Buyer Demo', 'location': 'Chennai', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
 
         if user:
             pwd_hash = user.get('password_hash', '')
@@ -241,6 +413,12 @@ def login():
                     reason = user.get('suspension_reason') or 'No reason specified'
                     flash(f'Your account has been suspended. Reason: {reason}', 'error')
                     return render_template('login.html')
+
+                if user.get('account_status') == 'pending':
+                    session['pending_user_id'] = user['id']
+                    session['pending_email'] = user['email']
+                    flash('Your account is pending verification. Please complete verification.', 'error')
+                    return redirect(url_for('verification_status'))
                 
                 session.clear()
                 if user['role'] == 'admin':
@@ -255,6 +433,7 @@ def login():
             
         flash('Invalid credentials', 'error')
     return render_template('login.html')
+
 
 
 
@@ -391,8 +570,9 @@ def admin_dashboard():
 @admin_required
 def admin_farmers():
     search = request.args.get('search', '').strip()
-    farmers = db.get_all_farmers(search=search)
-    return render_template('admin/farmers.html', farmers=farmers, search=search)
+    status_filter = request.args.get('status', 'all').strip()
+    farmers = db.get_all_farmers(search=search, status_filter=status_filter)
+    return render_template('admin/farmers.html', farmers=farmers, search=search, status_filter=status_filter)
 
 @app.route('/admin/farmers/<farmer_id>', methods=['GET', 'POST'])
 @admin_required
@@ -403,6 +583,7 @@ def admin_farmer_detail(farmer_id):
         return redirect(url_for('admin_farmers'))
 
     if request.method == 'POST':
+        admin_id = session.get('admin_user', {}).get('id')
         action = request.form.get('action')
         if action == 'update_profile':
             name = request.form.get('name', '').strip()
@@ -411,11 +592,13 @@ def admin_farmer_detail(farmer_id):
             location = request.form.get('location', '').strip()
             if name:
                 db.update_user_profile(farmer_id, name=name, phone=phone, address=address, location=location)
+                db.log_admin_action(admin_id, 'UPDATE_FARMER_PROFILE', farmer_id, 'Admin updated farmer profile')
                 flash('Farmer profile updated successfully.', 'success')
         elif action == 'update_status':
             new_status = request.form.get('status')
             reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
             db.update_user_status(farmer_id, new_status, reason=reason)
+            db.log_admin_action(admin_id, f'UPDATE_STATUS_{new_status.upper()}', farmer_id, reason)
             flash(f'Farmer account status updated to {new_status}.', 'success')
         return redirect(url_for('admin_farmer_detail', farmer_id=farmer_id))
 
@@ -425,8 +608,9 @@ def admin_farmer_detail(farmer_id):
 @admin_required
 def admin_buyers():
     search = request.args.get('search', '').strip()
-    buyers = db.get_all_buyers(search=search)
-    return render_template('admin/buyers.html', buyers=buyers, search=search)
+    status_filter = request.args.get('status', 'all').strip()
+    buyers = db.get_all_buyers(search=search, status_filter=status_filter)
+    return render_template('admin/buyers.html', buyers=buyers, search=search, status_filter=status_filter)
 
 @app.route('/admin/buyers/<buyer_id>', methods=['GET', 'POST'])
 @admin_required
@@ -437,6 +621,7 @@ def admin_buyer_detail(buyer_id):
         return redirect(url_for('admin_buyers'))
 
     if request.method == 'POST':
+        admin_id = session.get('admin_user', {}).get('id')
         action = request.form.get('action')
         if action == 'update_profile':
             name = request.form.get('name', '').strip()
@@ -446,15 +631,18 @@ def admin_buyer_detail(buyer_id):
             location = request.form.get('location', '').strip()
             if name:
                 db.update_user_profile(buyer_id, name=name, phone=phone, address=address, location=location, organization=organization)
+                db.log_admin_action(admin_id, 'UPDATE_BUYER_PROFILE', buyer_id, 'Admin updated buyer profile')
                 flash('Buyer profile updated successfully.', 'success')
         elif action == 'update_status':
             new_status = request.form.get('status')
             reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
             db.update_user_status(buyer_id, new_status, reason=reason)
+            db.log_admin_action(admin_id, f'UPDATE_STATUS_{new_status.upper()}', buyer_id, reason)
             flash(f'Buyer account status updated to {new_status}.', 'success')
         return redirect(url_for('admin_buyer_detail', buyer_id=buyer_id))
 
     return render_template('admin/buyer_detail.html', buyer=buyer)
+
 
 @app.route('/admin/create_user', methods=['GET', 'POST'])
 @admin_required
@@ -492,8 +680,12 @@ def admin_create_user():
                 phone=phone,
                 address=address,
                 location=location,
-                organization=organization
+                organization=organization,
+                status='active',
+                email_verified=True,
+                phone_verified=True
             )
+
             flash(f'Successfully created new {role} account for {email}.', 'success')
             return redirect(url_for('admin_farmers' if role == 'farmer' else 'admin_buyers'))
         except Exception as e:

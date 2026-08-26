@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CropSync - Account Verification Status</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="nav">
+            <div style="font-weight: 800;"><a href="{{ url_for('home') }}"
+                    style="border:none; padding:0; background:none; color:inherit;">CropSync</a></div>
+            <div class="nav-links">
+                <button id="theme-toggle" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">🌓 Theme</button>
+            </div>
+        </div>
+
+        <div style="max-width: 480px; margin: 4rem auto;">
+            <h2 style="text-align: center; margin-bottom: 0.5rem;">Account Verification Status</h2>
+            <p style="text-align: center; color: var(--secondary-text); margin-bottom: 2rem;">
+                Account: <strong>{{ user['email'] }}</strong>
+            </p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages" style="margin-bottom: 1.5rem;">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div style="background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--nav-border);">
+                    <div>
+                        <strong>Email Verification</strong><br>
+                        <span style="font-size: 0.85rem; color: var(--secondary-text);">{{ user['email'] }}</span>
+                    </div>
+                    <div>
+                        {% if user.get('email_verified') %}
+                        <span class="btn badge-accepted" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; border: none;">✓ Verified</span>
+                        {% else %}
+                        <a href="{{ url_for('verify_email_pending') }}" class="btn badge-rejected" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; text-decoration: none;">✗ Verify Email</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--nav-border);">
+                    <div>
+                        <strong>Mobile Phone Verification</strong><br>
+                        <span style="font-size: 0.85rem; color: var(--secondary-text);">{{ user.get('phone') or 'Pending' }}</span>
+                    </div>
+                    <div>
+                        {% if user.get('phone_verified') %}
+                        <span class="btn badge-accepted" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; border: none;">✓ Verified</span>
+                        {% else %}
+                        <a href="{{ url_for('verify_phone') }}" class="btn badge-rejected" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; text-decoration: none;">✗ Verify Phone</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0 0 0;">
+                    <div>
+                        <strong>Account Status</strong>
+                    </div>
+                    <div>
+                        {% if user.get('account_status') == 'active' %}
+                        <span class="btn badge-accepted" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; border: none;">Active</span>
+                        {% elif user.get('account_status') == 'suspended' %}
+                        <span class="btn badge-rejected" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; border: none;">Suspended</span>
+                        {% else %}
+                        <span class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; background: #ff9800; color: #fff; border: none;">Pending Verification</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if user.get('account_status') == 'active' %}
+            <a href="{{ url_for('farmer_dashboard' if user['role'] == 'farmer' else 'buyer_dashboard') }}" class="btn" style="width: 100%; text-align: center; text-decoration: none; display: block;">
+                Go to {{ user['role']|capitalize }} Marketplace →
+            </a>
+            {% else %}
+            <div style="text-align: center;">
+                <a href="{{ url_for('logout') }}" style="color: var(--secondary-text); font-size: 0.9rem; text-decoration: none;">
+                    Logout
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <script>
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+            });
+        </script>
+    </div>
+</body>
+
+</html>
