@@ -180,7 +180,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-from auth_service import SupabaseAuthService
+from auth_service import SupabaseAuthService, EmailService
 
 @app.route('/')
 def home():
@@ -223,16 +223,12 @@ def register():
             return render_template('register.html')
 
         try:
-            # Register with Supabase Auth API (Dispatches real email verification link to user's inbox)
+            # Register with Supabase Auth API
             auth_res, auth_err = SupabaseAuthService.signup(email, password, user_data={'name': name, 'role': role})
             if auth_err and ('already registered' in str(auth_err).lower() or 'already exists' in str(auth_err).lower()):
-                # Purge stale Supabase Auth record if local user was deleted
                 print(f"[!] Purging stale Supabase Auth user for {email} and retrying signup...")
                 SupabaseAuthService.delete_user_by_email(email)
                 auth_res, auth_err = SupabaseAuthService.signup(email, password, user_data={'name': name, 'role': role})
-            
-            if auth_err:
-                print("[!] Supabase Auth signup notification:", auth_err)
 
             pwd_hash = generate_password_hash(password, method='pbkdf2:sha256')
             user_id = db.create_user(
@@ -245,13 +241,20 @@ def register():
                 organization=organization,
                 status='pending',
                 email_verified=False,
-                phone_verified=True  # Phone OTP verification bypassed as requested
+                phone_verified=True
             )
+
+            # Generate and assign verification token
+            v_token = secrets.token_urlsafe(32)
+            db.set_verification_token(user_id, v_token)
+            
+            # Dispatch direct verification email
+            email_sent, email_err = EmailService.send_verification_email(email, v_token)
 
             session['pending_user_id'] = user_id
             session['pending_email'] = email
-            if auth_err:
-                session['auth_err'] = str(auth_err)
+            if auth_err or email_err:
+                session['auth_err'] = str(auth_err or email_err)
 
             flash('Account created! Please check your email to activate your account.', 'success')
             return redirect(url_for('verify_email_pending'))
@@ -274,8 +277,13 @@ def verify_email_pending():
 
 @app.route('/confirm-email')
 def confirm_email():
+    token = request.args.get('token', '').strip()
     email = request.args.get('email', '').strip().lower() or session.get('pending_email')
     user_id = session.get('pending_user_id')
+
+    if token:
+        u = db.get_user_by_verification_token(token)
+        if u: user_id = u['id']
 
     if not user_id and email:
         u = db.get_user_by_email(email)
@@ -310,6 +318,7 @@ def confirm_email():
     else:
         flash('Email verified! Please log in to access your account.', 'success')
         return redirect(url_for('login'))
+
 
 
 

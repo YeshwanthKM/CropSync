@@ -95,6 +95,8 @@ def init_db():
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP WITH TIME ZONE;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_attempts INTEGER DEFAULT 0;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_last_sent_at TIMESTAMP WITH TIME ZONE;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT;
+
 
 
                 CREATE TABLE IF NOT EXISTS farmer_profiles (
@@ -230,6 +232,12 @@ def init_db():
                     INSERT OR IGNORE INTO users_v2 (id, email, password_hash, role, account_status, suspension_reason, created_at, updated_at)
                     SELECT id, email, password_hash, role, account_status, suspension_reason, created_at, updated_at FROM users
                 """)
+                cols = ["email_verified INTEGER DEFAULT 0", "email_verified_at TEXT", "phone_verified INTEGER DEFAULT 0", "phone_verified_at TEXT", "otp_hash TEXT", "otp_expires_at TEXT", "otp_attempts INTEGER DEFAULT 0", "otp_last_sent_at TEXT", "verification_token TEXT"]
+                for col in cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE users_v2 ADD COLUMN {col}")
+                    except Exception:
+                        pass
                 cursor.execute("DROP TABLE users")
                 cursor.execute("ALTER TABLE users_v2 RENAME TO users")
             except Exception:
@@ -530,6 +538,31 @@ def get_audit_logs(limit=50):
         print("[!] Error in get_audit_logs:", e)
         return []
 
+def set_verification_token(user_id, token):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"UPDATE users SET verification_token = {ph} WHERE id = {ph}"
+        cursor.execute(sql, (token, str(user_id)))
+        if db_type == "sqlite":
+            conn.commit()
+    finally:
+        conn.close()
+
+def get_user_by_verification_token(token):
+    if not token:
+        return None
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"SELECT * FROM users WHERE verification_token = {ph}"
+        cursor.execute(sql, (token,))
+        row = cursor.fetchone()
+        return _dict_row(row)
+    finally:
+        conn.close()
 
 def delete_user(user_id):
     conn, db_type = get_connection()

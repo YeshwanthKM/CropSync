@@ -108,3 +108,54 @@ class SupabaseAuthService:
         except Exception as e:
             print("[!] Notice during Supabase Auth user delete:", e)
 
+
+class EmailService:
+    @staticmethod
+    def send_verification_email(email, token):
+        confirm_url = f"https://crop-sync.vercel.app/confirm-email?token={token}"
+        resend_api_key = os.environ.get('RESEND_API_KEY')
+        
+        if resend_api_key:
+            endpoint = "https://api.resend.com/emails"
+            headers = {
+                "Authorization": f"Bearer {resend_api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "from": "CropSync <onboarding@resend.dev>",
+                "to": [email],
+                "subject": "🌾 Verify your CropSync Email Address",
+                "html": f"""
+                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                    <h2 style="color: #27ae60; text-align: center;">🌾 Welcome to CropSync</h2>
+                    <p style="font-size: 16px; color: #333; line-height: 1.5;">
+                        Thank you for registering! Please click the button below to confirm your email address and activate your account:
+                    </p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{confirm_url}" style="background-color: #27ae60; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; font-size: 16px; display: inline-block;">
+                            ✓ Confirm Email Address
+                        </a>
+                    </div>
+                    <p style="font-size: 14px; color: #777; text-align: center;">
+                        Or copy and paste this URL into your browser:<br>
+                        <a href="{confirm_url}" style="color: #27ae60;">{confirm_url}</a>
+                    </p>
+                </div>
+                """
+            }
+            try:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                req = urllib.request.Request(endpoint, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
+                with urllib.request.urlopen(req, context=ctx) as resp:
+                    print(f"[+] Direct email sent via Resend API to {email}")
+                    return True, None
+            except Exception as e:
+                print(f"[!] Resend API error sending email to {email}:", e)
+                return False, str(e)
+        else:
+            print(f"[+] [DEV MODE EMAIL] Verification link for {email}: {confirm_url}")
+            return False, "RESEND_API_KEY not configured"
+
+
