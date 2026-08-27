@@ -179,7 +179,7 @@ body.landing-page {
     min-height: 100vh;
     display: flex;
     align-items: center;
-    padding-top: 5rem;
+    padding-top: 8.5rem;
     background: radial-gradient(circle at top right, #111111 0%, #000000 70%);
     position: relative;
     overflow: hidden;
@@ -188,15 +188,15 @@ body.landing-page {
 .hero-inner {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 2rem 7rem; /* Added bottom padding to group with border */
-    border-bottom: 1px solid var(--border); /* Contained divider width */
+    padding: 2rem 2rem 7rem;
+    border-bottom: 1px solid var(--border);
     display: block;
     position: relative;
     z-index: 1;
 }
 
 .hero-brand-top {
-    font-size: clamp(4rem, 12vw, 7rem); /* Massive branding size */
+    font-size: clamp(4rem, 12vw, 7rem);
     font-weight: 950;
     color: var(--text-primary);
     margin-top: 1rem;
@@ -216,15 +216,17 @@ body.landing-page {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    padding: 0.55rem 1.1rem;
     background: #111111;
     border: 1px solid var(--border);
     border-radius: 50px;
-    font-size: 0.8rem;
+    font-size: 0.825rem;
     font-weight: 600;
     color: var(--text-secondary);
+    margin-top: 1rem;
     margin-bottom: 1.5rem;
 }
+
 
 .hero-title {
     font-size: clamp(2.75rem, 7vw, 4.5rem);
