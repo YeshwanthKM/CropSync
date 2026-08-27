@@ -473,3 +473,87 @@ tr:hover {
     background-color: #f44336 !important;
     color: white !important;
 }
+
+/* Global Loading Screen & Overlay */
+#global-loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--bg-color, #ffffff);
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: auto;
+}
+
+#global-loading-screen.hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    display: none !important;
+}
+
+.loading-spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.loading-sprout-icon {
+    width: 54px;
+    height: 54px;
+    background: rgba(39, 174, 96, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: sproutPulse 1.2s ease-in-out infinite alternate;
+}
+
+.loading-sprout-icon svg {
+    width: 32px;
+    height: 32px;
+    fill: #27ae60;
+}
+
+@keyframes sproutPulse {
+    0% { transform: scale(0.9); }
+    100% { transform: scale(1.1); }
+}
+
+.loading-text {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-color, #2c3e50);
+}
+
+.loading-bar {
+    width: 160px;
+    height: 4px;
+    background: rgba(39, 174, 96, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.loading-bar-progress {
+    width: 40%;
+    height: 100%;
+    background: #27ae60;
+    border-radius: 4px;
+    position: absolute;
+    animation: loadingBarMove 1.2s infinite ease-in-out;
+}
+
+@keyframes loadingBarMove {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}

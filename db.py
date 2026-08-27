@@ -1661,3 +1661,27 @@ def log_admin_action(admin_id, action, target_user_id=None, reason=None):
         print("[!] Error logging admin action:", e)
     finally:
         conn.close()
+
+
+def reset_database():
+    conn, db_type = get_connection()
+    tables = ["email_notifications", "orders", "crops", "farmer_profiles", "buyer_profiles", "verification_tokens", "audit_logs", "users"]
+    try:
+        cursor = conn.cursor()
+        for t in tables:
+            try:
+                if db_type == "postgres":
+                    cursor.execute(f"TRUNCATE TABLE {t} CASCADE;")
+                else:
+                    cursor.execute(f"DELETE FROM {t};")
+            except Exception:
+                pass
+        conn.commit()
+    except Exception as e:
+        print("[!] Error clearing database tables:", e)
+    finally:
+        conn.close()
+
+    init_db()
+    ensure_seed_users()
+

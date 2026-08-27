@@ -1,0 +1,42 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1 style="margin: 0;">Database Management & Reset</h1>
+    <div style="font-size: 0.875rem; color: var(--secondary-text);">
+        System Maintenance & Factory Reset
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="card" style="max-width: 650px; margin: 2rem auto; border: 1px solid var(--nav-border);">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="width: 48px; height: 48px; background: rgba(231, 76, 60, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #e74c3c; font-size: 1.5rem;">
+            🚨
+        </div>
+        <div>
+            <h3 style="margin: 0; color: var(--text-color);">Reset Database to Factory Clean State</h3>
+            <div style="font-size: 0.875rem; color: var(--secondary-text);">Purge all orders, crop listings, and customer accounts</div>
+        </div>
+    </div>
+
+    <div style="background: rgba(231, 76, 60, 0.08); border-left: 4px solid #e74c3c; padding: 1rem 1.25rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.5;">
+        <strong>⚠️ Warning:</strong> This operation will clear all custom saved orders, listed crops, and registered user accounts from the database, and re-seed clean default demo accounts (<code>farmer1@gmail.com</code>, <code>buyer1@gmail.com</code>, <code>admin@cropsync.com</code>).
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_reset_database') }}" onsubmit="return confirm('Are you absolutely sure you want to reset all database data? This action cannot be undone.');">
+        <button type="submit" class="btn badge-rejected" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            🔄 Reset Database & Restore Fresh Demo Data
+        </button>
+    </form>
+</div>
+{% endblock %}

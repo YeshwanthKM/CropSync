@@ -944,8 +944,18 @@ def admin_create_user():
 
     return render_template('admin/create_user.html', active_page='create_user')
 
+@app.route('/admin/reset_database', methods=['GET', 'POST'])
+@admin_required
+def admin_reset_database():
+    if request.method == 'POST':
+        db.reset_database()
+        session.clear()
+        flash('Database successfully reset and re-seeded with clean demo data!', 'success')
+        return redirect(url_for('login'))
+    return render_template('admin/reset_database.html', active_page='reset_db')
 
 # --- SETTINGS & LOGOUT ---
+
 
 @app.route('/settings')
 def settings():

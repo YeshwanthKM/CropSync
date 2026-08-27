@@ -38,6 +38,10 @@
                 <a href="{{ url_for('admin_create_user') }}" class="sidebar-link {% if active_page == 'create_user' %}active{% endif %}">
                     + Create New User
                 </a>
+                <a href="{{ url_for('admin_reset_database') }}" class="sidebar-link {% if active_page == 'reset_db' %}active{% endif %}">
+                    🔄 Reset Database
+                </a>
+
 
             </nav>
             <div class="sidebar-footer">

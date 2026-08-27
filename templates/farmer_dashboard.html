@@ -296,6 +296,15 @@
     <script>
         // Section Switching Logic
         function showSection(sectionId) {
+            const loader = document.getElementById('global-loading-screen');
+            if (loader) {
+                loader.style.display = 'flex';
+                loader.classList.remove('hidden');
+                setTimeout(function() {
+                    loader.classList.add('hidden');
+                    loader.style.display = 'none';
+                }, 300);
+            }
             // Hide all sections
             document.querySelectorAll('.dashboard-section').forEach(section => {
                 section.style.display = 'none';
@@ -314,7 +323,6 @@
             // Update sidebar active state
             document.querySelectorAll('.sidebar-link').forEach(link => {
                 link.classList.remove('active');
-                // Use the custom onclick to identify the correct link
                 if (link.getAttribute('onclick') === `showSection('${sectionId}')`) {
                     link.classList.add('active');
                 }
@@ -343,6 +351,43 @@
             const section = urlParams.get('section') || 'home';
             showSection(section);
         });
+    </script>
+
+    <div id="global-loading-screen" class="hidden" style="display: none;">
+        <div class="loading-spinner-container">
+            <div class="loading-sprout-icon">
+                <svg viewBox="0 0 24 24"><path d="M17 8C14 8 11.5 9.5 10 12C8.5 9.5 6 8 3 8C3 13 7 17 12 21C17 17 21 13 21 8C18 8 17 8 17 8Z"/></svg>
+            </div>
+            <div class="loading-text">Loading CropSync...</div>
+            <div class="loading-bar"><div class="loading-bar-progress"></div></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const loader = document.getElementById('global-loading-screen');
+            function hideLoader() {
+                if (loader) {
+                    loader.classList.add('hidden');
+                    loader.style.display = 'none';
+                }
+            }
+            function showLoader() {
+                if (loader) {
+                    loader.style.display = 'flex';
+                    loader.classList.remove('hidden');
+                }
+            }
+
+            if (document.readyState === 'complete') hideLoader();
+            else {
+                window.addEventListener('load', hideLoader);
+                document.addEventListener('DOMContentLoaded', hideLoader);
+            }
+            window.addEventListener('pageshow', hideLoader);
+
+            document.addEventListener('submit', showLoader);
+        })();
     </script>
 </body>
 
