@@ -10,7 +10,60 @@
 </head>
 
 <body>
+    <div id="global-loading-screen">
+        <div class="loading-spinner-container">
+            <div class="loading-sprout-icon">
+                <svg viewBox="0 0 24 24"><path d="M17 8C14 8 11.5 9.5 10 12C8.5 9.5 6 8 3 8C3 13 7 17 12 21C17 17 21 13 21 8C18 8 17 8 17 8Z"/></svg>
+            </div>
+            <div class="loading-text">Loading CropSync...</div>
+            <div class="loading-bar"><div class="loading-bar-progress"></div></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            function hideLoader() {
+                const loader = document.getElementById('global-loading-screen');
+                if (loader) {
+                    loader.classList.add('hidden');
+                    loader.style.display = 'none';
+                }
+            }
+            function showLoader() {
+                const loader = document.getElementById('global-loading-screen');
+                if (loader) {
+                    loader.style.display = 'flex';
+                    loader.classList.remove('hidden');
+                }
+            }
+            window.showLoader = showLoader;
+            window.hideLoader = hideLoader;
+
+            if (document.readyState === 'complete') hideLoader();
+            else {
+                window.addEventListener('load', hideLoader);
+                document.addEventListener('DOMContentLoaded', hideLoader);
+            }
+            window.addEventListener('pageshow', hideLoader);
+
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('a, button, input[type="submit"], .btn, .sidebar-link');
+                if (target) {
+                    if (target.id === 'theme-toggle' || target.classList.contains('mobile-toggle') || target.classList.contains('sidebar-overlay')) return;
+                    const href = target.getAttribute('href');
+                    if (href && (href.startsWith('#') || href.startsWith('javascript:'))) return;
+                    showLoader();
+                }
+            }, true);
+
+            document.addEventListener('submit', function() {
+                showLoader();
+            }, true);
+        })();
+    </script>
+
     <div class="dashboard-layout">
+
         <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
         <!-- Sidebar -->
         <div class="sidebar">
@@ -351,43 +404,6 @@
             const section = urlParams.get('section') || 'home';
             showSection(section);
         });
-    </script>
-
-    <div id="global-loading-screen" class="hidden" style="display: none;">
-        <div class="loading-spinner-container">
-            <div class="loading-sprout-icon">
-                <svg viewBox="0 0 24 24"><path d="M17 8C14 8 11.5 9.5 10 12C8.5 9.5 6 8 3 8C3 13 7 17 12 21C17 17 21 13 21 8C18 8 17 8 17 8Z"/></svg>
-            </div>
-            <div class="loading-text">Loading CropSync...</div>
-            <div class="loading-bar"><div class="loading-bar-progress"></div></div>
-        </div>
-    </div>
-
-    <script>
-        (function() {
-            const loader = document.getElementById('global-loading-screen');
-            function hideLoader() {
-                if (loader) {
-                    loader.classList.add('hidden');
-                    loader.style.display = 'none';
-                }
-            }
-            function showLoader() {
-                if (loader) {
-                    loader.style.display = 'flex';
-                    loader.classList.remove('hidden');
-                }
-            }
-
-            if (document.readyState === 'complete') hideLoader();
-            else {
-                window.addEventListener('load', hideLoader);
-                document.addEventListener('DOMContentLoaded', hideLoader);
-            }
-            window.addEventListener('pageshow', hideLoader);
-
-            document.addEventListener('submit', showLoader);
-        })();
     </script>
 </body>
 
