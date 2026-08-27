@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CropSync</title>
-    <meta name="description" content="CropSync is a transparent digital marketplace connecting farmers directly with buyers for fair pricing and better income.">
+    <title>CropSync — Transparent Digital Marketplace for Indian Agriculture</title>
+    <meta name="description" content="CropSync is a transparent digital marketplace connecting farmers directly with consumers and bulk buyers — reducing unnecessary intermediaries and enabling fair, MSP-aware trade.">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}">
 </head>
@@ -47,7 +47,7 @@
             window.addEventListener('pageshow', hideLoader);
 
             document.addEventListener('click', function(e) {
-                const target = e.target.closest('a, button, input[type="submit"], .btn, .nav-cta, .btn-primary, .btn-secondary');
+                const target = e.target.closest('a, button, input[type="submit"], .btn, .nav-cta, .btn-primary, .btn-secondary, .btn-cta-primary, .btn-cta-secondary');
                 if (target) {
                     if (target.id === 'theme-toggle' || target.classList.contains('mobile-menu-btn')) return;
                     const href = target.getAttribute('href');
@@ -63,19 +63,17 @@
     </script>
 
     <!-- ===== NAVIGATION ===== -->
-
     <nav class="landing-nav" id="mainNav">
         <div class="nav-inner">
             <a href="{{ url_for('home') }}" class="nav-logo">🌾 <span>CropSync</span></a>
             <div class="nav-links" id="navLinks">
                 <a href="#about">About</a>
                 <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
                 <a href="#compare">Compare</a>
                 <a href="#impact">Impact</a>
                 <a href="{{ url_for('register') }}" class="nav-cta" style="background: #27ae60; border-color: #27ae60; color: #fff;">Register</a>
                 <a href="{{ url_for('login') }}" class="nav-cta">Login →</a>
-
-
             </div>
             <button class="mobile-menu-btn" onclick="document.getElementById('navLinks').classList.toggle('active')">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -85,40 +83,42 @@
         </div>
     </nav>
 
-    <!-- ===== HERO ===== -->
+    <!-- ===== 1 & 2. HERO SECTION + SUPPORTING TRUST ROW ===== -->
     <section class="hero">
         <div class="hero-inner">
             <div class="hero-content">
-                <div class="hero-brand-top">
-                    <span>🌾</span> CropSync
-                </div>
                 <div class="hero-badge">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="m12 14 4-4-4-4"/><path d="M3.3 7H9l5 12h5.7"/><path d="m16 9 4 4-4 4"/></svg>
-                    Built for Indian Agriculture
+                    🌾 Built for Indian Agriculture
                 </div>
                 <h1 class="hero-title">
                     Empowering Farmers.<br>
                     <span class="highlight">Connecting Markets.</span>
                 </h1>
                 <p class="hero-text">
-                    A transparent digital marketplace that connects farmers directly with buyers — ensuring fair pricing through MSP awareness and eliminating unnecessary middlemen.
+                    A transparent digital marketplace that connects farmers directly with consumers and bulk buyers — helping reduce unnecessary intermediaries and enabling fair, MSP-aware trade.
                 </p>
                 <div class="hero-actions">
                     <a href="{{ url_for('register') }}" class="btn-primary">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        Register / Join Now
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                        Join CropSync
                     </a>
-                    <a href="{{ url_for('login') }}" class="btn-secondary">
+                    <a href="{{ url_for('buyer_dashboard') }}" class="btn-secondary">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                        Login to Account
+                        Explore Marketplace
                     </a>
                 </div>
 
+                <div class="hero-trust-row">
+                    <div class="trust-item"><span class="check">✓</span> Direct Farmer–Buyer Connection</div>
+                    <div class="trust-item"><span class="check">✓</span> MSP-Aware Pricing</div>
+                    <div class="trust-item"><span class="check">✓</span> Transparent Orders</div>
+                    <div class="trust-item"><span class="check">✓</span> Email-Verified Users</div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- ===== ABOUT ===== -->
+    <!-- ===== 3. MISSION SECTION ===== -->
     <section class="landing-section about-section" id="about">
         <div class="about-content animate-on-scroll">
             <div class="section-badge">
@@ -127,14 +127,15 @@
             </div>
             <h2 class="section-title">Bridging the Gap Between Farm and Market</h2>
             <p>
-                Agriculture supports nearly 45% of India's workforce, yet small and marginal farmers often struggle to receive fair prices 
-                for their crops. CropSync bridges this gap by creating a transparent, digital-first marketplace that connects farmers 
-                directly with buyers — eliminating middlemen, promoting fair trade, and empowering rural communities with technology.
+                Farmers often face limited bargaining power and dependence on intermediaries when bringing their produce to market. Buyers, meanwhile, may have limited direct access to farmers and transparent crop pricing.
+            </p>
+            <p style="margin-top: 1rem;">
+                CropSync creates a direct digital connection between both sides — giving farmers greater control over how they sell and giving buyers a transparent way to discover and request produce.
             </p>
         </div>
     </section>
 
-    <!-- ===== PROBLEM ===== -->
+    <!-- ===== 4. THE CHALLENGE SECTION ===== -->
     <section class="landing-section section-center">
         <div class="animate-on-scroll">
             <div class="section-badge">
@@ -142,7 +143,7 @@
                 The Challenge
             </div>
             <h2 class="section-title">Why Farmers Struggle Today</h2>
-            <p class="section-subtitle">Despite being the backbone of our economy, farmers face systemic barriers that reduce their income and livelihood.</p>
+            <p class="section-subtitle">Key market obstacles that hinder direct agricultural trade and fair pricing.</p>
         </div>
         <div class="problem-grid">
             <div class="problem-card animate-on-scroll">
@@ -150,96 +151,114 @@
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                 </div>
                 <h3>Middlemen Dependency</h3>
-                <p>Farmers are forced to sell through intermediaries who take large cuts, drastically reducing the farmer's share of profit.</p>
+                <p>Farmers may depend on multiple intermediaries to reach buyers, reducing their share of the final value.</p>
             </div>
             <div class="problem-card animate-on-scroll">
                 <div class="problem-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
-                <h3>Unfair Pricing</h3>
-                <p>Without price transparency, farmers often sell below MSP due to lack of market information and bargaining power.</p>
+                <h3>Limited Price Transparency</h3>
+                <p>Farmers may not have clear visibility into reference prices when negotiating crop prices.</p>
             </div>
             <div class="problem-card animate-on-scroll">
                 <div class="problem-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                 </div>
-                <h3>Low Farmer Income</h3>
-                <p>After paying intermediary fees, transport, and storage — the farmer's actual earnings are a fraction of the market price.</p>
+                <h3>Weak Direct Market Access</h3>
+                <p>Small farmers can find it difficult to reach consumers and bulk buyers directly.</p>
             </div>
             <div class="problem-card animate-on-scroll">
                 <div class="problem-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </div>
-                <h3>Lack of Transparency</h3>
-                <p>Prices, buyer details, and market trends are often opaque, leaving farmers without the data they need to make informed decisions.</p>
+                <h3>Limited Buyer Visibility</h3>
+                <p>Buyers may struggle to discover available produce directly from farmers in nearby locations.</p>
             </div>
         </div>
     </section>
 
-    <!-- ===== SOLUTION ===== -->
+    <!-- ===== 5. SOLUTION SECTION & PROCESS FLOW ===== -->
     <section class="landing-section solution-section">
         <div class="section-center animate-on-scroll">
             <div class="section-badge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .5 2.2 1.5 3.1.7.7 1.3 1.5 1.5 2.5"/><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/></svg>
                 Our Solution
             </div>
-            <h2 class="section-title">How CropSync Works</h2>
-            <p class="section-subtitle">A simple, transparent, and farmer-first digital marketplace.</p>
+            <h2 class="section-title">A Direct Digital Link Between Farm and Market</h2>
+            <p class="section-subtitle">CropSync brings farmers and buyers onto one transparent marketplace.</p>
         </div>
         <div class="solution-grid">
             <div class="animate-on-scroll">
-                <h3 style="font-size: 1.35rem; font-weight: 700; color: var(--gray-800); margin-bottom: 0.75rem;">Direct Connection. Fair Pricing. Better Income.</h3>
-                <p style="color: var(--gray-500); line-height: 1.75; margin-bottom: 1.5rem;">
-                    CropSync removes the need for intermediaries by connecting farmers directly with buyers. Our platform integrates 
-                    Government MSP data so both parties can make informed pricing decisions.
-                </p>
                 <ul class="solution-points">
                     <li>
                         <span class="solution-check">✓</span>
-                        <span><strong>Direct farmer-to-buyer trade</strong> — no middlemen involved</span>
+                        <span><strong>Farmers create and manage</strong> their own crop listings</span>
                     </li>
                     <li>
                         <span class="solution-check">✓</span>
-                        <span><strong>MSP-aware pricing</strong> — prevents underpricing of crops</span>
+                        <span><strong>Buyers discover crops</strong> directly from farmers</span>
                     </li>
                     <li>
                         <span class="solution-check">✓</span>
-                        <span><strong>Order approval system</strong> — farmers control their sales</span>
+                        <span><strong>Government MSP references</strong> support informed pricing</span>
                     </li>
                     <li>
                         <span class="solution-check">✓</span>
-                        <span><strong>Lightweight & accessible</strong> — works on any device</span>
+                        <span><strong>Farmers review and approve</strong> incoming orders</span>
+                    </li>
+                    <li>
+                        <span class="solution-check">✓</span>
+                        <span><strong>Stock availability updates</strong> through the order workflow</span>
+                    </li>
+                    <li>
+                        <span class="solution-check">✓</span>
+                        <span><strong>Email notifications</strong> keep both parties informed</span>
                     </li>
                 </ul>
             </div>
+
             <div class="solution-visual animate-on-scroll">
-                <div class="solution-flow">
-                    <div class="flow-item">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <div style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 1rem;">Direct Workflow</div>
+                <div class="process-flow-container">
+                    <div class="process-step">
+                        <div class="process-step-role">Farmer</div>
+                        <div class="process-step-title">Lists Produce</div>
                     </div>
-                    <div class="flow-arrow">→</div>
-                    <div class="flow-item">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                    <div class="process-arrow">→</div>
+                    <div class="process-step">
+                        <div class="process-step-role">CropSync</div>
+                        <div class="process-step-title">Connects Buyers</div>
                     </div>
-                    <div class="flow-arrow">→</div>
-                    <div class="flow-item">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                    <div class="process-arrow">→</div>
+                    <div class="process-step">
+                        <div class="process-step-role">Buyer</div>
+                        <div class="process-step-title">Requests Order</div>
+                    </div>
+                    <div class="process-arrow">→</div>
+                    <div class="process-step">
+                        <div class="process-step-role">Farmer</div>
+                        <div class="process-step-title">Accepts / Rejects</div>
+                    </div>
+                    <div class="process-arrow">→</div>
+                    <div class="process-step">
+                        <div class="process-step-role">Direct</div>
+                        <div class="process-step-title">Payment & Delivery</div>
                     </div>
                 </div>
-                <p>Farmer lists crops • Platform connects • Buyer purchases directly</p>
+                <p class="process-disclaimer">CropSync facilitates the digital connection. Payment and physical fulfillment are arranged directly between the participating parties.</p>
             </div>
         </div>
     </section>
 
-    <!-- ===== FEATURES ===== -->
+    <!-- ===== 6. PLATFORM FEATURES ===== -->
     <section class="landing-section section-center" id="features">
         <div class="animate-on-scroll">
             <div class="section-badge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.71-2.13.09-3.05a3.91 3.91 0 0 0-3.09 0Z"/><path d="M14 10l7.5 7.5"/><path d="M9 15l.5.5"/><path d="M16 8l.5.5"/><path d="M17.5 3a2.12 2.12 0 0 1 3 3L13 13.5l-3-3L17.5 3Z"/></svg>
                 Platform Features
             </div>
-            <h2 class="section-title">Everything You Need, Nothing You Don't</h2>
-            <p class="section-subtitle">Built with simplicity and accessibility at its core.</p>
+            <h2 class="section-title">Everything Needed for Direct Trade</h2>
+            <p class="section-subtitle">Designed for simplicity, transparency, and rural accessibility.</p>
         </div>
         <div class="features-grid">
             <div class="feature-card animate-on-scroll">
@@ -247,132 +266,272 @@
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
                 </div>
                 <h3>Farmer Dashboard</h3>
-                <p>List crops, manage orders, track earnings, and view MSP reference prices — all from one clean interface.</p>
+                <p>Create listings, manage available stock, review incoming orders, accept or reject requests, and track sales.</p>
             </div>
             <div class="feature-card animate-on-scroll">
                 <div class="feature-icon">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
                 </div>
                 <h3>Buyer Marketplace</h3>
-                <p>Browse available crops by name and location, compare prices with MSP, and place orders directly from farmers.</p>
+                <p>Search and filter available crops by crop name and location, view farmer listings, compare listing prices with MSP references, and place order requests.</p>
             </div>
             <div class="feature-card animate-on-scroll">
                 <div class="feature-icon">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
                 </div>
-                <h3>Transparent Pricing</h3>
-                <p>Real-time MSP reference data for 12+ crops ensures farmers never sell below government-mandated minimum prices.</p>
+                <h3>MSP-Aware Pricing</h3>
+                <p>Government MSP reference values are displayed alongside applicable crop listings to improve pricing transparency and help prevent underpricing.</p>
             </div>
             <div class="feature-card animate-on-scroll">
                 <div class="feature-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
                 </div>
-                <h3>Lightweight System</h3>
-                <p>No heavy apps to download. Works seamlessly on any browser, any device — designed for rural connectivity.</p>
+                <h3>Trusted Order Workflow</h3>
+                <p>Email-verified accounts, structured order statuses, and email notifications create a clearer and more trustworthy farmer–buyer interaction.</p>
             </div>
         </div>
     </section>
 
-    <!-- ===== COMPARISON ===== -->
+    <!-- ===== 7. HOW IT WORKS ===== -->
+    <section class="landing-section section-center" id="how-it-works">
+        <div class="animate-on-scroll">
+            <div class="section-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                User Journey
+            </div>
+            <h2 class="section-title">How CropSync Works</h2>
+            <p class="section-subtitle">Five simple steps connecting producers and buyers on a direct platform.</p>
+        </div>
+        <div class="steps-grid animate-on-scroll">
+            <div class="step-card">
+                <div class="step-number">01</div>
+                <h3>Register</h3>
+                <p>Farmers and buyers create accounts.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">02</div>
+                <h3>Verify</h3>
+                <p>Users verify their email address.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">03</div>
+                <h3>Connect</h3>
+                <p>Farmers list produce and buyers discover available crops.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">04</div>
+                <h3>Order</h3>
+                <p>Buyers submit order requests and farmers decide whether to accept them.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">05</div>
+                <h3>Coordinate</h3>
+                <p>After acceptance, both parties coordinate payment and collection/delivery directly.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 8. FARMER / BUYER SPLIT SECTION ===== -->
+    <section class="landing-section">
+        <div class="section-center animate-on-scroll">
+            <div class="section-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Built For Both Sides
+            </div>
+            <h2 class="section-title">Empowering Producers & Buyers</h2>
+            <p class="section-subtitle">Tailored tools designed to facilitate transparent, direct agricultural commerce.</p>
+        </div>
+        <div class="split-grid animate-on-scroll">
+            <div class="split-card farmer-side">
+                <div>
+                    <div class="split-header">
+                        <div class="split-role">👨‍🌾 For Farmers</div>
+                        <h3>Sell Produce Directly</h3>
+                    </div>
+                    <ul class="split-list">
+                        <li><span class="bullet">✓</span> Reach buyers directly</li>
+                        <li><span class="bullet">✓</span> Control your listing price</li>
+                        <li><span class="bullet">✓</span> View MSP reference information</li>
+                        <li><span class="bullet">✓</span> Manage available stock</li>
+                        <li><span class="bullet">✓</span> Accept or reject orders</li>
+                        <li><span class="bullet">✓</span> Receive order notifications</li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('register') }}" class="btn-primary" style="justify-content: center; width: 100%;">
+                    Start Selling →
+                </a>
+            </div>
+
+            <div class="split-card buyer-side">
+                <div>
+                    <div class="split-header">
+                        <div class="split-role">🛒 For Buyers</div>
+                        <h3>Source Fresh Produce</h3>
+                    </div>
+                    <ul class="split-list">
+                        <li><span class="bullet">✓</span> Discover crops directly from farmers</li>
+                        <li><span class="bullet">✓</span> Search by crop and location</li>
+                        <li><span class="bullet">✓</span> Compare listing prices with MSP references</li>
+                        <li><span class="bullet">✓</span> Request quantities</li>
+                        <li><span class="bullet">✓</span> Track order status</li>
+                        <li><span class="bullet">✓</span> Connect with farmers after acceptance</li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('buyer_dashboard') }}" class="btn-secondary" style="justify-content: center; width: 100%;">
+                    Find Produce →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 9. MSP EXPLANATION SECTION ===== -->
+    <section class="landing-section msp-section">
+        <div class="section-center animate-on-scroll">
+            <div class="section-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+                Pricing Protection
+            </div>
+            <h2 class="section-title">Why MSP Matters</h2>
+        </div>
+        <div class="msp-box animate-on-scroll">
+            <div>
+                <p style="font-size: 1.15rem; color: var(--text-secondary); line-height: 1.8;">
+                    CropSync displays Government Minimum Support Price (MSP) reference values alongside applicable crops to provide greater pricing awareness and help farmers make more informed listing decisions.
+                </p>
+                <div style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+                    * Government MSP serves as a reference benchmark to enhance price transparency. CropSync does not mandate or set government prices.
+                </div>
+            </div>
+            <div class="msp-visual-card">
+                <div style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 1rem;">Listing Benchmark Example</div>
+                <div class="msp-row">
+                    <span class="msp-label">Farmer Listing Price</span>
+                    <span class="msp-val">₹22.50 / kg</span>
+                </div>
+                <div class="msp-row">
+                    <span class="msp-label">Government MSP Reference</span>
+                    <span class="msp-val">₹21.83 / kg</span>
+                </div>
+                <div class="msp-row">
+                    <span class="msp-label">Price Comparison</span>
+                    <span class="msp-tag-diff">+3.1% Above MSP</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 10. TRANSPARENCY SECTION ===== -->
+    <section class="landing-section section-center">
+        <div class="animate-on-scroll">
+            <div class="section-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M2 12h20"/><path d="M20 12v8H4v-8"/><path d="m4 12 8-8 8 8"/></svg>
+                Core Integrity
+            </div>
+            <h2 class="section-title">Built Around Transparency</h2>
+            <p class="section-subtitle">Every feature is designed to foster clarity and trust between trade partners.</p>
+        </div>
+        <div class="transparency-grid animate-on-scroll">
+            <div class="transparency-item"><span class="check">✓</span> Clear crop quantities</div>
+            <div class="transparency-item"><span class="check">✓</span> Visible listing prices</div>
+            <div class="transparency-item"><span class="check">✓</span> MSP reference information</div>
+            <div class="transparency-item"><span class="check">✓</span> Farmer/buyer identity</div>
+            <div class="transparency-item"><span class="check">✓</span> Structured order status</div>
+            <div class="transparency-item"><span class="check">✓</span> Email verification</div>
+            <div class="transparency-item"><span class="check">✓</span> Order email notifications</div>
+            <div class="transparency-item"><span class="check">✓</span> Direct communication after acceptance</div>
+        </div>
+    </section>
+
+    <!-- ===== 11. IMPACT SECTION ===== -->
+    <section class="landing-section section-center" id="impact">
+        <div class="animate-on-scroll">
+            <div class="section-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                Outcome-Oriented Goals
+            </div>
+            <h2 class="section-title">Creating a More Direct Agricultural Marketplace</h2>
+            <p class="section-subtitle">Realistic, outcome-oriented impact for producers and buyers.</p>
+        </div>
+        <div class="impact-grid">
+            <div class="impact-card animate-on-scroll">
+                <div class="impact-icon">👨‍🌾</div>
+                <h3>Better Farmer Access</h3>
+                <p>Farmers gain a digital channel to reach consumers and bulk buyers directly.</p>
+            </div>
+            <div class="impact-card animate-on-scroll">
+                <div class="impact-icon">📈</div>
+                <h3>Greater Price Awareness</h3>
+                <p>MSP references and visible listing prices improve transparency during crop transactions.</p>
+            </div>
+            <div class="impact-card animate-on-scroll">
+                <div class="impact-icon">🌾</div>
+                <h3>Lower Intermediary Dependency</h3>
+                <p>Direct digital connections can reduce unnecessary layers between producers and buyers.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 12. "WHY CROPSYNC" COMPARISON SECTION ===== -->
     <section class="landing-section comparison-section section-center" id="compare">
         <div class="animate-on-scroll">
             <div class="section-badge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.828L3 3"/><path d="m15 11.172 6-6"/></svg>
-                Why CropSync?
+                Direct Trade Model
             </div>
-            <h2 class="section-title">How CropSync Stands Out</h2>
-            <p class="section-subtitle">See how we compare against the traditional trade experience.</p>
+            <h2 class="section-title">Why CropSync?</h2>
+            <p class="section-subtitle">How direct digital connection compares to indirect trade.</p>
         </div>
         <div class="comparison-table-wrap animate-on-scroll">
             <table class="comparison-table">
                 <thead>
                     <tr>
                         <th>Feature</th>
-                        <th>Typical Platforms</th>
+                        <th>Traditional / Indirect Trade</th>
                         <th>🌾 CropSync</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Farmer Price Control</td>
-                        <td><span class="icon-no">✗</span> Limited</td>
-                        <td><span class="icon-yes">✓</span> Full Control</td>
+                        <td>Direct Farmer–Buyer Connection</td>
+                        <td><span class="icon-no">✗</span> Limited / dependent on intermediaries</td>
+                        <td><span class="icon-yes">✓</span> Direct digital connection</td>
                     </tr>
                     <tr>
-                        <td>Price Transparency (MSP)</td>
-                        <td><span class="icon-warn">⚠</span> Rarely shown</td>
-                        <td><span class="icon-yes">✓</span> Always visible</td>
+                        <td>Farmer Listing Control</td>
+                        <td><span class="icon-warn">⚠</span> Often negotiated through intermediaries</td>
+                        <td><span class="icon-yes">✓</span> Farmer controls listing</td>
                     </tr>
                     <tr>
-                        <td>Middlemen Involvement</td>
-                        <td><span class="icon-no">✗</span> Often present</td>
-                        <td><span class="icon-yes">✓</span> Zero middlemen</td>
+                        <td>Price Visibility</td>
+                        <td><span class="icon-no">✗</span> Can be fragmented</td>
+                        <td><span class="icon-yes">✓</span> Listing price clearly displayed</td>
                     </tr>
                     <tr>
-                        <td>Ease of Use</td>
-                        <td><span class="icon-warn">⚠</span> Complex UIs</td>
-                        <td><span class="icon-yes">✓</span> Minimal & clean</td>
+                        <td>MSP Awareness</td>
+                        <td><span class="icon-warn">⚠</span> May not be visible during transactions</td>
+                        <td><span class="icon-yes">✓</span> MSP reference shown</td>
                     </tr>
                     <tr>
-                        <td>Focus on Small Farmers</td>
-                        <td><span class="icon-no">✗</span> Enterprise-first</td>
-                        <td><span class="icon-yes">✓</span> Farmer-first</td>
+                        <td>Order Decision</td>
+                        <td><span class="icon-no">✗</span> May involve intermediaries</td>
+                        <td><span class="icon-yes">✓</span> Farmer accepts or rejects</td>
                     </tr>
                     <tr>
-                        <td>Order Approval System</td>
-                        <td><span class="icon-no">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </span> Auto-processed</td>
-                        <td><span class="icon-yes">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                        </span> Farmer decides</td>
+                        <td>Buyer Discovery</td>
+                        <td><span class="icon-no">✗</span> Limited direct access</td>
+                        <td><span class="icon-yes">✓</span> Searchable marketplace</td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <p class="comparison-note animate-on-scroll">CropSync improves existing systems by focusing on transparency and farmer empowerment.</p>
+        <p class="comparison-note animate-on-scroll">Direct digital connection without an intermediary marketplace layer.</p>
     </section>
 
-    <!-- ===== IMPACT ===== -->
-    <section class="landing-section section-center" id="impact">
-        <div class="animate-on-scroll">
-            <div class="section-badge">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; color: var(--accent);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
-                Our Impact
-            </div>
-            <h2 class="section-title">Building a Fairer Agricultural Future</h2>
-            <p class="section-subtitle">Aligned with sustainable development goals for a better tomorrow.</p>
-        </div>
-        <div class="impact-grid">
-            <div class="impact-card animate-on-scroll">
-                <div class="impact-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-                </div>
-                <h3>Better Farmer Income</h3>
-                <p>By eliminating intermediaries, farmers retain a significantly larger share of the crop's market value.</p>
-            </div>
-            <div class="impact-card animate-on-scroll">
-                <div class="impact-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20 12 7l1 13"/><path d="M5 12.1a10.9 10.9 0 0 0 5.1 4.9"/><path d="M19 12.1a10.9 10.9 0 0 1-5.1 4.9"/><path d="M22 13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1l1-8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3l1 8Z"/></svg>
-                </div>
-                <h3>Sustainable Agriculture</h3>
-                <p>Fair pricing incentivises sustainable farming practices and reduces distress-driven decisions.</p>
-            </div>
-            <div class="impact-card animate-on-scroll">
-                <div class="impact-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.06-1.7.21-2.43.44C18.25 17.11 17.16 18 16 18c-1.16 0-2.25-.89-3.57-1.56C11.7 16.21 10.87 16.06 10 16l3-8 3 8Z"/><path d="M22 21H2"/><path d="M16 18v3"/><path d="M10 18v3"/><path d="M13 18v3"/><path d="M16 18l.58 2.02c.2.69 1.05.69 1.25 0L19 18"/></svg>
-                </div>
-                <h3>Fair Trade Ecosystem</h3>
-                <p>Complete transparency in pricing and trade builds trust between farmers and buyers at every level.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- ===== CTA BANNER ===== -->
+    <!-- ===== 13. FINAL CTA BANNER ===== -->
     <section class="cta-section">
         <div class="cta-content animate-on-scroll">
-            <h2>Join the Future of Fair Agriculture</h2>
-            <p>Whether you grow crops or buy them — CropSync gives you the transparency, control, and connection you deserve.</p>
+            <h2>Make the Market More Direct</h2>
+            <p>Whether you grow crops or source them, CropSync provides a transparent digital space to connect farmers and buyers directly.</p>
             <div class="cta-actions animate-on-scroll">
                 <a href="{{ url_for('register') }}" class="btn-cta-primary">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -386,12 +545,13 @@
         </div>
     </section>
 
-    <!-- ===== FOOTER ===== -->
+    <!-- ===== 14. FOOTER ===== -->
     <footer class="landing-footer">
         <div class="footer-inner" style="display: block; text-align: center;">
             <div class="footer-brand">
                 <h3 style="font-size: 2rem; margin-bottom: 1rem;">🌾 CropSync</h3>
-                <p style="max-width: 600px; margin: 0 auto 2rem;">A transparent farmer–buyer digital marketplace ensuring fair pricing and direct trade.</p>
+                <p style="max-width: 600px; margin: 0 auto 1.5rem;">A transparent digital marketplace connecting farmers directly with consumers and bulk buyers.</p>
+                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">Built for Indian Agriculture.</div>
             </div>
         </div>
         <div class="footer-bottom">
@@ -432,6 +592,5 @@
 
         document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
     </script>
-
 </body>
 </html>
