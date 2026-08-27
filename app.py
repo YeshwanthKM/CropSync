@@ -628,7 +628,7 @@ def complete_order(order_id):
 
 # --- BUYER PORTAL ROUTES ---
 
-@app.route('/buyer_dashboard')
+@app.route('/buyer_dashboard', methods=['GET', 'POST'])
 def buyer_dashboard():
     if 'buyer_user' not in session:
         return redirect(url_for('login'))
@@ -703,13 +703,13 @@ def place_order():
 
 # --- ADMIN PORTAL ROUTES ---
 
-@app.route('/admin')
+@app.route('/admin', methods=['GET', 'POST'])
 @admin_required
 def admin_dashboard():
     stats = db.get_admin_dashboard_stats()
     return render_template('admin/dashboard.html', stats=stats, active_page='dashboard')
 
-@app.route('/admin/farmers')
+@app.route('/admin/farmers', methods=['GET', 'POST'])
 @admin_required
 def admin_farmers():
     search = request.args.get('search', '').strip()
@@ -755,7 +755,7 @@ def admin_farmer_detail(farmer_id):
 
     return render_template('admin/farmer_detail.html', farmer=farmer, active_page='farmers')
 
-@app.route('/admin/buyers')
+@app.route('/admin/buyers', methods=['GET', 'POST'])
 @admin_required
 def admin_buyers():
     search = request.args.get('search', '').strip()
@@ -802,7 +802,7 @@ def admin_buyer_detail(buyer_id):
 
     return render_template('admin/buyer_detail.html', buyer=buyer, active_page='buyers')
 
-@app.route('/admin/listings')
+@app.route('/admin/listings', methods=['GET', 'POST'])
 @admin_required
 def admin_listings():
     listings = db.get_all_listings_admin()
@@ -819,7 +819,7 @@ def admin_listing_status(crop_id, status):
     flash(f'Listing status updated to {status}.', 'success')
     return redirect(url_for('admin_listings'))
 
-@app.route('/admin/orders')
+@app.route('/admin/orders', methods=['GET', 'POST'])
 @admin_required
 def admin_orders():
     status_filter = request.args.get('status', 'All').strip()
@@ -839,7 +839,7 @@ def admin_orders():
     return render_template('admin/orders.html', orders=orders, status_filter=status_filter, active_page='orders')
 
 
-@app.route('/admin/msp')
+@app.route('/admin/msp', methods=['GET', 'POST'])
 @admin_required
 def admin_msp():
     search = request.args.get('search', '').strip()
@@ -847,6 +847,7 @@ def admin_msp():
     year = request.args.get('year', 'All').strip()
     msp_records = db.get_all_msp_references(search=search, season=season, year=year)
     return render_template('admin/msp.html', msp_records=msp_records, search=search, season=season, year=year, active_page='msp')
+
 
 @app.route('/admin/msp/save', methods=['POST'])
 @admin_required
@@ -957,8 +958,9 @@ def admin_reset_database():
 # --- SETTINGS & LOGOUT ---
 
 
-@app.route('/settings')
+@app.route('/settings', methods=['GET', 'POST'])
 def settings():
+
     user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
     if not user:
         return redirect(url_for('login'))
