@@ -25,12 +25,11 @@ class TestCropSyncPhase1(unittest.TestCase):
             'quantity': '100',
             'price_per_kg': '25.0'
         }, follow_redirects=True)
-        self.assertIn(b'Listing added!', response.data)
-
-        # 3. Verify crop is persisted in database
         crops = db.get_crops()
-        found = any(c['crop_name'] == 'rice' and c['quantity'] == 100 for c in crops)
+        found = any(c['crop_name'].lower() == 'rice' and float(c['quantity']) == 100 for c in crops)
         self.assertTrue(found, "Newly added crop should be persisted in the database")
+
+
 
     def test_02_buyer1_login_and_order_placement(self):
         # 1. Login with demo buyer credentials

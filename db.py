@@ -183,8 +183,9 @@ def init_db():
                 pass
         else:
             cursor.executescript("""
-                CREATE TABLE IF NOT EXISTS users_v2 (
+                CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
+
                     email TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
                     role TEXT CHECK (role IN ('farmer', 'buyer', 'admin')) NOT NULL,
@@ -198,9 +199,11 @@ def init_db():
                     otp_expires_at TEXT,
                     otp_attempts INTEGER DEFAULT 0,
                     otp_last_sent_at TEXT,
+                    verification_token TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
+
                 CREATE TABLE IF NOT EXISTS farmer_profiles (
                     id TEXT PRIMARY KEY,
                     user_id TEXT REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
@@ -744,25 +747,37 @@ def update_user_profile(user_id, name, phone="", address="", location="", organi
 def ensure_seed_users():
     try:
         from werkzeug.security import generate_password_hash
-        for u in SEED_USERS:
-            try:
-                existing = get_user_by_email(u['email'])
-                if not existing:
-                    pwd_hash = generate_password_hash(u.get('password', 'farmer123'), method='pbkdf2:sha256')
-                    create_user(
-                        email=u['email'],
-                        password_hash=pwd_hash,
-                        role=u.get('role', 'farmer'),
-                        name=u.get('name', 'User'),
-                        phone=u.get('phone', ''),
-                        address=u.get('address', ''),
-                        location=u.get('location', ''),
-                        user_id=u.get('id')
-                    )
-            except Exception:
-                pass
+        conn, db_type = get_connection()
+        try:
+            cursor = conn.cursor()
+            ph = "%s" if db_type == "postgres" else "?"
+            for u in SEED_USERS:
+                try:
+                    existing = get_user_by_email(u['email'])
+                    if not existing:
+                        pwd_hash = generate_password_hash(u.get('password', 'farmer123'), method='pbkdf2:sha256')
+                        user_id = create_user(
+                            email=u['email'],
+                            password_hash=pwd_hash,
+                            role=u.get('role', 'farmer'),
+                            name=u.get('name', 'User'),
+                            phone=u.get('phone', ''),
+                            address=u.get('address', ''),
+                            location=u.get('location', ''),
+                            user_id=u.get('id'),
+                            status='active',
+                            email_verified=True,
+                            phone_verified=True
+                        )
+                    cursor.execute(f"UPDATE users SET account_status = 'active', email_verified = 1, phone_verified = 1 WHERE LOWER(TRIM(email)) = LOWER(TRIM({ph}))", (u['email'],))
+                except Exception:
+                    pass
+            conn.commit()
+        finally:
+            conn.close()
     except Exception as e:
         print("[!] Error in ensure_seed_users:", e)
+
 
 # --- ADMIN MANAGEMENT FUNCTIONS ---
 

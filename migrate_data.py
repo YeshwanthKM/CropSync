@@ -62,10 +62,23 @@ def run_migration():
                 phone=u.get('phone', ''),
                 address=u.get('address', ''),
                 location=u.get('location', ''),
-                user_id=u.get('id')
+                user_id=u.get('id'),
+                status=u.get('account_status', 'active'),
+                email_verified=u.get('email_verified', True),
+                phone_verified=u.get('phone_verified', True)
             )
             migrated_users += 1
+        else:
+            conn, db_type = db.get_connection()
+            try:
+                cursor = conn.cursor()
+                ph = "%s" if db_type == "postgres" else "?"
+                cursor.execute(f"UPDATE users SET account_status = 'active', email_verified = 1, phone_verified = 1 WHERE LOWER(TRIM(email)) = LOWER(TRIM({ph}))", (u['email'],))
+                conn.commit()
+            finally:
+                conn.close()
     print(f"[+] Migrated {migrated_users} users and profiles into database.")
+
 
     # 2. Migrate Crops
     crops = load_json(CROPS_FILE)
@@ -111,11 +124,23 @@ def run_migration():
             email=admin_email,
             password_hash=admin_hash,
             role='admin',
-            name='System Administrator'
+            name='System Administrator',
+            status='active',
+            email_verified=True,
+            phone_verified=True
         )
         print(f"[+] Created initial Admin account: {admin_email}")
     else:
-        print(f"[*] Admin account ({admin_email}) already exists.")
+        conn, db_type = db.get_connection()
+        try:
+            cursor = conn.cursor()
+            ph = "%s" if db_type == "postgres" else "?"
+            cursor.execute(f"UPDATE users SET account_status = 'active', email_verified = 1, phone_verified = 1 WHERE LOWER(TRIM(email)) = LOWER(TRIM({ph}))", (admin_email,))
+            conn.commit()
+        finally:
+            conn.close()
+        print(f"[*] Admin account ({admin_email}) updated to active status.")
+
 
     print("=== Data Migration Completed Successfully ===")
 
