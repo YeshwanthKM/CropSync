@@ -30,16 +30,14 @@ def get_connection():
         import psycopg2.extensions
         
         conn = getattr(_thread_local, 'conn', None)
-        if conn is not None and not conn.closed:
+        if conn is not None:
             try:
-                if getattr(conn, 'status', None) == psycopg2.extensions.STATUS_READY:
+                if not conn.closed and conn.status == psycopg2.extensions.STATUS_READY:
                     return conn, "postgres"
             except Exception:
-                try:
-                    conn.close()
-                except Exception:
-                    pass
-
+                try: conn.close()
+                except Exception: pass
+                _thread_local.conn = None
 
         url = DB_URL
         if 'sslmode' not in url.lower():
@@ -56,6 +54,20 @@ def get_connection():
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         return conn, "sqlite"
+
+
+def release_connection(conn, cursor=None):
+    if cursor:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+    if not DB_URL and conn:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
 
 
 def init_db():
@@ -1031,6 +1043,7 @@ def update_crop_quantity(crop_id, new_quantity):
 def get_orders_for_farmer(farmer_id):
     try:
         conn, db_type = get_connection()
+        cursor = None
         try:
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
@@ -1045,7 +1058,7 @@ def get_orders_for_farmer(farmer_id):
             rows = cursor.fetchall()
             return [_dict_row(r) for r in rows]
         finally:
-            conn.close()
+            release_connection(conn, cursor)
     except Exception as e:
         print("[!] Error in get_orders_for_farmer:", e)
         return []
@@ -1053,6 +1066,7 @@ def get_orders_for_farmer(farmer_id):
 def get_orders_for_buyer(buyer_id):
     try:
         conn, db_type = get_connection()
+        cursor = None
         try:
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
@@ -1074,7 +1088,7 @@ def get_orders_for_buyer(buyer_id):
                     o['farmer_email'] = None
             return orders
         finally:
-            conn.close()
+            release_connection(conn, cursor)
     except Exception as e:
         print("[!] Error in get_orders_for_buyer:", e)
         return []
@@ -1083,6 +1097,7 @@ def get_orders_for_buyer(buyer_id):
 
 def log_email_notification(order_id, recipient_user_id, notification_type, recipient_email, status='PENDING', error_message=None):
     conn, db_type = get_connection()
+    cursor = None
     try:
         cursor = conn.cursor()
         nid = str(uuid.uuid4())
@@ -1110,10 +1125,11 @@ def log_email_notification(order_id, recipient_user_id, notification_type, recip
         print("[!] Error logging email notification:", e)
         return None
     finally:
-        conn.close()
+        release_connection(conn, cursor)
 
 def get_email_notifications_for_order(order_id):
     conn, db_type = get_connection()
+    cursor = None
     try:
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
@@ -1125,10 +1141,11 @@ def get_email_notifications_for_order(order_id):
         print(f"[!] Error in get_email_notifications_for_order({order_id}):", e)
         return []
     finally:
-        conn.close()
+        release_connection(conn, cursor)
 
 def get_all_email_notifications_admin():
     conn, db_type = get_connection()
+    cursor = None
     try:
         cursor = conn.cursor()
         sql = "SELECT * FROM email_notifications ORDER BY created_at DESC"
@@ -1139,7 +1156,8 @@ def get_all_email_notifications_admin():
         print("[!] Error in get_all_email_notifications_admin:", e)
         return []
     finally:
-        conn.close()
+        release_connection(conn, cursor)
+
 
 def complete_order_atomic(order_id, user_id, role):
     conn, db_type = get_connection()
@@ -1181,11 +1199,12 @@ def complete_order_atomic(order_id, user_id, role):
         except: pass
         return False, f"Server error: {e}"
     finally:
-        conn.close()
+        release_connection(conn, cursor)
 
 def create_order(buyer_id, farmer_id, crop_id, crop_name, quantity, total_price, order_id=None):
 
     conn, db_type = get_connection()
+    cursor = None
     try:
         cursor = conn.cursor()
         oid = str(order_id) if order_id else str(uuid.uuid4())
@@ -1199,10 +1218,11 @@ def create_order(buyer_id, farmer_id, crop_id, crop_name, quantity, total_price,
         conn.commit()
         return oid
     finally:
-        conn.close()
+        release_connection(conn, cursor)
 
 def update_order_status(order_id, status):
     conn, db_type = get_connection()
+    cursor = None
     try:
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
@@ -1211,7 +1231,8 @@ def update_order_status(order_id, status):
         cursor.execute(sql, (status, now, str(order_id)))
         conn.commit()
     finally:
-        conn.close()
+        release_connection(conn, cursor)
+
 
 
 
