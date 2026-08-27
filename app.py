@@ -522,7 +522,7 @@ def farmer_dashboard():
 
     user_crops = db.get_crops(farmer_id=farmer_id)
     sold_orders = db.get_orders_for_farmer(farmer_id=farmer_id)
-    earnings = sum(float(o['total_price']) for o in sold_orders if o['status'] == 'Accepted')
+    earnings = round(sum(float(o['total_price']) for o in sold_orders if o['status'] in ('Accepted', 'Completed')), 2)
 
     return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders)
 

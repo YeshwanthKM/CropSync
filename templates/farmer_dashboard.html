@@ -292,9 +292,10 @@
                                 <td style="text-transform: capitalize;">{{ order.crop_name }}</td>
                                 <td>
                                     <div>{{ order.buyer_name }}</div>
-                                    {% if order.status == 'Accepted' %}
+                                    {% if order.status in ('Accepted', 'Completed') %}
                                         <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">📞 {{ order.buyer_phone or 'Contact Provided' }}</div>
                                     {% else %}
+
                                         <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon acceptance</div>
                                     {% endif %}
                                 </td>
