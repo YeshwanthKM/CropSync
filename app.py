@@ -184,6 +184,8 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
+
 from auth_service import SupabaseAuthService, EmailService
 
 @app.route('/')
@@ -411,14 +413,11 @@ def verification_status():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
-        if 'farmer_user' in session:
-            return redirect(url_for('farmer_dashboard', section='sold-items'))
-        elif 'buyer_user' in session:
-            return redirect(url_for('buyer_dashboard', section='my-orders'))
-        elif 'admin_user' in session:
-            return redirect(url_for('admin_dashboard'))
+        if request.args.get('logout'):
+            session.clear()
 
     if request.method == 'POST':
+
 
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '').strip()

@@ -36,7 +36,8 @@
             {% endif %}
             {% endwith %}
 
-            <form method="POST">
+            <form method="POST" action="{{ url_for('login') }}">
+
                 <div class="form-group">
                     <label>{{ get_text('email') }}</label>
                     <input type="email" id="emailInput" name="email" placeholder="email@example.com" required>
