@@ -140,7 +140,7 @@ def init_db():
                     crop_name TEXT NOT NULL,
                     quantity NUMERIC NOT NULL,
                     total_price NUMERIC NOT NULL,
-                    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled')) NOT NULL,
+                    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed')) NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
@@ -176,11 +176,19 @@ def init_db():
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
             """)
+            # Schema migrations for Postgres constraints
+            try:
+                cursor.execute("ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;")
+                cursor.execute("ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed'));")
+            except Exception as e:
+                print("[!] Warning updating orders_status_check constraint:", e)
+
             # Drop obsolete table if exists
             try:
                 cursor.execute("DROP TABLE IF EXISTS crop_price_history")
             except Exception:
                 pass
+
         else:
             cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS users (
