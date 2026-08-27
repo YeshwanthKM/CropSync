@@ -1603,36 +1603,27 @@ def get_admin_dashboard_stats():
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
-        
-        cursor.execute("SELECT count(*) AS count FROM users WHERE role = 'farmer'")
-        total_farmers = int(_val(cursor.fetchone(), 0))
-
-        cursor.execute("SELECT count(*) AS count FROM users WHERE role = 'buyer'")
-        total_buyers = int(_val(cursor.fetchone(), 0))
-
-        cursor.execute("SELECT count(*) AS count FROM crops WHERE status = 'available'")
-        active_listings = int(_val(cursor.fetchone(), 0))
-
-        cursor.execute("SELECT COALESCE(SUM(quantity), 0) AS total_qty FROM crops WHERE status = 'available'")
-        total_listed_qty = float(_val(cursor.fetchone(), 0.0))
-
-        cursor.execute("SELECT count(*) AS count FROM orders WHERE status = 'Pending'")
-        pending_orders = int(_val(cursor.fetchone(), 0))
-
-        cursor.execute("SELECT count(*) AS count FROM orders WHERE status = 'Accepted'")
-        accepted_orders = int(_val(cursor.fetchone(), 0))
-
-        cursor.execute("SELECT count(*) AS count FROM orders WHERE status = 'Completed'")
-        completed_orders = int(_val(cursor.fetchone(), 0))
-
+        query = """
+            SELECT 
+                (SELECT count(*) FROM users WHERE role = 'farmer') AS total_farmers,
+                (SELECT count(*) FROM users WHERE role = 'buyer') AS total_buyers,
+                (SELECT count(*) FROM crops WHERE status = 'available') AS active_listings,
+                (SELECT COALESCE(SUM(quantity), 0) FROM crops WHERE status = 'available') AS total_listed_qty,
+                (SELECT count(*) FROM orders WHERE status = 'Pending') AS pending_orders,
+                (SELECT count(*) FROM orders WHERE status = 'Accepted') AS accepted_orders,
+                (SELECT count(*) FROM orders WHERE status = 'Completed') AS completed_orders
+        """
+        cursor.execute(query)
+        row = cursor.fetchone()
+        dict_row = _dict_row(row) or {}
         return {
-            'total_farmers': total_farmers,
-            'total_buyers': total_buyers,
-            'active_listings': active_listings,
-            'total_listed_qty': total_listed_qty,
-            'pending_orders': pending_orders,
-            'accepted_orders': accepted_orders,
-            'completed_orders': completed_orders
+            'total_farmers': int(dict_row.get('total_farmers') or 0),
+            'total_buyers': int(dict_row.get('total_buyers') or 0),
+            'active_listings': int(dict_row.get('active_listings') or 0),
+            'total_listed_qty': float(dict_row.get('total_listed_qty') or 0.0),
+            'pending_orders': int(dict_row.get('pending_orders') or 0),
+            'accepted_orders': int(dict_row.get('accepted_orders') or 0),
+            'completed_orders': int(dict_row.get('completed_orders') or 0)
         }
     except Exception as e:
         print("[!] Error in get_admin_dashboard_stats:", e)
@@ -1642,6 +1633,7 @@ def get_admin_dashboard_stats():
         }
     finally:
         conn.close()
+
 
 
 def log_admin_action(admin_id, action, target_user_id=None, reason=None):

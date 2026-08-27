@@ -11,7 +11,57 @@
     </script>
 </head>
 <body>
+    <div id="global-loading-screen">
+        <div class="loading-spinner-container">
+            <div class="loading-sprout-icon">
+                <svg viewBox="0 0 24 24"><path d="M17 8C14 8 11.5 9.5 10 12C8.5 9.5 6 8 3 8C3 13 7 17 12 21C17 17 21 13 21 8C18 8 17 8 17 8Z"/></svg>
+            </div>
+            <div class="loading-text">Loading CropSync...</div>
+            <div class="loading-bar"><div class="loading-bar-progress"></div></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const loader = document.getElementById('global-loading-screen');
+            function hideLoader() {
+                if (loader) {
+                    loader.classList.add('hidden');
+                    loader.style.display = 'none';
+                }
+            }
+            function showLoader() {
+                if (loader) {
+                    loader.style.display = 'flex';
+                    loader.classList.remove('hidden');
+                }
+            }
+
+            if (document.readyState === 'complete') hideLoader();
+            else {
+                window.addEventListener('load', hideLoader);
+                document.addEventListener('DOMContentLoaded', hideLoader);
+            }
+            window.addEventListener('pageshow', hideLoader);
+
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('a');
+                if (link) {
+                    const href = link.getAttribute('href');
+                    if (href && !href.startsWith('#') && !href.startsWith('javascript:') && link.target !== '_blank') {
+                        showLoader();
+                    }
+                }
+            }, true);
+
+            document.addEventListener('submit', function() {
+                showLoader();
+            }, true);
+        })();
+    </script>
+
     <div class="dashboard-layout">
+
         <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
         <!-- Admin Sidebar -->
         <div class="sidebar">
