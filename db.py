@@ -2169,3 +2169,54 @@ def update_logistics_order_status_atomic(order_id, next_status, updated_by_user_
         return False, f"Server error: {e}", None
     finally:
         release_connection(conn, cursor)
+
+def farmer_confirm_payment_received_atomic(order_id, farmer_id):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        
+        sql_fetch = f"SELECT * FROM orders WHERE id = {ph}"
+        cursor.execute(sql_fetch, (str(order_id),))
+        order = _dict_row(cursor.fetchone())
+        if not order:
+            return False, "Order not found.", None
+            
+        if str(order['farmer_id']) != str(farmer_id):
+            return False, "Unauthorized action.", None
+            
+        if order['settlement_status'] == 'SETTLED':
+            return False, "Payment is already marked as settled.", order
+            
+        sql_update = f"""
+            UPDATE orders 
+            SET settlement_status = 'SETTLED', 
+                logistics_status = 'SETTLED', 
+                status = 'Completed', 
+                settlement_at = {ph}, 
+                updated_at = {ph} 
+            WHERE id = {ph}
+        """
+        cursor.execute(sql_update, (now, now, str(order_id)))
+        
+        hid = str(uuid.uuid4())
+        sql_hist = f"""
+            INSERT INTO order_status_history (id, order_id, previous_status, new_status, updated_by_id, updated_by_role, notes, created_at)
+            VALUES ({ph}, {ph}, {ph}, 'SETTLED', {ph}, 'farmer', 'Farmer confirmed receipt of payout settlement.', {ph})
+        """
+        cursor.execute(sql_hist, (hid, str(order_id), order.get('logistics_status', 'SETTLEMENT_PENDING'), str(farmer_id), now))
+        
+        conn.commit()
+        
+        cursor.execute(sql_fetch, (str(order_id),))
+        updated_order = _dict_row(cursor.fetchone())
+        return True, "Payment receipt confirmed.", updated_order
+    except Exception as e:
+        print("[!] Error in farmer_confirm_payment_received_atomic:", e)
+        try: conn.rollback()
+        except: pass
+        return False, f"Server error: {e}", None
+    finally:
+        release_connection(conn, cursor)

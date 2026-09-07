@@ -653,6 +653,27 @@ def complete_order(order_id):
     else:
         return redirect(url_for('admin_orders'))
 
+@app.route('/farmer/confirm_payment/<order_id>')
+def confirm_farmer_payment_received(order_id):
+    user = session.get('farmer_user')
+    if not user:
+        flash('Unauthorized access.', 'error')
+        return redirect(url_for('farmer_dashboard'))
+
+    farmer_id = user['id']
+    success, msg, updated_order = db.farmer_confirm_payment_received_atomic(order_id, farmer_id)
+    if success:
+        flash('Payout payment receipt confirmed! Order marked as Completed.', 'success')
+        try:
+            if updated_order:
+                email_service.dispatch_logistics_milestone_emails(updated_order, 'SETTLED')
+        except Exception as e:
+            print("[!] Error dispatching settlement confirmation email:", e)
+    else:
+        flash(msg, 'error')
+
+    return redirect(url_for('farmer_dashboard', section='sold-items'))
+
 # --- BUYER PORTAL ROUTES ---
 
 @app.route('/buyer_dashboard', methods=['GET', 'POST'])

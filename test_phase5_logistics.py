@@ -106,16 +106,14 @@ class Phase5LogisticsTestCase(unittest.TestCase):
         self.assertFalse(success)
         self.assertIn('Invalid status transition', msg)
 
-        # 2. Valid sequential transitions
+        # 2. Valid sequential transitions through delivery
         transitions = [
             'PICKUP_SCHEDULED',
             'PICKED_UP',
             'IN_TRANSIT',
             'OUT_FOR_DELIVERY',
             'DELIVERED',
-            'PAYMENT_COLLECTED',
-            'SETTLEMENT_PENDING',
-            'SETTLED'
+            'SETTLEMENT_PENDING'
         ]
 
         for target_status in transitions:
@@ -123,8 +121,9 @@ class Phase5LogisticsTestCase(unittest.TestCase):
             self.assertTrue(success, f"Failed at transition {target_status}: {msg}")
             self.assertEqual(updated['logistics_status'], target_status)
 
-        # Verify final state
-        final_order = db.get_logistics_order_by_id(order_id)
+        # 3. Farmer confirms receipt of payment
+        f_success, f_msg, final_order = db.farmer_confirm_payment_received_atomic(order_id, farmer_id)
+        self.assertTrue(f_success, f"Farmer payment confirmation failed: {f_msg}")
         self.assertEqual(final_order['logistics_status'], 'SETTLED')
         self.assertEqual(final_order['payment_status'], 'paid')
         self.assertEqual(final_order['settlement_status'], 'SETTLED')
