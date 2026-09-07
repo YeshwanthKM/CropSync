@@ -156,6 +156,15 @@ def init_db():
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS logistics_profiles (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+                    company_name TEXT NOT NULL,
+                    phone TEXT,
+                    service_area TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS crops (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     farmer_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
@@ -176,8 +185,34 @@ def init_db():
                     quantity NUMERIC NOT NULL,
                     total_price NUMERIC NOT NULL,
                     status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed')) NOT NULL,
+                    payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')) NOT NULL,
+                    fulfillment_method TEXT DEFAULT 'Direct Collection',
+                    logistics_partner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                    logistics_partner_name TEXT DEFAULT 'CropSync Logistics',
+                    logistics_status TEXT DEFAULT 'NONE',
+                    logistics_fee NUMERIC DEFAULT 0.0,
+                    cod_amount NUMERIC DEFAULT 0.0,
+                    farmer_settlement_amount NUMERIC DEFAULT 0.0,
+                    settlement_status TEXT DEFAULT 'UNSETTLED',
+                    pickup_address TEXT,
+                    delivery_address TEXT,
+                    pickup_scheduled_at TIMESTAMP WITH TIME ZONE,
+                    picked_up_at TIMESTAMP WITH TIME ZONE,
+                    delivered_at TIMESTAMP WITH TIME ZONE,
+                    payment_collected_at TIMESTAMP WITH TIME ZONE,
+                    settlement_at TIMESTAMP WITH TIME ZONE,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS order_status_history (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    order_id UUID REFERENCES orders(id) ON DELETE CASCADE NOT NULL,
+                    previous_status TEXT,
+                    new_status TEXT NOT NULL,
+                    updated_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                    updated_by_role TEXT,
+                    notes TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS audit_logs (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -217,6 +252,31 @@ def init_db():
                 cursor.execute("ALTER TABLE orders ADD CONSTRAINT orders_status_check CHECK (status IN ('Pending', 'Accepted', 'Rejected', 'Cancelled', 'Completed'));")
             except Exception as e:
                 print("[!] Warning updating orders_status_check constraint:", e)
+
+            # PostgreSQL order column migrations for existing deployments
+            pg_order_cols = [
+                "fulfillment_method TEXT DEFAULT 'Direct Collection'",
+                "logistics_partner_id UUID",
+                "logistics_partner_name TEXT DEFAULT 'CropSync Logistics'",
+                "logistics_status TEXT DEFAULT 'NONE'",
+                "logistics_fee NUMERIC DEFAULT 0.0",
+                "cod_amount NUMERIC DEFAULT 0.0",
+                "farmer_settlement_amount NUMERIC DEFAULT 0.0",
+                "settlement_status TEXT DEFAULT 'UNSETTLED'",
+                "pickup_address TEXT",
+                "delivery_address TEXT",
+                "pickup_scheduled_at TIMESTAMP WITH TIME ZONE",
+                "picked_up_at TIMESTAMP WITH TIME ZONE",
+                "delivered_at TIMESTAMP WITH TIME ZONE",
+                "payment_collected_at TIMESTAMP WITH TIME ZONE",
+                "settlement_at TIMESTAMP WITH TIME ZONE",
+                "payment_status TEXT DEFAULT 'pending'"
+            ]
+            for col in pg_order_cols:
+                try:
+                    cursor.execute(f"ALTER TABLE orders ADD COLUMN IF NOT EXISTS {col};")
+                except Exception as e:
+                    print(f"[!] Warning adding postgres column {col}:", e)
 
             # Drop obsolete table if exists
             try:
