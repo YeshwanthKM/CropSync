@@ -556,6 +556,8 @@ def _dict_row(row):
 def _val(row, default=0):
     if row is None:
         return default
+    if isinstance(row, (int, float)):
+        return row
     if isinstance(row, dict):
         return list(row.values())[0] if row else default
     try:
@@ -1911,8 +1913,8 @@ VALID_LOGISTICS_TRANSITIONS = {
     'PICKED_UP': ['IN_TRANSIT', 'RETURN_TO_FARMER', 'DELIVERY_FAILED'],
     'IN_TRANSIT': ['OUT_FOR_DELIVERY', 'DELIVERY_FAILED', 'RETURN_TO_FARMER'],
     'OUT_FOR_DELIVERY': ['DELIVERED', 'DELIVERY_FAILED', 'RETURN_TO_FARMER'],
-    'DELIVERED': ['PAYMENT_COLLECTED', 'SETTLEMENT_PENDING'],
-    'PAYMENT_COLLECTED': ['SETTLEMENT_PENDING'],
+    'DELIVERED': ['SETTLED', 'PAYMENT_COLLECTED', 'SETTLEMENT_PENDING'],
+    'PAYMENT_COLLECTED': ['SETTLED', 'SETTLEMENT_PENDING'],
     'SETTLEMENT_PENDING': ['SETTLED'],
     'SETTLED': [],
     'DELIVERY_FAILED': ['RETURN_TO_FARMER', 'PICKUP_SCHEDULED'],
@@ -2125,18 +2127,22 @@ def update_logistics_order_status_atomic(order_id, next_status, updated_by_user_
             params.append(now)
         elif next_status == 'DELIVERED':
             update_fields.append(f"delivered_at = {ph}")
-            update_fields.append(f"status = {ph}") # Update main order status to Completed
-            params.extend([now, 'Completed'])
+            update_fields.append(f"payment_collected_at = {ph}")
+            update_fields.append("payment_status = 'paid'")
+            update_fields.append("settlement_status = 'SETTLEMENT_PENDING'")
+            params.extend([now, now])
         elif next_status == 'PAYMENT_COLLECTED':
             update_fields.append("payment_status = 'paid'")
             update_fields.append(f"payment_collected_at = {ph}")
+            update_fields.append("settlement_status = 'SETTLEMENT_PENDING'")
             params.append(now)
         elif next_status == 'SETTLEMENT_PENDING':
             update_fields.append("settlement_status = 'SETTLEMENT_PENDING'")
         elif next_status == 'SETTLED':
             update_fields.append("settlement_status = 'SETTLED'")
+            update_fields.append(f"status = {ph}")
             update_fields.append(f"settlement_at = {ph}")
-            params.append(now)
+            params.extend(['Completed', now])
             
         params.append(str(order_id))
         sql_update = f"UPDATE orders SET {', '.join(update_fields)} WHERE id = {ph}"

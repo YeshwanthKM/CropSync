@@ -30,25 +30,19 @@
         ('PICKED_UP', 'Picked Up'),
         ('IN_TRANSIT', 'In Transit'),
         ('OUT_FOR_DELIVERY', 'Out for Delivery'),
-        ('DELIVERED', 'Delivered'),
-        ('PAYMENT_COLLECTED', 'Payment Collected'),
-        ('SETTLEMENT_PENDING', 'Settlement Pending'),
-        ('SETTLED', 'Settled')
+        ('DELIVERED', 'Delivered & Payment Collected'),
+        ('SETTLED', 'Payment Settled to Farmer')
     ] %}
 
     {% set curr = order.logistics_status or 'NONE' %}
     
     <div class="timeline-container">
         {% for code, label in steps %}
-            {% set is_active = (curr == code) %}
+            {% set is_active = (curr == code or (curr in ('PAYMENT_COLLECTED', 'SETTLEMENT_PENDING') and code == 'DELIVERED')) %}
             {% set is_completed = false %}
             {% if curr == 'SETTLED' %}
                 {% set is_completed = true %}
-            {% elif curr == 'SETTLEMENT_PENDING' and loop.index <= 8 %}
-                {% set is_completed = true %}
-            {% elif curr == 'PAYMENT_COLLECTED' and loop.index <= 7 %}
-                {% set is_completed = true %}
-            {% elif curr == 'DELIVERED' and loop.index <= 6 %}
+            {% elif (curr in ('DELIVERED', 'PAYMENT_COLLECTED', 'SETTLEMENT_PENDING')) and loop.index <= 6 %}
                 {% set is_completed = true %}
             {% elif curr == 'OUT_FOR_DELIVERY' and loop.index <= 5 %}
                 {% set is_completed = true %}
@@ -185,10 +179,10 @@
                 'PICKUP_SCHEDULED': ('PICKED_UP', '📦 Mark as Picked Up from Farmer', '#a855f7'),
                 'PICKED_UP': ('IN_TRANSIT', '🚚 Mark In Transit', '#0ea5e9'),
                 'IN_TRANSIT': ('OUT_FOR_DELIVERY', '🏃 Mark Out for Delivery Today', '#f97316'),
-                'OUT_FOR_DELIVERY': ('DELIVERED', '✓ Mark Delivered to Buyer', '#22c55e'),
-                'DELIVERED': ('PAYMENT_COLLECTED', '💵 Record COD Payment Collected', '#10b981'),
-                'PAYMENT_COLLECTED': ('SETTLEMENT_PENDING', '⏳ Mark Farmer Settlement Pending', '#f59e0b'),
-                'SETTLEMENT_PENDING': ('SETTLED', '✅ Mark Farmer Settlement Completed', '#22c55e')
+                'OUT_FOR_DELIVERY': ('DELIVERED', '✓ Mark Delivered & COD Payment Collected', '#22c55e'),
+                'DELIVERED': ('SETTLED', '✅ Mark Payment Settled to Farmer', '#22c55e'),
+                'PAYMENT_COLLECTED': ('SETTLED', '✅ Mark Payment Settled to Farmer', '#22c55e'),
+                'SETTLEMENT_PENDING': ('SETTLED', '✅ Mark Payment Settled to Farmer', '#22c55e')
             } %}
 
             {% if order.logistics_status in next_actions %}

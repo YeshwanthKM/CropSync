@@ -157,12 +157,17 @@ def send_order_accepted_email(order, buyer, farmer):
         quantity = order.get('quantity')
         unit_price = order.get('unit_price') or round(float(order.get('total_price', 0)) / float(quantity or 1), 2)
         total_price = order.get('total_price')
-        location = order.get('location') or farmer.get('location') or 'Marketplace'
+        fulfillment_method = order.get('fulfillment_method', 'Direct Collection')
+        cod_amount = order.get('cod_amount') or order.get('total_price')
+        pickup_address = order.get('pickup_address') or farmer.get('address') or farmer.get('location', '')
 
         base_url = get_app_base_url()
         view_url = f"{base_url}/login"
 
-        subject = f"Your CropSync Order Has Been Accepted — #{order_id[:8]}"
+        if fulfillment_method == 'Logistics Partner':
+            subject = f"Your CropSync Order #{order_id[:8]} — Logistics Delivery & Tracking Update"
+        else:
+            subject = f"Your CropSync Direct Order Has Been Accepted — #{order_id[:8]}"
 
         farmer_name = farmer.get('name', 'Farmer')
         farmer_email = farmer.get('email', 'N/A')
@@ -181,9 +186,31 @@ def send_order_accepted_email(order, buyer, farmer):
                 farmer_name=farmer_name,
                 farmer_email=farmer_email,
                 farmer_phone=farmer_phone,
+                fulfillment_method=fulfillment_method,
+                cod_amount=cod_amount,
+                pickup_address=pickup_address,
                 view_url=view_url
             )
         except Exception:
+            if fulfillment_method == 'Logistics Partner':
+                notice_html = f"""
+                <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 6px; margin: 15px 0; color: #1e3a8a;">
+                    <p style="margin: 0 0 5px 0; font-weight: bold; color: #1d4ed8;">🚛 Logistics Partner Delivery:</p>
+                    <p style="margin: 0; font-size: 14px;">Your order is assigned to CropSync Logistics! Our agent will collect the produce from the farmer, deliver it to your address, and collect Cash on Delivery (COD: ₹{cod_amount}) upon delivery. You will receive live status updates at each milestone.</p>
+                </div>
+                """
+            else:
+                notice_html = f"""
+                <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px; border-radius: 6px; margin: 15px 0; color: #14532d;">
+                    <p style="margin: 0 0 5px 0; font-weight: bold; color: #15803d;">🤝 Direct Collection & Farmer Connection:</p>
+                    <p style="margin: 0; font-size: 14px;">Please contact the farmer directly using the details below to coordinate payment and pickup/delivery:<br>
+                    • <strong>Farmer Name:</strong> {farmer_name}<br>
+                    • <strong>Email:</strong> {farmer_email}<br>
+                    • <strong>Phone:</strong> {farmer_phone}<br>
+                    • <strong>Farm Address:</strong> {pickup_address}</p>
+                </div>
+                """
+
             html_content = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
                 <h2 style="color: #27ae60; text-align: center;">✓ Order Accepted — CropSync</h2>
@@ -194,11 +221,9 @@ def send_order_accepted_email(order, buyer, farmer):
                     <p><strong>Crop:</strong> {crop_name}</p>
                     <p><strong>Quantity:</strong> {quantity} kg</p>
                     <p><strong>Total Amount:</strong> ₹{total_price}</p>
-                    <hr style="border: 0; border-top: 1px solid #ddd; margin: 10px 0;">
-                    <p><strong>Farmer Details:</strong></p>
-                    <p>Name: {farmer_name}<br>Email: {farmer_email}</p>
+                    <p><strong>Fulfillment:</strong> {fulfillment_method}</p>
                 </div>
-                <p style="color: #e67e22; font-weight: bold;">Notice: Please contact the farmer directly to coordinate payment and collection/delivery. CropSync connects farmers and buyers directly but does not process payments or provide physical delivery services.</p>
+                {notice_html}
                 <p style="text-align: center;">
                     <a href="{view_url}" style="background: #27ae60; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Log In to View Order Details</a>
                 </p>

@@ -212,6 +212,7 @@ def register():
         email = request.form.get('email', '').strip().lower()
         phone = request.form.get('phone', '').strip()
         location = request.form.get('location', '').strip()
+        address = request.form.get('address', '').strip()
         organization = request.form.get('organization', '').strip()
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
@@ -248,6 +249,7 @@ def register():
                 name=name,
                 phone=phone,
                 location=location,
+                address=address,
                 organization=organization,
                 status='pending',
                 email_verified=False,
@@ -710,7 +712,9 @@ def place_order():
             farmer_settlement_amount = total_price
 
         buyer_user = session.get('buyer_user', {})
-        pickup_address = crop.get('location', '')
+        farmer_user = db.get_user_by_id(crop['farmer_id']) or {}
+
+        pickup_address = farmer_user.get('address') or crop.get('location', '')
         delivery_address = request.form.get('delivery_address', '').strip() or buyer_user.get('address') or buyer_user.get('location', '')
 
         try:

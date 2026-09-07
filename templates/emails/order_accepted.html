@@ -45,20 +45,33 @@
                                 </tr>
                             </table>
 
+                            {% if fulfillment_method == 'Logistics Partner' %}
+                            <!-- Logistics Info Box -->
+                            <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 0 6px 6px 0; margin: 20px 0; color: #1e3a8a;">
+                                <h4 style="margin: 0 0 8px 0; color: #1d4ed8; font-size: 15px;">🚛 CropSync Logistics Partner Delivery</h4>
+                                <p style="margin: 3px 0; font-size: 14px;">Your order has been assigned to <strong>CropSync Logistics</strong>!</p>
+                                <p style="margin: 3px 0; font-size: 14px;">• <strong>Cash on Delivery (COD):</strong> ₹{{ "%.2f"|format(cod_amount or total) }}</p>
+                                <p style="margin: 8px 0 0 0; font-size: 13px; color: #2563eb; line-height: 1.4;">📦 Our agent will pick up the produce directly from the farmer and deliver it to your address. You will receive live status update notifications at each tracking milestone.</p>
+                            </div>
+                            {% else %}
                             <!-- Farmer Contact Info -->
                             <div style="background-color: #eef9f2; border-left: 4px solid #27ae60; padding: 15px; border-radius: 0 6px 6px 0; margin: 20px 0;">
-                                <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 15px;">Farmer Contact Details</h4>
+                                <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 15px;">🤝 Direct Collection & Farmer Contact Details</h4>
                                 <p style="margin: 3px 0; font-size: 14px;"><strong>Name:</strong> {{ farmer_name }}</p>
                                 <p style="margin: 3px 0; font-size: 14px;"><strong>Email:</strong> {{ farmer_email }}</p>
                                 {% if farmer_phone and farmer_phone != 'N/A' %}
                                 <p style="margin: 3px 0; font-size: 14px;"><strong>Phone:</strong> {{ farmer_phone }}</p>
                                 {% endif %}
+                                {% if pickup_address %}
+                                <p style="margin: 3px 0; font-size: 14px;"><strong>Farm Address:</strong> {{ pickup_address }}</p>
+                                {% endif %}
                             </div>
 
                             <!-- Direct Coordination Disclaimer -->
                             <p style="font-size: 13px; color: #d35400; background-color: #fdf5e6; padding: 12px; border-radius: 6px; border: 1px solid #f5e0be; line-height: 1.4;">
-                                💡 <strong>Direct Coordination Notice:</strong> Please contact the farmer directly to coordinate payment and collection/delivery. CropSync connects farmers and buyers directly but does not process payments or provide physical delivery services.
+                                💡 <strong>Direct Coordination Notice:</strong> Please contact the farmer directly to coordinate payment and pickup/delivery. CropSync connects farmers and buyers directly for this collection.
                             </p>
+                            {% endif %}
 
                             <!-- CTA Button -->
                             <table role="presentation" width="100%" style="margin: 25px 0 15px 0;">
