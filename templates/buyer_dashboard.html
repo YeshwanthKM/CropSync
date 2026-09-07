@@ -186,7 +186,8 @@
                                     <td>
                                         <div style="font-size: 0.85rem; font-weight: 600;">{{ crop.farmer_name }}</div>
                                         <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon order acceptance</div>
-                                    </                                    <td>
+                                    </td>
+                                    <td>
                                         <form action="{{ url_for('place_order') }}" method="POST"
                                             style="display:flex; flex-direction: column; gap: 0.35rem; border: none; padding: 0; box-shadow: none; margin: 0; background: none;">
                                             <input type="hidden" name="crop_id" value="{{ crop.id }}">

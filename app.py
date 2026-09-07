@@ -713,39 +713,43 @@ def place_order():
         pickup_address = crop.get('location', '')
         delivery_address = request.form.get('delivery_address', '').strip() or buyer_user.get('address') or buyer_user.get('location', '')
 
-        order_id = db.create_order(
-            buyer_id=buyer_user['id'],
-            farmer_id=crop['farmer_id'],
-            crop_id=crop['id'],
-            crop_name=crop['crop_name'],
-            quantity=quantity,
-            total_price=total_price,
-            fulfillment_method=fulfillment_method,
-            logistics_fee=logistics_fee,
-            cod_amount=cod_amount,
-            farmer_settlement_amount=farmer_settlement_amount,
-            pickup_address=pickup_address,
-            delivery_address=delivery_address
-        )
-        flash('Order placed! Waiting for farmer approval.', 'success')
-
-        # Dispatch email notification to farmer
         try:
-            farmer = db.get_user_by_id(crop['farmer_id'])
-            buyer = db.get_user_by_id(buyer_user['id'])
-            order = {
-                'id': order_id,
-                'crop_name': crop['crop_name'],
-                'quantity': quantity,
-                'unit_price': crop['price_per_kg'],
-                'total_price': total_price,
-                'location': crop.get('location'),
-                'fulfillment_method': fulfillment_method
-            }
-            if farmer:
-                email_service.send_new_order_email(order, farmer, buyer)
+            order_id = db.create_order(
+                buyer_id=buyer_user['id'],
+                farmer_id=crop['farmer_id'],
+                crop_id=crop['id'],
+                crop_name=crop['crop_name'],
+                quantity=quantity,
+                total_price=total_price,
+                fulfillment_method=fulfillment_method,
+                logistics_fee=logistics_fee,
+                cod_amount=cod_amount,
+                farmer_settlement_amount=farmer_settlement_amount,
+                pickup_address=pickup_address,
+                delivery_address=delivery_address
+            )
+            flash('Order placed! Waiting for farmer approval.', 'success')
+
+            # Dispatch email notification to farmer
+            try:
+                farmer = db.get_user_by_id(crop['farmer_id'])
+                buyer = db.get_user_by_id(buyer_user['id'])
+                order = {
+                    'id': order_id,
+                    'crop_name': crop['crop_name'],
+                    'quantity': quantity,
+                    'unit_price': crop['price_per_kg'],
+                    'total_price': total_price,
+                    'location': crop.get('location'),
+                    'fulfillment_method': fulfillment_method
+                }
+                if farmer:
+                    email_service.send_new_order_email(order, farmer, buyer)
+            except Exception as e:
+                print("[!] Error dispatching new order email:", e)
         except Exception as e:
-            print("[!] Error dispatching new order email:", e)
+            print("[!] Error creating order:", e)
+            flash(f'Failed to place order: {str(e)}', 'error')
     else:
         flash('Low stock or invalid order.', 'error')
     return redirect(url_for('buyer_dashboard', section='my-orders'))
