@@ -701,7 +701,7 @@ def place_order():
         total_price = round(quantity * float(crop['price_per_kg']), 2)
         
         if fulfillment_method == 'Logistics Partner':
-            logistics_fee = 150.0
+            logistics_fee = 50.0
             cod_amount = round(total_price + logistics_fee, 2)
             farmer_settlement_amount = total_price
         else:
@@ -1095,14 +1095,16 @@ def logistics_order_detail(order_id):
         'logistics/order_detail.html',
         order=order,
         history=history,
+        audit_history=history,
         valid_transitions=valid_transitions,
         user=session.get('logistics_user', {})
     )
 
 
-@app.route('/logistics/order/<order_id>/update_status', methods=['POST'])
+@app.route('/logistics/order/<order_id>/update_status', methods=['POST'], endpoint='update_logistics_order_status')
+@app.route('/logistics/order/<order_id>/update_status_alt', methods=['POST'], endpoint='update_logistics_status')
 @logistics_required
-def update_logistics_status(order_id):
+def update_logistics_order_status(order_id):
     next_status = request.form.get('next_status')
     notes = request.form.get('notes', '').strip()
     logistics_user = session.get('logistics_user', {})
