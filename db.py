@@ -647,16 +647,7 @@ def get_user_by_id(user_id):
         print(f"[!] Error in get_user_by_id({user_id}):", e)
         return None
 
-SEED_USERS = [
-    {"id": "f1", "name": "Farmer 1", "email": "farmer1@gmail.com", "role": "farmer", "phone": "9876543210", "address": "Village A, State X", "location": "Coimbatore", "account_status": "active", "email_verified": True, "phone_verified": True},
-    {"id": "f2", "name": "Farmer 2", "email": "farmer2@gmail.com", "role": "farmer", "phone": "9876543211", "address": "Village B, State Y", "location": "Madurai", "account_status": "active", "email_verified": True, "phone_verified": True},
-    {"id": "f3", "name": "Farmer 3", "email": "farmer3@gmail.com", "role": "farmer", "phone": "9876543212", "address": "Village C, State Z", "location": "Salem", "account_status": "active", "email_verified": True, "phone_verified": True},
-    {"id": "f4", "name": "Farmer 4", "email": "farmer4@gmail.com", "role": "farmer", "phone": "9876543213", "address": "Village D, State W", "location": "Erode", "account_status": "active", "email_verified": True, "phone_verified": True},
-    {"id": "b1", "name": "Buyer 1", "email": "buyer1@gmail.com", "role": "buyer", "phone": "8876543210", "address": "City X, State A", "location": "Chennai", "account_status": "active", "email_verified": True, "phone_verified": True},
-    {"id": "b2", "name": "Buyer 2", "email": "buyer2@gmail.com", "role": "buyer", "phone": "8876543211", "address": "City Y, State B", "location": "Bangalore", "account_status": "active", "email_verified": True, "phone_verified": True},
-    {"id": "b3", "name": "Buyer 3", "email": "buyer3@gmail.com", "role": "buyer", "phone": "8876543212", "address": "City Z, State C", "location": "Trichy", "account_status": "active", "email_verified": True, "phone_verified": True},
-    {"id": "b4", "name": "Buyer 4", "email": "buyer4@gmail.com", "role": "buyer", "phone": "8876543213", "address": "City W, State D", "location": "Nellai", "account_status": "active", "email_verified": True, "phone_verified": True},
-]
+SEED_USERS = []
 
 def create_user(email, password_hash, role, name="User", phone="", address="", location="", organization="", user_id=None, status="pending", email_verified=False, phone_verified=False):
     conn, db_type = get_connection()
@@ -888,8 +879,6 @@ def get_user_by_verification_token(token):
 PERMANENT_DEMO_EMAILS = {
     'admin@cropsync.com',
     'logistics@cropsync.com',
-    'farmer1@gmail.com',
-    'buyer1@gmail.com',
 }
 
 def delete_user(user_id):

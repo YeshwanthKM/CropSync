@@ -30,12 +30,12 @@
     </div>
 
     <div style="background: rgba(231, 76, 60, 0.08); border-left: 4px solid #e74c3c; padding: 1rem 1.25rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.5;">
-        <strong>⚠️ Warning:</strong> This operation will clear all custom saved orders, listed crops, and registered user accounts from the database, and re-seed clean default demo accounts (<code>farmer1@gmail.com</code>, <code>buyer1@gmail.com</code>, <code>admin@cropsync.com</code>).
+        <strong>⚠️ Warning:</strong> This operation will clear all custom saved orders, listed crops, and registered user accounts from the database, restoring clean system administrator and logistics accounts (<code>admin@cropsync.com</code>, <code>logistics@cropsync.com</code>).
     </div>
 
     <form method="POST" action="{{ url_for('admin_reset_database') }}" onsubmit="return confirm('Are you absolutely sure you want to reset all database data? This action cannot be undone.');">
         <button type="submit" class="btn badge-rejected" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-            🔄 Reset Database & Restore Fresh Demo Data
+            🔄 Reset Database & Restore Fresh System Data
         </button>
     </form>
 </div>

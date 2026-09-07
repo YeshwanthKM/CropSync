@@ -433,15 +433,11 @@ def login():
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '').strip()
 
-        # Map short username aliases to demo emails
+        # Map short username aliases to system accounts
         if email in ('logistics', 'logistics1') or 'logistics' in email:
             email = 'logistics@cropsync.com'
         elif email in ('admin', 'admin1'):
             email = 'admin@cropsync.com'
-        elif email in ('farmer', 'farmer1'):
-            email = 'farmer1@gmail.com'
-        elif email in ('buyer', 'buyer1'):
-            email = 'buyer1@gmail.com'
         
         # 1. Fetch user from DB
         user = None
@@ -451,16 +447,11 @@ def login():
             print("[!] DB Error during login:", _e)
 
         # 2. Fallback demo user object if DB user lookup returns None
-
         if not user:
             if email == 'admin@cropsync.com' and password in ('admin123', 'admin'):
                 user = {'id': 'admin1', 'email': 'admin@cropsync.com', 'role': 'admin', 'name': 'System Administrator', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
             elif email == 'logistics@cropsync.com' and password in ('logistics123', 'logistics'):
                 user = {'id': 'logistics1', 'email': 'logistics@cropsync.com', 'role': 'logistics', 'name': 'CropSync Logistics', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
-            elif (email.startswith('farmer') or 'farmer' in email) and password == 'farmer123':
-                user = {'id': 'f1', 'email': email, 'role': 'farmer', 'name': 'Farmer Demo', 'location': 'Coimbatore', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
-            elif (email.startswith('buyer') or 'buyer' in email) and password == 'buyer123':
-                user = {'id': 'b1', 'email': email, 'role': 'buyer', 'name': 'Buyer Demo', 'location': 'Chennai', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
 
         if user:
             pwd_hash = user.get('password_hash', '')
@@ -477,10 +468,6 @@ def login():
                 elif email == 'admin@cropsync.com' and password in ('admin123', 'admin'):
                     is_valid = True
                 elif (email == 'logistics@cropsync.com' or user.get('role') == 'logistics') and password in ('logistics123', 'logistics'):
-                    is_valid = True
-                elif (email.startswith('farmer') or 'farmer' in email or user.get('role') == 'farmer') and password in ('farmer123', 'farmer'):
-                    is_valid = True
-                elif (email.startswith('buyer') or 'buyer' in email or user.get('role') == 'buyer') and password in ('buyer123', 'buyer'):
                     is_valid = True
 
             if is_valid:
