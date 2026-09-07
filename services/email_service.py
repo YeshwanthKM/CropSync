@@ -531,50 +531,34 @@ def dispatch_logistics_milestone_emails(order, next_status):
                     body_text=f"Your {crop_name} order #{order_id[:8]} has been delivered successfully.",
                     notification_type='BUYER_DELIVERED'
                 )
-            if farmer_email:
-                send_logistics_status_email(
-                    order=order,
-                    recipient_email=farmer_email,
-                    recipient_name=farmer_name,
-                    subject=f"CropSync Order #{order_id[:8]} – Order Delivered",
-                    title="Shipment Delivered to Buyer",
-                    body_text=f"Your produce for order #{order_id[:8]} has been delivered to the buyer.",
-                    notification_type='FARMER_DELIVERED'
-                )
 
         elif next_status == 'PAYMENT_COLLECTED':
-            if farmer_email:
-                send_logistics_status_email(
-                    order=order,
-                    recipient_email=farmer_email,
-                    recipient_name=farmer_name,
-                    subject=f"CropSync Order #{order_id[:8]} – Payment Collected",
-                    title="COD Payment Collected",
-                    body_text=f"Cash on Delivery payment for order #{order_id[:8]} has been collected by CropSync Logistics.",
-                    notification_type='PAYMENT_COLLECTED'
-                )
+            # COD Payment collected by logistics from buyer; no email needed for farmer at this internal step
+            pass
 
         elif next_status == 'SETTLEMENT_PENDING':
             if farmer_email:
+                settlement_amt = order.get('farmer_settlement_amount') or order.get('total_price')
                 send_logistics_status_email(
                     order=order,
                     recipient_email=farmer_email,
                     recipient_name=farmer_name,
-                    subject=f"CropSync Order #{order_id[:8]} – Settlement Pending",
-                    title="Farmer Settlement Pending",
-                    body_text=f"Settlement of ₹{order.get('farmer_settlement_amount', order.get('total_price'))} for order #{order_id[:8]} is currently pending processing.",
+                    subject=f"CropSync Order #{order_id[:8]} – Payment Sent by Logistics (Confirm Receipt)",
+                    title="Payment Sent by Logistics – Please Confirm Receipt",
+                    body_text=f"CropSync Logistics has sent your payment of ₹{settlement_amt} for order #{order_id[:8]}. Please log into your farmer dashboard and click 'Payment Received' to confirm receipt and complete the order.",
                     notification_type='SETTLEMENT_PENDING'
                 )
 
         elif next_status == 'SETTLED':
             if farmer_email:
+                settlement_amt = order.get('farmer_settlement_amount') or order.get('total_price')
                 send_logistics_status_email(
                     order=order,
                     recipient_email=farmer_email,
                     recipient_name=farmer_name,
-                    subject=f"CropSync Order #{order_id[:8]} – Farmer Settlement Completed",
-                    title="Farmer Settlement Completed",
-                    body_text=f"Settlement of ₹{order.get('farmer_settlement_amount', order.get('total_price'))} for order #{order_id[:8]} has been completed.",
+                    subject=f"CropSync Order #{order_id[:8]} – Payment Confirmed & Order Completed",
+                    title="Payment Confirmed – Order Completed",
+                    body_text=f"Your payment receipt of ₹{settlement_amt} for order #{order_id[:8]} has been confirmed. The order is now completed.",
                     notification_type='SETTLEMENT_COMPLETED'
                 )
 
