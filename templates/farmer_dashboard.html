@@ -79,6 +79,12 @@
             </nav>
             <div class="sidebar-footer">
                 <a href="{{ url_for('settings', role='farmer') }}" class="sidebar-link">{{ get_text('settings') }}</a>
+                <a href="{{ url_for('toggle_farmer_language') }}" class="sidebar-link" style="color: #27ae60; font-weight: 700; display: flex; align-items: center; justify-content: space-between; text-decoration: none;">
+                    <span>🌐 English / தமிழ்</span>
+                    <span style="background: rgba(39, 174, 96, 0.2); color: #27ae60; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">
+                        {% if farmer_lang == 'ta' %}தமிழ்{% else %}English{% endif %}
+                    </span>
+                </a>
                 <button id="theme-toggle" class="sidebar-link">Theme</button>
                 <a href="{{ url_for('logout', role='farmer') }}" class="sidebar-link" style="color: #e74c3c;">{{ get_text('logout') }}</a>
             </div>
@@ -95,7 +101,7 @@
             </button>
             <div class="dashboard-header">
                 <h1 style="margin: 0;">{{ get_text('farmer_dashboard') }}</h1>
-                <div style="font-size: 0.875rem; color: var(--secondary-text);">Welcome back, <strong>{{ session['farmer_user']['name'] }}</strong></div>
+                <div style="font-size: 0.875rem; color: var(--secondary-text);">{{ get_text('welcome_back') }}, <strong>{{ session['farmer_user']['name'] }}</strong></div>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -111,7 +117,7 @@
             <!-- Section: Home -->
             <div id="section-home" class="dashboard-section">
                 <div class="welcome-banner">
-                    <div style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; opacity: 0.7;">Marketplace Overview</div>
+                    <div style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; opacity: 0.7;">{{ get_text('marketplace_overview') }}</div>
                     <h3>{{ get_text('tagline') }}</h3>
                     <p>{{ get_text('home_welcome') }}</p>
                 </div>
@@ -127,8 +133,8 @@
                 </div>
 
                 <div style="margin-top: 3rem;">
-                    <h3>Recent Activity</h3>
-                    <p style="color: var(--secondary-text);">Select a section from the sidebar to manage your crops, view sales, or check market prices.</p>
+                    <h3>{{ get_text('recent_activity') }}</h3>
+                    <p style="color: var(--secondary-text);">{{ get_text('select_section_help') }}</p>
                 </div>
             </div>
 
@@ -140,7 +146,7 @@
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
                         {% for crop, price in msp_data.items() %}
                         <span style="background: var(--bg-color); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--nav-border);">
-                            {{ get_text(crop)|capitalize }}: ₹{{ price }}
+                            {{ crop_display(crop) }}: ₹{{ price }}
                         </span>
                         {% endfor %}
                     </div>
@@ -150,19 +156,19 @@
                         <div class="form-group">
                             <label>{{ get_text('crop_name') }}</label>
                             <select id="cropSelect" name="crop_name" required onchange="calculateMspDiff()" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--input-border); background: var(--bg-color); color: var(--text-color); font-size: 0.95rem; font-weight: 600;">
-                                <option value="" disabled selected>Select crop...</option>
-                                <option value="Rice" data-msp="21.83">Rice (MSP: ₹21.83/kg)</option>
-                                <option value="Wheat" data-msp="22.75">Wheat (MSP: ₹22.75/kg)</option>
-                                <option value="Maize" data-msp="20.90">Maize (MSP: ₹20.90/kg)</option>
-                                <option value="Ragi" data-msp="38.46">Ragi (MSP: ₹38.46/kg)</option>
-                                <option value="Bajra" data-msp="25.00">Bajra (MSP: ₹25.00/kg)</option>
-                                <option value="Tur" data-msp="70.00">Tur (MSP: ₹70.00/kg)</option>
-                                <option value="Moong" data-msp="85.58">Moong (MSP: ₹85.58/kg)</option>
-                                <option value="Urad" data-msp="69.50">Urad (MSP: ₹69.50/kg)</option>
-                                <option value="Groundnut" data-msp="63.77">Groundnut (MSP: ₹63.77/kg)</option>
-                                <option value="Sunflower" data-msp="67.60">Sunflower (MSP: ₹67.60/kg)</option>
-                                <option value="Soyabean" data-msp="46.00">Soyabean (MSP: ₹46.00/kg)</option>
-                                <option value="Cotton" data-msp="66.20">Cotton (MSP: ₹66.20/kg)</option>
+                                <option value="" disabled selected>{{ get_text('select_crop_placeholder') }}</option>
+                                <option value="Rice" data-msp="21.83">{{ crop_display('Rice') }} (MSP: ₹21.83/kg)</option>
+                                <option value="Wheat" data-msp="22.75">{{ crop_display('Wheat') }} (MSP: ₹22.75/kg)</option>
+                                <option value="Maize" data-msp="20.90">{{ crop_display('Maize') }} (MSP: ₹20.90/kg)</option>
+                                <option value="Ragi" data-msp="38.46">{{ crop_display('Ragi') }} (MSP: ₹38.46/kg)</option>
+                                <option value="Bajra" data-msp="25.00">{{ crop_display('Bajra') }} (MSP: ₹25.00/kg)</option>
+                                <option value="Tur" data-msp="70.00">{{ crop_display('Tur') }} (MSP: ₹70.00/kg)</option>
+                                <option value="Moong" data-msp="85.58">{{ crop_display('Moong') }} (MSP: ₹85.58/kg)</option>
+                                <option value="Urad" data-msp="69.50">{{ crop_display('Urad') }} (MSP: ₹69.50/kg)</option>
+                                <option value="Groundnut" data-msp="63.77">{{ crop_display('Groundnut') }} (MSP: ₹63.77/kg)</option>
+                                <option value="Sunflower" data-msp="67.60">{{ crop_display('Sunflower') }} (MSP: ₹67.60/kg)</option>
+                                <option value="Soyabean" data-msp="46.00">{{ crop_display('Soyabean') }} (MSP: ₹46.00/kg)</option>
+                                <option value="Cotton" data-msp="66.20">{{ crop_display('Cotton') }} (MSP: ₹66.20/kg)</option>
                             </select>
                         </div>
 
@@ -171,7 +177,7 @@
                             <input type="number" step="1" name="quantity" min="1" required>
                         </div>
                         <div class="form-group" style="flex: 1.5;">
-                            <label>{{ get_text('price_per_kg') }} (₹)</label>
+                            <label>{{ get_text('price_per_kg') }}</label>
                             <input type="number" step="0.1" id="priceInput" name="price_per_kg" required oninput="calculateMspDiff()">
                         </div>
                     </div>
@@ -180,19 +186,19 @@
                     <div id="mspWidget" style="display: none; margin: 1rem 0; padding: 0.85rem; border-radius: 8px; background: rgba(41, 128, 185, 0.08); border: 1px solid rgba(41, 128, 185, 0.2);">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <div>
-                                <span>Govt MSP Reference: <strong id="mspValueDisplay">₹0.00/kg</strong></span>
+                                <span>{{ get_text('govt_msp_reference') }}: <strong id="mspValueDisplay">₹0.00/kg</strong></span>
                             </div>
                             <div>
-                                <span>Difference vs MSP: <strong id="mspDiffDisplay">0%</strong></span>
+                                <span>{{ get_text('diff_vs_msp') }}: <strong id="mspDiffDisplay">0%</strong></span>
                             </div>
                         </div>
                         <div id="mspWarningMsg" style="margin-top: 0.5rem; font-size: 0.85rem; color: #e74c3c; font-weight: 600; display: none;">
-                            ⚠️ Note: Your price is listed below the official Government MSP benchmark.
+                            {{ get_text('note_price_below_msp') }}
                         </div>
                     </div>
 
                     <p style="font-size: 0.8125rem; color: var(--secondary-text); margin-bottom: 1.5rem;">
-                        📍 <strong>Location:</strong> {{ session['farmer_user']['location'] }} (Auto-detected from your profile)
+                        📍 <strong>{{ get_text('location') }}:</strong> {{ session['farmer_user']['location'] }} ({{ get_text('auto_location_note') }})
                     </p>
                     <button type="submit">{{ get_text('add_new_listing') }}</button>
                 </form>
@@ -251,7 +257,7 @@
                         <tbody>
                             {% for crop in crops %}
                             <tr>
-                                <td style="font-weight: 600;">{{ get_text(crop.crop_name)|capitalize }}</td>
+                                <td style="font-weight: 600;">{{ crop_display(crop.crop_name) }}</td>
                                 <td>{{ crop.quantity }}</td>
                                 <td>₹{{ crop.price_per_kg }}</td>
                                 <td>{{ crop.location }}</td>
@@ -263,7 +269,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" style="text-align: center; color: var(--secondary-text);">No active listings.</td>
+                                <td colspan="5" style="text-align: center; color: var(--secondary-text);">{{ get_text('no_listings_yet') }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -273,30 +279,30 @@
 
             <!-- Section: Orders & Sales -->
             <div id="section-sold-items" class="dashboard-section" style="display: none;">
-                <h2>Orders & Sales</h2>
+                <h2>{{ get_text('sold_items') }}</h2>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
                                 <th>{{ get_text('crop_name') }}</th>
-                                <th>Buyer</th>
+                                <th>{{ get_text('buyer') }}</th>
                                 <th>{{ get_text('quantity') }}</th>
                                 <th>{{ get_text('total_price') }}</th>
-                                <th>Fulfillment & Delivery</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>{{ get_text('fulfillment_delivery') }}</th>
+                                <th>{{ get_text('status') }}</th>
+                                <th>{{ get_text('action') }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for order in sold_orders %}
                             <tr>
-                                <td style="text-transform: capitalize;">{{ order.crop_name }}</td>
+                                <td style="font-weight: 600;">{{ crop_display(order.crop_name) }}</td>
                                 <td>
                                     <div>{{ order.buyer_name }}</div>
                                     {% if order.status in ('Accepted', 'Completed') %}
-                                        <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">📞 {{ order.buyer_phone or 'Contact Provided' }}</div>
+                                        <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">📞 {{ order.buyer_phone or get_text('no_phone') }}</div>
                                     {% else %}
-                                        <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon acceptance</div>
+                                        <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">{{ get_text('contact_revealed_on_acceptance') }}</div>
                                     {% endif %}
                                 </td>
                                 <td>{{ order.quantity }} kg</td>
@@ -307,21 +313,21 @@
                                         {% set lstatus = order.logistics_status or 'LOGISTICS_REQUESTED' %}
                                         <div style="margin-top: 3px;">
                                         {% if lstatus == 'LOGISTICS_REQUESTED' %}
-                                            <span style="font-size: 0.7rem; background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 2px 6px; border-radius: 4px; font-weight: 600;">1. Requested</span>
+                                            <span style="font-size: 0.7rem; background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}1. கோரப்பட்டது{% else %}1. Requested{% endif %}</span>
                                         {% elif lstatus == 'PICKUP_SCHEDULED' %}
-                                            <span style="font-size: 0.7rem; background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 2px 6px; border-radius: 4px; font-weight: 600;">2. Pickup Scheduled</span>
+                                            <span style="font-size: 0.7rem; background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}2. பிக்கப் திட்டமிடப்பட்டது{% else %}2. Pickup Scheduled{% endif %}</span>
                                         {% elif lstatus == 'PICKED_UP' %}
-                                            <span style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.15); color: #059669; padding: 2px 6px; border-radius: 4px; font-weight: 600;">3. Picked Up</span>
+                                            <span style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.15); color: #059669; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}3. எடுத்துச்செல்லப்பட்டது{% else %}3. Picked Up{% endif %}</span>
                                         {% elif lstatus == 'IN_TRANSIT' %}
-                                            <span style="font-size: 0.7rem; background: rgba(99, 102, 241, 0.15); color: #4f46e5; padding: 2px 6px; border-radius: 4px; font-weight: 600;">4. In Transit</span>
+                                            <span style="font-size: 0.7rem; background: rgba(99, 102, 241, 0.15); color: #4f46e5; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}4. வழியில் உள்ளது{% else %}4. In Transit{% endif %}</span>
                                         {% elif lstatus == 'OUT_FOR_DELIVERY' %}
-                                            <span style="font-size: 0.7rem; background: rgba(236, 72, 153, 0.15); color: #db2777; padding: 2px 6px; border-radius: 4px; font-weight: 600;">5. Out for Delivery</span>
+                                            <span style="font-size: 0.7rem; background: rgba(236, 72, 153, 0.15); color: #db2777; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}5. விநியோகத்திற்கு வெளியே உள்ளது{% else %}5. Out for Delivery{% endif %}</span>
                                         {% elif lstatus in ('DELIVERED', 'PAYMENT_COLLECTED') %}
-                                            <span style="font-size: 0.7rem; background: rgba(34, 197, 94, 0.15); color: #16a34a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">6. Delivered & COD Collected</span>
+                                            <span style="font-size: 0.7rem; background: rgba(34, 197, 94, 0.15); color: #16a34a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}6. விநியோகிக்கப்பட்டது & ரொக்கம் பெறப்பட்டது{% else %}6. Delivered & COD Collected{% endif %}</span>
                                         {% elif lstatus == 'SETTLEMENT_PENDING' %}
-                                            <span style="font-size: 0.7rem; background: rgba(245, 158, 11, 0.25); color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: bold;">⏳ Payment Sent by Logistics</span>
+                                            <span style="font-size: 0.7rem; background: rgba(245, 158, 11, 0.25); color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{% if farmer_lang == 'ta' %}⏳ பணம் அனுப்பப்பட்டது (உறுதிப்படுத்தவும்){% else %}⏳ Payment Sent by Logistics{% endif %}</span>
                                         {% elif lstatus == 'SETTLED' %}
-                                            <span style="font-size: 0.7rem; background: rgba(34, 197, 94, 0.2); color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: bold;">✓ Payment Settled & Received</span>
+                                            <span style="font-size: 0.7rem; background: rgba(34, 197, 94, 0.2); color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{% if farmer_lang == 'ta' %}✓ பணம் பெறப்பட்டது & நிறைவடைந்தது{% else %}✓ Payment Settled & Received{% endif %}</span>
                                         {% else %}
                                             <span style="font-size: 0.7rem; color: #22c55e; font-weight: 600;">{{ lstatus }}</span>
                                         {% endif %}
@@ -338,13 +344,13 @@
                                 <td>
                                     {% if order.status == 'Pending' %}
                                     <div style="display: flex; gap: 0.5rem;">
-                                        <a href="{{ url_for('accept_order', order_id=order.id) }}" class="btn-small" style="background: #2e7d32; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;">Accept</a>
-                                        <a href="{{ url_for('reject_order', order_id=order.id) }}" class="btn-small" style="background: #c62828; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;">Reject</a>
+                                        <a href="{{ url_for('accept_order', order_id=order.id) }}" class="btn-small" style="background: #2e7d32; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;">{% if farmer_lang == 'ta' %}ஏற்றுக்கொள்{% else %}Accept{% endif %}</a>
+                                        <a href="{{ url_for('reject_order', order_id=order.id) }}" class="btn-small" style="background: #c62828; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;">{% if farmer_lang == 'ta' %}நிராகரி{% else %}Reject{% endif %}</a>
                                     </div>
                                     {% elif order.fulfillment_method == 'Logistics Partner' and order.settlement_status != 'SETTLED' and order.logistics_status in ('DELIVERED', 'PAYMENT_COLLECTED', 'SETTLEMENT_PENDING') %}
-                                    <a href="{{ url_for('confirm_farmer_payment_received', order_id=order.id) }}" class="btn-small" style="background: #22c55e; color: #000; font-weight: 800; padding: 6px 12px; border-radius: 50px; text-decoration: none; font-size: 0.75rem; display: inline-block;" onclick="return confirm('Confirm that you have received the payout payment of ₹{{ order.farmer_settlement_amount or order.total_price }} for Order #{{ order.id[:8] }}?')">✓ Confirm Payment Received</a>
+                                    <a href="{{ url_for('confirm_farmer_payment_received', order_id=order.id) }}" class="btn-small" style="background: #22c55e; color: #000; font-weight: 800; padding: 6px 12px; border-radius: 50px; text-decoration: none; font-size: 0.75rem; display: inline-block;" onclick="return confirm('Confirm that you have received the payout payment of ₹{{ order.farmer_settlement_amount or order.total_price }} for Order #{{ order.id[:8] }}?')">{{ get_text('confirm_payment_received') }}</a>
                                     {% elif order.status == 'Accepted' and order.fulfillment_method != 'Logistics Partner' %}
-                                    <a href="{{ url_for('complete_order', order_id=order.id) }}" class="btn-small" style="background: #1565c0; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;" onclick="return confirm('Mark this order as Completed?')">Mark Completed</a>
+                                    <a href="{{ url_for('complete_order', order_id=order.id) }}" class="btn-small" style="background: #1565c0; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;" onclick="return confirm('Mark this order as Completed?')">{{ get_text('mark_completed') }}</a>
                                     {% else %}
                                     <span style="color: var(--secondary-text); font-size: 0.75rem;">{{ order.status }}</span>
                                     {% endif %}
@@ -352,7 +358,7 @@
                             </tr>
                             {% endfor %}
                             {% if not sold_orders %}
-                            <tr><td colspan="7" style="text-align: center; color: var(--secondary-text);">No orders found.</td></tr>
+                            <tr><td colspan="7" style="text-align: center; color: var(--secondary-text);">{{ get_text('no_orders_found') }}</td></tr>
                             {% endif %}
 
                         </tbody>
@@ -368,7 +374,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
                         {% for crop, price in msp_data.items() %}
                         <div style="padding: 0.75rem; border: 1px solid var(--nav-border); border-radius: 8px; background: var(--bg-color); text-align: center;">
-                            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">{{ get_text(crop)|capitalize }}</div>
+                            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">{{ crop_display(crop) }}</div>
                             <div style="color: #27ae60; font-weight: 700;">₹{{ price }}/kg</div>
                         </div>
                         {% endfor %}

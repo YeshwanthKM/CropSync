@@ -84,6 +84,14 @@
             </nav>
             <div class="sidebar-footer">
                 <a href="{{ url_for('settings', role=active_role) }}" class="sidebar-link active">{{ get_text('settings') }}</a>
+                {% if active_role == 'farmer' %}
+                <a href="{{ url_for('toggle_farmer_language') }}" class="sidebar-link" style="color: #27ae60; font-weight: 700; display: flex; align-items: center; justify-content: space-between; text-decoration: none;">
+                    <span>🌐 English / தமிழ்</span>
+                    <span style="background: rgba(39, 174, 96, 0.2); color: #27ae60; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">
+                        {% if farmer_lang == 'ta' %}தமிழ்{% else %}English{% endif %}
+                    </span>
+                </a>
+                {% endif %}
                 <button id="theme-toggle" class="sidebar-link">Theme</button>
                 <a href="{{ url_for('logout', role=active_role) }}" class="sidebar-link" style="color: #e74c3c;">{{ get_text('logout') }}</a>
             </div>

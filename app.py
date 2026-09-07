@@ -42,6 +42,16 @@ MSP_DATA = {
 }
 
 
+CROP_TRANSLATIONS_TA = {
+    'rice': 'அரிசி', 'wheat': 'கோதுமை', 'maize': 'சோளம்', 'ragi': 'கேழ்வரகு',
+    'bajra': 'கம்பு', 'tur': 'துவரம் பருப்பு', 'moong': 'பாசிப் பருப்பு',
+    'urad': 'உளுந்தம் பருப்பு', 'groundnut': 'நிலக்கடலை', 'sunflower': 'சூரியகாந்தி',
+    'soyabean': 'சோயாபீன்ஸ்', 'cotton': 'பருத்தி', 'sugarcane': 'கரும்பு',
+    'tomato': 'தக்காளி', 'potato': 'உருளைக்கிழங்கு', 'onion': 'வெங்காயம்',
+    'chilli': 'மிளகாய்', 'turmeric': 'மஞ்சள்', 'banana': 'வாழைப்பழம்',
+    'coconut': 'தேங்காய்', 'mustard': 'கடுகு', 'jute': 'சணல்', 'pulses': 'பருப்பு வகைகள்'
+}
+
 # English and Tamil Translations
 TRANSLATIONS = {
     'en': {
@@ -105,45 +115,6 @@ TRANSLATIONS = {
         'language': 'Language',
         'english': 'English',
         'tamil': 'Tamil',
-        'project_overview': 'Project Overview',
-        'problem_statement': 'Problem Statement',
-        'problem_desc': 'Agriculture supports nearly 45% of India’s workforce, yet many small and marginal farmers struggle to receive fair prices for their crops due to dependence on intermediaries and lack of direct buyer access.',
-        'our_objective': 'Our Objective',
-        'obj_1': 'Provide direct farmer-to-buyer connectivity',
-        'obj_2': 'Ensure fair crop pricing using MSP validation',
-        'obj_3': 'Increase farmer income and transparency',
-        'obj_4': 'Promote digital inclusion in agriculture',
-        'our_solution': 'Our Solution – CropSync',
-        'sol_desc': 'CropSync is a digital marketplace where farmers can list their crops and buyers can search and purchase directly from them.',
-        'sol_f_title': 'Farmer Dashboard',
-        'sol_f1': 'List available crops',
-        'sol_f2': 'View MSP reference price',
-        'sol_f3': 'Manage orders',
-        'sol_f4': 'Track earnings',
-        'sol_b_title': 'Buyer Dashboard',
-        'sol_b1': 'Search crops by name and location',
-        'sol_b2': 'Compare farmer price with MSP',
-        'sol_b3': 'Place secure orders',
-        'fair_pricing': 'Fair Pricing Mechanism',
-        'pricing_desc': 'The system integrates MSP reference values to prevent underpricing and protect farmer income.',
-        'pricing_gov': 'MSP values are based on guidelines issued by the Government of India.',
-        'expected_impact': 'Impact Section',
-        'impact_desc': 'CropSync helps improve farmer income and promotes a transparent digital agricultural marketplace.',
-        'impact_1': 'Improved farmer income',
-        'impact_2': 'Reduced dependency on middlemen',
-        'impact_3': 'Transparent digital marketplace',
-        'impact_4': 'Direct coordination',
-        'tech_used': 'Technology Used',
-        'tech_1': 'Python Flask',
-        'tech_2': 'Supabase PostgreSQL Database',
-        'tech_3': 'HTML5 & CSS3 Responsive UI',
-        'tech_4': 'Vercel Serverless Deployment',
-        'short_about': 'About CropSync',
-        'short_desc': 'CropSync is a digital marketplace designed to eliminate middlemen and ensure fair crop pricing.',
-        'key_features': 'Key Features',
-        'feature_msp': 'MSP Price Protection',
-        'feature_direct': 'Direct Market Access',
-        'feature_secure': 'Secure & Transparent',
         'phone': 'Phone Number',
         'address': 'Address',
         'contact_details': 'Contact Details',
@@ -152,25 +123,103 @@ TRANSLATIONS = {
         'sold_items': 'Sold Items',
         'farmer_contact': 'Farmer Contact',
         'no_phone': 'No phone provided',
-        'how_it_works': 'How It Works',
-        'how_1': 'Farmers list their crops.',
-        'how_2': 'Buyers browse and search for crops.',
-        'how_3': 'Buyers connect directly with farmers for transparent trade.',
-        'feature_dash': 'Farmer Dashboard – Farmers can list and manage their crop listings.',
-        'feature_market': 'Buyer Marketplace – Buyers can browse available crops easily.',
-        'feature_price': 'Transparent Pricing – Better visibility of crop prices.',
-        'feature_connect': 'Direct Farmer–Buyer Connection – Reduces intermediaries.',
-        'demo_credentials': 'Demo Credentials',
-        'buyer_accounts': 'Buyer Accounts',
-        'farmer_accounts': 'Farmer Accounts',
+        'recent_activity': 'Recent Activity',
+        'select_section_help': 'Select a section from the sidebar to manage your crops, view sales, or check market prices.',
+        'select_crop_placeholder': 'Select crop...',
+        'govt_msp_reference': 'Govt MSP Reference',
+        'diff_vs_msp': 'Difference vs MSP',
+        'enter_price': 'Enter price',
+        'note_price_below_msp': '⚠️ Note: Your price is listed below the official Government MSP benchmark.',
+        'auto_location_note': 'Auto-detected from your profile',
+        'contact_revealed_on_acceptance': 'Contact revealed upon acceptance',
+        'confirm_payment_received': '✓ Confirm Payment Received',
+        'mark_completed': 'Mark Completed',
+        'waiting_for_farmer': 'Waiting for farmer',
+        'no_listings_yet': 'No active listings.',
+        'no_orders_found': 'No orders found.',
+        'marketplace_overview': 'Marketplace Overview'
+    },
+    'ta': {
+        'home': 'முகப்பு',
+        'login': 'உள்நுழை',
+        'register': 'பதிவு செய்',
+        'settings': 'அமைப்புகள்',
+        'logout': 'வெளியேறு',
+        'marketplace': 'சந்தை',
+        'home_welcome': 'க்ராப்சின்க் (CropSync) என்பது விவசாயிகளையும் வாங்குபவர்களையும் நேரடியாக இணைக்கும் ஒரு வெளிப்படையான டிஜிட்டல் சந்தையாகும். எங்கள் தளம் அரசின் குறைந்தபட்ச ஆதரவு விலையை (MSP) ஒருங்கிணைத்து நியாயமான விலையை உறுதி செய்கிறது.',
+        'welcome': 'பயிர்களுக்கு நியாயமான விலை கிடைக்க க்ராப்சின்க் விவசாயிகளையும் வாங்குபவர்களையும் நேரடியாக இணைக்கிறது.',
+        'tagline': 'க்ராப்சின்க்',
+        'tagline_sub': 'வெளிப்படையான விவசாயி-வாங்குபவர் டிஜிட்டல் சந்தை.',
+        'farmer_dashboard': 'விவசாயி டாஷ்போர்டு',
+        'total_earnings': 'மொத்த வருமானம்',
+        'active_listings': 'செயலில் உள்ள பட்டியல்கள்',
+        'list_new_crop': 'புதிய பயிர் பட்டியலிடு',
+        'msp_reference': 'குறைந்தபட்ச ஆதரவு விலை (MSP)',
+        'crop_name': 'பயிர் பெயர்',
+        'quantity': 'அளவு',
+        'price_per_kg': 'கிலோ விலை (₹)',
+        'location': 'இடம்',
+        'add_new_listing': 'புதிய பட்டியலைச் சேர்',
+        'my_crop_listings': 'எனது பயிர் பட்டியல்கள்',
+        'action': 'செயல்',
+        'delete': 'நீக்கு',
+        'my_orders': 'எனது ஆர்டர்கள்',
+        'sold_items': 'ஆர்டர்கள் & விற்பனை',
+        'status': 'நிலை',
+        'profile_settings': 'சுயவிவர அமைப்புகள்',
+        'update_profile': 'சுயவிவரத்தைப் புதுப்பி',
+        'name': 'முழு பெயர்',
+        'email': 'மின்னஞ்சல் முகவரி',
+        'phone': 'தொலைபேசி எண்',
+        'address': 'முகவரி',
+        'role': 'பங்கு',
+        'farmer': 'விவசாயி',
+        'recent_activity': 'சமீபத்திய நடவடிக்கைகள்',
+        'select_section_help': 'உங்கள் பயிர்களை நிர்வகிக்க, விற்பனையைப் பார்க்க அல்லது சந்தை விலைகளைச் சரிபார்க்க பக்கவாட்டு மெனுவிலிருந்து ஒரு பகுதியைத் தேர்ந்தெடுக்கவும்.',
+        'select_crop_placeholder': 'பயிரைத் தேர்ந்தெடுக்கவும்...',
+        'govt_msp_reference': 'அரசு MSP குறிப்பு',
+        'diff_vs_msp': 'MSP உடன் ஒப்பீடு',
+        'enter_price': 'விலையை உள்ளிடவும்',
+        'note_price_below_msp': '⚠️ குறிப்பு: நீங்கள் குறிப்பிட்ட விலை அரசின் குறைந்தபட்ச ஆதரவு விலையை (MSP) விடக் குறைவாக உள்ளது.',
+        'auto_location_note': 'உங்கள் சுயவிவரத்திலிருந்து தானாக கண்டறியப்பட்டது',
+        'contact_revealed_on_acceptance': 'ஏற்றுக்கொண்ட பிறகு தொடர்பு விவரம் காண்பிக்கப்படும்',
+        'confirm_payment_received': '✓ பணத்தைப் பெற்றதை உறுதிசெய்',
+        'mark_completed': 'முடிந்ததாகக் குறி',
+        'waiting_for_farmer': 'விவசாயிக்காக காத்திருக்கிறது',
+        'no_listings_yet': 'நீங்கள் இன்னும் எந்த பயிரையும் பட்டியலிடவில்லை.',
+        'no_orders_found': 'ஆர்டர்கள் எதுவும் கிடைக்கவில்லை.',
+        'marketplace_overview': 'சந்தை மேலோட்டம்'
     }
 }
 
 @app.context_processor
 def inject_translations():
-    def get_text(key):
-        return TRANSLATIONS['en'].get(key, key)
-    return dict(get_text=get_text)
+    farmer_lang = session.get('farmer_lang', 'en') if session.get('farmer_user') else 'en'
+
+    def get_text(key, default=None):
+        if farmer_lang == 'ta' and 'ta' in TRANSLATIONS and key in TRANSLATIONS['ta']:
+            return TRANSLATIONS['ta'][key]
+        return TRANSLATIONS['en'].get(key, default if default is not None else key)
+
+    def crop_display(crop_name):
+        if not crop_name:
+            return ''
+        key = str(crop_name).strip()
+        lower_key = key.lower()
+        ta_val = CROP_TRANSLATIONS_TA.get(lower_key) or CROP_TRANSLATIONS_TA.get(key)
+        if farmer_lang == 'ta' and ta_val:
+            return f"{key.capitalize()} ({ta_val})"
+        return key.capitalize()
+
+    return dict(get_text=get_text, crop_display=crop_display, farmer_lang=farmer_lang)
+
+@app.route('/toggle_farmer_language')
+def toggle_farmer_language():
+    current_lang = session.get('farmer_lang', 'en')
+    new_lang = 'ta' if current_lang == 'en' else 'en'
+    session['farmer_lang'] = new_lang
+    referrer = request.referrer or url_for('farmer_dashboard')
+    return redirect(referrer)
 
 # --- AUTHORIZATION DECORATORS ---
 
