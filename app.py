@@ -792,6 +792,9 @@ def admin_farmer_detail(farmer_id):
             reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
             if new_status == 'suspended':
                 email = farmer['email']
+                if email.lower() in db.PERMANENT_DEMO_EMAILS:
+                    flash(f'Permanent demo account ({email}) is protected and cannot be deleted or suspended.', 'error')
+                    return redirect(url_for('admin_farmers'))
                 SupabaseAuthService.delete_user_by_email(email)
                 db.log_admin_action(admin_id, 'SUSPEND_AND_PURGE_USER', farmer_id, reason or 'Account suspended and purged by admin')
                 db.delete_user(farmer_id)
@@ -839,6 +842,9 @@ def admin_buyer_detail(buyer_id):
             reason = request.form.get('reason', '').strip() if new_status == 'suspended' else None
             if new_status == 'suspended':
                 email = buyer['email']
+                if email.lower() in db.PERMANENT_DEMO_EMAILS:
+                    flash(f'Permanent demo account ({email}) is protected and cannot be deleted or suspended.', 'error')
+                    return redirect(url_for('admin_buyers'))
                 SupabaseAuthService.delete_user_by_email(email)
                 db.log_admin_action(admin_id, 'SUSPEND_AND_PURGE_USER', buyer_id, reason or 'Account suspended and purged by admin')
                 db.delete_user(buyer_id)

@@ -823,7 +823,19 @@ def get_user_by_verification_token(token):
     finally:
         conn.close()
 
+PERMANENT_DEMO_EMAILS = {
+    'admin@cropsync.com',
+    'logistics@cropsync.com',
+    'farmer1@gmail.com',
+    'buyer1@gmail.com',
+}
+
 def delete_user(user_id):
+    user = get_user_by_id(user_id)
+    if user and user.get('email', '').strip().lower() in PERMANENT_DEMO_EMAILS:
+        print(f"[!] Protection: Permanent demo account {user.get('email')} cannot be deleted.")
+        return False
+
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
@@ -835,6 +847,7 @@ def delete_user(user_id):
         cursor.execute(f"DELETE FROM users WHERE id = {ph}", (str(user_id),))
         if db_type == "sqlite":
             conn.commit()
+        return True
     finally:
         conn.close()
 
