@@ -1022,6 +1022,26 @@ def admin_logistics():
     )
 
 
+@app.route('/admin/logistics/toggle_status/<user_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_toggle_user_status(user_id):
+    user = db.get_user_by_id(user_id)
+    if not user:
+        flash('Logistics account not found.', 'error')
+        return redirect(url_for('admin_logistics'))
+    
+    if user.get('email', '').strip().lower() in db.PERMANENT_DEMO_EMAILS:
+        flash(f"Permanent demo account ({user['email']}) is protected and cannot be suspended.", 'error')
+        return redirect(url_for('admin_logistics'))
+
+    new_status = 'suspended' if user.get('account_status') == 'active' else 'active'
+    db.update_user_status(user_id, new_status)
+    admin_id = session.get('admin_user', {}).get('id')
+    db.log_admin_action(admin_id, f"TOGGLE_LOGISTICS_STATUS_{new_status.upper()}", user_id, f"Admin updated status to {new_status}")
+    flash(f"Logistics status for {user['email']} updated to {new_status}.", 'success')
+    return redirect(url_for('admin_logistics'))
+
+
 @app.route('/admin/reset_database', methods=['GET', 'POST'])
 @admin_required
 def admin_reset_database():
