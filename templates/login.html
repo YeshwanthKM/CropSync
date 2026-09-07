@@ -25,7 +25,9 @@
 
     <script>
         (function() {
+            let loaderTimer = null;
             function hideLoader() {
+                if (loaderTimer) clearTimeout(loaderTimer);
                 const loader = document.getElementById('global-loading-screen');
                 if (loader) {
                     loader.classList.add('hidden');
@@ -37,6 +39,8 @@
                 if (loader) {
                     loader.style.display = 'flex';
                     loader.classList.remove('hidden');
+                    if (loaderTimer) clearTimeout(loaderTimer);
+                    loaderTimer = setTimeout(hideLoader, 3000);
                 }
             }
             window.showLoader = showLoader;
@@ -49,17 +53,10 @@
             }
             window.addEventListener('pageshow', hideLoader);
 
-            document.addEventListener('click', function(e) {
-                const target = e.target.closest('a, button, input[type="submit"], .btn');
-                if (target) {
-                    if (target.id === 'theme-toggle' || target.classList.contains('mobile-toggle')) return;
-                    const href = target.getAttribute('href');
-                    if (href && (href.startsWith('#') || href.startsWith('javascript:'))) return;
-                    showLoader();
+            document.addEventListener('submit', function(e) {
+                if (e.target && typeof e.target.checkValidity === 'function' && !e.target.checkValidity()) {
+                    return;
                 }
-            }, true);
-
-            document.addEventListener('submit', function() {
                 showLoader();
             }, true);
         })();
@@ -93,7 +90,7 @@
 
                 <div class="form-group">
                     <label>{{ get_text('email') }}</label>
-                    <input type="email" id="emailInput" name="email" placeholder="email@example.com" required>
+                    <input type="text" id="emailInput" name="email" placeholder="Email address or username" required>
                 </div>
                 <div class="form-group">
                     <label>{{ get_text('password') }}</label>
