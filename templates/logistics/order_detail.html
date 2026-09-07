@@ -155,7 +155,7 @@
             <div style="margin-bottom: 1.25rem; padding: 1rem; background: #111; border-radius: 8px; border-left: 4px solid #3b82f6;">
                 <div style="font-size: 0.75rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; margin-bottom: 0.25rem;">👨‍🌾 Pickup from Farmer</div>
                 <div style="font-weight: 700; color: #fff;">{{ order.farmer_name or 'Farmer' }}</div>
-                <div style="font-size: 0.85rem; color: #9ca3af; margin-top: 0.2rem;">📍 {{ order.farmer_location or 'Farm Location' }}</div>
+                <div style="font-size: 0.85rem; color: #9ca3af; margin-top: 0.2rem;">📍 {{ order.pickup_address or order.farmer_address or order.farmer_location or 'Farm Location' }}</div>
                 <div style="font-size: 0.85rem; color: #9ca3af;">📞 {{ order.farmer_phone or 'Contact on acceptance' }}</div>
                 <div style="font-size: 0.85rem; color: #9ca3af;">✉️ {{ order.farmer_email or 'N/A' }}</div>
             </div>
@@ -163,7 +163,7 @@
             <div style="padding: 1rem; background: #111; border-radius: 8px; border-left: 4px solid #22c55e;">
                 <div style="font-size: 0.75rem; font-weight: 800; color: #22c55e; text-transform: uppercase; margin-bottom: 0.25rem;">🛒 Deliver to Buyer</div>
                 <div style="font-weight: 700; color: #fff;">{{ order.buyer_name or 'Buyer' }}</div>
-                <div style="font-size: 0.85rem; color: #9ca3af; margin-top: 0.2rem;">📍 {{ order.buyer_location or 'Delivery Address' }}</div>
+                <div style="font-size: 0.85rem; color: #9ca3af; margin-top: 0.2rem;">📍 {{ order.delivery_address or order.buyer_address or order.buyer_location or 'Delivery Address' }}</div>
                 <div style="font-size: 0.85rem; color: #9ca3af;">📞 {{ order.buyer_phone or 'Contact info' }}</div>
                 <div style="font-size: 0.85rem; color: #9ca3af;">✉️ {{ order.buyer_email or 'N/A' }}</div>
             </div>

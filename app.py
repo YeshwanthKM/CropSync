@@ -769,10 +769,18 @@ def place_order():
             farmer_settlement_amount = total_price
 
         buyer_user = session.get('buyer_user', {})
+        buyer_db = db.get_user_by_id(buyer_user.get('id')) if buyer_user.get('id') else {}
         farmer_user = db.get_user_by_id(crop['farmer_id']) or {}
 
-        pickup_address = farmer_user.get('address') or crop.get('location', '')
-        delivery_address = request.form.get('delivery_address', '').strip() or buyer_user.get('address') or buyer_user.get('location', '')
+        pickup_address = farmer_user.get('address') or farmer_user.get('location') or crop.get('location', '') or 'Farm Address'
+        delivery_address = (
+            request.form.get('delivery_address', '').strip() or 
+            buyer_db.get('address') or 
+            buyer_db.get('location') or 
+            buyer_user.get('address') or 
+            buyer_user.get('location') or 
+            'Delivery Address'
+        )
 
         try:
             order_id = db.create_order(

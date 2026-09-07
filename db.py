@@ -1959,6 +1959,17 @@ def get_all_logistics_users():
     finally:
         release_connection(conn, cursor)
 
+def _enrich_order_addresses(order):
+    if not order:
+        return order
+    p_addr = (order.get('pickup_address') or '').strip()
+    if not p_addr or p_addr == 'Farm Address':
+        order['pickup_address'] = order.get('farmer_address') or order.get('farmer_location') or 'Farm Address'
+    d_addr = (order.get('delivery_address') or '').strip()
+    if not d_addr or d_addr == 'Delivery Address':
+        order['delivery_address'] = order.get('buyer_address') or order.get('buyer_location') or 'Delivery Address'
+    return order
+
 def get_logistics_orders(logistics_user_id=None, status_filter=None, search=None):
     conn, db_type = get_connection()
     cursor = None
@@ -1988,7 +1999,7 @@ def get_logistics_orders(logistics_user_id=None, status_filter=None, search=None
         sql += " ORDER BY o.created_at DESC"
         cursor.execute(sql, tuple(params))
         rows = cursor.fetchall()
-        return [_dict_row(r) for r in rows]
+        return [_enrich_order_addresses(_dict_row(r)) for r in rows]
     except Exception as e:
         print("[!] Error in get_logistics_orders:", e)
         return []
@@ -2015,7 +2026,7 @@ def get_logistics_order_by_id(order_id):
         """
         cursor.execute(sql, (str(order_id),))
         row = cursor.fetchone()
-        return _dict_row(row)
+        return _enrich_order_addresses(_dict_row(row))
     except Exception as e:
         print(f"[!] Error in get_logistics_order_by_id({order_id}):", e)
         return None
