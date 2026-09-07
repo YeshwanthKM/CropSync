@@ -1,141 +1,149 @@
 {% extends "admin/admin_base.html" %}
-
+{% set active_page = "logistics" %}
 {% block title %}Logistics Management — Admin Portal{% endblock %}
+{% block header_title %}Logistics & Delivery Management{% endblock %}
 
 {% block content %}
-<div class="admin-header">
-    <div>
-        <h1 class="admin-title">Logistics & Delivery Management</h1>
-        <p class="admin-subtitle">Manage prototype logistics partner accounts, monitor active shipments, COD collections, and farmer settlements.</p>
+<!-- Page Sub-Header & Action Button -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="color: var(--secondary-text); font-size: 0.9rem;">
+        Monitor freight partner accounts, active shipments, COD collections, and farmer settlements.
     </div>
-    <a href="{{ url_for('admin_create_user') }}" class="btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem;">+ Create Logistics Account</a>
+    <a href="{{ url_for('admin_create_user') }}" class="btn" style="background: #27ae60; color: #ffffff; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; text-decoration: none; border-radius: 6px; border: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+        <span style="font-size: 1rem; line-height: 1;">+</span> Create Logistics Account
+    </a>
 </div>
 
 <!-- Overview Stats Cards -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2.5rem;">
-    <div class="admin-card">
-        <div style="font-size: 0.75rem; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Active Logistics Partners</div>
-        <div style="font-size: 2rem; font-weight: 900; color: #3b82f6; margin-top: 0.25rem;">{{ logistics_users|length }}</div>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem; gap: 1.25rem;">
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #2980b9;">{{ logistics_users|length }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Active Logistics Partners</p>
     </div>
-    <div class="admin-card">
-        <div style="font-size: 0.75rem; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Active Shipments</div>
-        <div style="font-size: 2rem; font-weight: 900; color: #eab308; margin-top: 0.25rem;">{{ stats.new_orders + stats.pickup_pending + stats.in_transit + stats.out_for_delivery }}</div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #f39c12;">{{ stats.new_orders + stats.pickup_pending + stats.in_transit + stats.out_for_delivery }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Active Shipments</p>
     </div>
-    <div class="admin-card">
-        <div style="font-size: 0.75rem; font-weight: 800; color: #9ca3af; text-transform: uppercase;">COD Collected</div>
-        <div style="font-size: 2rem; font-weight: 900; color: #10b981; margin-top: 0.25rem;">{{ stats.payment_collected + stats.settlement_pending + stats.settled }}</div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #27ae60;">{{ stats.payment_collected + stats.settlement_pending + stats.settled }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">COD Collected</p>
     </div>
-    <div class="admin-card">
-        <div style="font-size: 0.75rem; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Farmer Settlements Confirmed</div>
-        <div style="font-size: 2rem; font-weight: 900; color: #4ade80; margin-top: 0.25rem;">{{ stats.settled }}</div>
+    <div class="card" style="text-align: center; padding: 1.25rem;">
+        <h3 style="margin-bottom: 0.25rem; font-size: 2rem; color: #16a085;">{{ stats.settled }}</h3>
+        <p style="color: var(--secondary-text); margin: 0; font-weight: 600; font-size: 0.85rem;">Farmer Settlements Confirmed</p>
     </div>
 </div>
 
 <!-- Logistics Partner Accounts Table -->
-<div class="admin-card" style="margin-bottom: 2.5rem;">
-    <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-top: 0; margin-bottom: 1rem;">Logistics Partner Accounts</h3>
+<div class="card" style="margin-bottom: 2rem;">
+    <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; color: var(--text-color);">Logistics Partner Accounts</h3>
     {% if logistics_users %}
-        <div style="overflow-x: auto;">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Partner Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Service Area</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th style="text-align: right;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in logistics_users %}
-                        <tr>
-                            <td><strong>{{ u.name or 'CropSync Logistics' }}</strong></td>
-                            <td style="font-family: monospace; color: #3b82f6;">{{ u.email }}</td>
-                            <td>{{ u.phone or 'N/A' }}</td>
-                            <td>{{ u.address or 'Pan-India' }}</td>
-                            <td>
-                                {% if u.account_status == 'active' %}
-                                    <span style="color: #22c55e; font-weight: 700;">✓ Active</span>
-                                {% else %}
-                                    <span style="color: #ef4444; font-weight: 700;">Suspended</span>
-                                {% endif %}
-                            </td>
-                            <td style="font-size: 0.8rem; color: #9ca3af;">{{ u.created_at[:10] if u.created_at else 'N/A' }}</td>
-                            <td style="text-align: right;">
-                                {% if u.email == 'logistics@cropsync.com' %}
-                                    <span style="font-size: 0.75rem; background: rgba(34,197,94,0.15); color: #22c55e; padding: 4px 8px; border-radius: 4px; font-weight: 700;">🔒 Permanent</span>
-                                {% else %}
-                                    <a href="{{ url_for('admin_toggle_user_status', user_id=u.id) }}" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-radius: 4px; font-weight: 700; text-decoration: none; {% if u.account_status == 'active' %}background: rgba(239,68,68,0.2); color: #ef4444;{% else %}background: rgba(34,197,94,0.2); color: #22c55e;{% endif %}">
-                                        {% if u.account_status == 'active' %}Suspend Account{% else %}Re-activate Account{% endif %}
-                                    </a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Partner Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Service Area</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in logistics_users %}
+                <tr>
+                    <td>
+                        <strong>{{ u.name or 'CropSync Logistics' }}</strong>
+                        {% if u.email == 'logistics@cropsync.com' %}
+                        <span style="font-size: 0.65rem; background: rgba(39, 174, 96, 0.15); color: #27ae60; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-left: 6px;">System Default</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: var(--primary-color, #27ae60); font-weight: 500;">{{ u.email }}</td>
+                    <td>{{ u.phone or 'N/A' }}</td>
+                    <td>{{ u.address or 'Pan-India' }}</td>
+                    <td>
+                        {% if u.account_status == 'active' %}
+                        <span class="btn badge-accepted" style="padding: 0.2rem 0.55rem; font-size: 0.75rem; border: none;">Active</span>
+                        {% else %}
+                        <span class="btn badge-rejected" style="padding: 0.2rem 0.55rem; font-size: 0.75rem; border: none;">Suspended</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ (u.created_at|string)[:10] if u.created_at else 'N/A' }}</td>
+                    <td style="text-align: right;">
+                        {% if u.email == 'logistics@cropsync.com' %}
+                        <span style="color: var(--secondary-text); font-size: 0.75rem; font-style: italic;">Protected</span>
+                        {% else %}
+                        <a href="{{ url_for('admin_toggle_user_status', user_id=u.id) }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; {% if u.account_status == 'active' %}background: #e74c3c; color: white;{% else %}background: #27ae60; color: white;{% endif %}">
+                            {% if u.account_status == 'active' %}Suspend{% else %}Activate{% endif %}
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-        <p style="color: #9ca3af; margin: 0;">No logistics partner accounts registered.</p>
+    <p style="color: var(--secondary-text); margin: 0;">No logistics partner accounts registered.</p>
     {% endif %}
 </div>
 
 <!-- Logistics Orders & COD Status Table -->
-<div class="admin-card">
-    <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-top: 0; margin-bottom: 1rem;">Logistics Shipments & COD Status</h3>
+<div class="card">
+    <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; color: var(--text-color);">Logistics Shipments & COD Status</h3>
     {% if orders %}
-        <div style="overflow-x: auto;">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Crop</th>
-                        <th>Farmer</th>
-                        <th>Buyer</th>
-                        <th>Amount</th>
-                        <th>Logistics Status</th>
-                        <th>COD Status</th>
-                        <th>Settlement Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for o in orders %}
-                        <tr>
-                            <td style="font-family: monospace; font-weight: 700; color: #3b82f6;">#{{ o.id[:8] }}</td>
-                            <td>{{ o.crop_name }} ({{ o.quantity }} kg)</td>
-                            <td>{{ o.farmer_name or 'Farmer' }}</td>
-                            <td>{{ o.buyer_name or 'Buyer' }}</td>
-                            <td style="font-weight: 700; color: #22c55e;">₹{{ o.total_price }}</td>
-                            <td>
-                                <span class="logistics-badge-pill status-{{ o.logistics_status or 'NONE' }}" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">
-                                    {{ o.logistics_status or 'NONE' }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if o.payment_status == 'COLLECTED' %}
-                                    <span style="color: #10b981; font-weight: 700;">✓ Collected</span>
-                                {% else %}
-                                    <span style="color: #9ca3af;">Pending Delivery</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if o.settlement_status == 'SETTLED' %}
-                                    <span style="color: #4ade80; font-weight: 700;">✓ Settled</span>
-                                {% elif o.settlement_status == 'SETTLEMENT_PENDING' %}
-                                    <span style="color: #f59e0b; font-weight: 700;">Pending</span>
-                                {% else %}
-                                    <span style="color: #6b7280;">Unsettled</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Crop</th>
+                    <th>Farmer</th>
+                    <th>Buyer</th>
+                    <th>Amount</th>
+                    <th>Logistics Status</th>
+                    <th>COD Status</th>
+                    <th>Settlement Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in orders %}
+                <tr>
+                    <td style="font-family: monospace; font-weight: 700; color: #2980b9;">#{{ o.id[:8] }}</td>
+                    <td>{{ o.crop_name }} ({{ o.quantity }} kg)</td>
+                    <td>{{ o.farmer_name or 'Farmer' }}</td>
+                    <td>{{ o.buyer_name or 'Buyer' }}</td>
+                    <td style="font-weight: 700; color: #27ae60;">₹{{ o.total_price }}</td>
+                    <td>
+                        <span class="btn" style="padding: 0.2rem 0.55rem; font-size: 0.7rem; background: var(--hover-bg); border: 1px solid var(--nav-border);">
+                            {{ o.logistics_status or 'NONE' }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if o.payment_status in ('paid', 'COLLECTED') %}
+                        <span style="color: #27ae60; font-weight: 700;">✓ Collected</span>
+                        {% else %}
+                        <span style="color: var(--secondary-text);">Pending Delivery</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if o.settlement_status == 'SETTLED' %}
+                        <span style="color: #27ae60; font-weight: 700;">✓ Settled</span>
+                        {% elif o.settlement_status == 'SETTLEMENT_PENDING' %}
+                        <span style="color: #f39c12; font-weight: 700;">Pending</span>
+                        {% else %}
+                        <span style="color: var(--secondary-text);">Unsettled</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-        <p style="color: #9ca3af; margin: 0;">No active logistics orders in system.</p>
+    <p style="color: var(--secondary-text); margin: 0;">No active logistics orders in system.</p>
     {% endif %}
 </div>
 {% endblock %}
