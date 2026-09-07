@@ -185,6 +185,17 @@ def admin_required(f):
     return decorated_function
 
 
+def logistics_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        logistics_user = session.get('logistics_user')
+        if not logistics_user or logistics_user.get('role') != 'logistics':
+            flash('Access denied. Logistics Partner privileges required.', 'error')
+            return render_template('login.html'), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 
 from auth_service import SupabaseAuthService, EmailService
 
@@ -434,6 +445,8 @@ def login():
         if not user:
             if email == 'admin@cropsync.com' and password in ('admin123', 'admin'):
                 user = {'id': 'admin1', 'email': 'admin@cropsync.com', 'role': 'admin', 'name': 'System Administrator', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
+            elif email == 'logistics@cropsync.com' and password in ('logistics123', 'logistics'):
+                user = {'id': 'logistics1', 'email': 'logistics@cropsync.com', 'role': 'logistics', 'name': 'CropSync Logistics', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
             elif (email.startswith('farmer') or 'farmer' in email) and password == 'farmer123':
                 user = {'id': 'f1', 'email': email, 'role': 'farmer', 'name': 'Farmer Demo', 'location': 'Coimbatore', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
             elif (email.startswith('buyer') or 'buyer' in email) and password == 'buyer123':
@@ -452,6 +465,8 @@ def login():
                 if pwd_hash == password:
                     is_valid = True
                 elif email == 'admin@cropsync.com' and password in ('admin123', 'admin'):
+                    is_valid = True
+                elif email == 'logistics@cropsync.com' and password in ('logistics123', 'logistics'):
                     is_valid = True
                 elif (email.startswith('farmer') or 'farmer' in email) and password == 'farmer123':
                     is_valid = True
@@ -480,6 +495,9 @@ def login():
                 elif user['role'] == 'buyer':
                     session['buyer_user'] = user
                     return redirect(url_for('buyer_dashboard'))
+                elif user['role'] == 'logistics':
+                    session['logistics_user'] = user
+                    return redirect(url_for('logistics_dashboard'))
             
         flash('Invalid credentials', 'error')
     return render_template('login.html')
@@ -666,30 +684,55 @@ def place_order():
         flash('Invalid quantity!', 'error')
         return redirect(url_for('buyer_dashboard'))
     
+    fulfillment_method = request.form.get('fulfillment_method', 'Direct Collection')
+    if fulfillment_method not in ('Direct Collection', 'Logistics Partner'):
+        fulfillment_method = 'Direct Collection'
+
     crop = db.get_crop_by_id(crop_id)
     if crop and float(crop['quantity']) >= quantity:
         total_price = round(quantity * float(crop['price_per_kg']), 2)
+        
+        if fulfillment_method == 'Logistics Partner':
+            logistics_fee = 150.0
+            cod_amount = round(total_price + logistics_fee, 2)
+            farmer_settlement_amount = total_price
+        else:
+            logistics_fee = 0.0
+            cod_amount = 0.0
+            farmer_settlement_amount = total_price
+
+        buyer_user = session.get('buyer_user', {})
+        pickup_address = crop.get('location', '')
+        delivery_address = request.form.get('delivery_address', '').strip() or buyer_user.get('address') or buyer_user.get('location', '')
+
         order_id = db.create_order(
-            buyer_id=session['buyer_user']['id'],
+            buyer_id=buyer_user['id'],
             farmer_id=crop['farmer_id'],
             crop_id=crop['id'],
             crop_name=crop['crop_name'],
             quantity=quantity,
-            total_price=total_price
+            total_price=total_price,
+            fulfillment_method=fulfillment_method,
+            logistics_fee=logistics_fee,
+            cod_amount=cod_amount,
+            farmer_settlement_amount=farmer_settlement_amount,
+            pickup_address=pickup_address,
+            delivery_address=delivery_address
         )
         flash('Order placed! Waiting for farmer approval.', 'success')
 
         # Dispatch email notification to farmer
         try:
             farmer = db.get_user_by_id(crop['farmer_id'])
-            buyer = db.get_user_by_id(session['buyer_user']['id'])
+            buyer = db.get_user_by_id(buyer_user['id'])
             order = {
                 'id': order_id,
                 'crop_name': crop['crop_name'],
                 'quantity': quantity,
                 'unit_price': crop['price_per_kg'],
                 'total_price': total_price,
-                'location': crop.get('location')
+                'location': crop.get('location'),
+                'fulfillment_method': fulfillment_method
             }
             if farmer:
                 email_service.send_new_order_email(order, farmer, buyer)
@@ -910,7 +953,7 @@ def admin_create_user():
             flash('Role, Name, Email, and Password are required.', 'error')
             return render_template('admin/create_user.html', active_page='create_user')
 
-        if role not in ('farmer', 'buyer'):
+        if role not in ('farmer', 'buyer', 'logistics'):
             flash('Invalid role selected.', 'error')
             return render_template('admin/create_user.html', active_page='create_user')
 
@@ -936,13 +979,34 @@ def admin_create_user():
             )
 
             flash(f'Successfully created new {role} account for {email}.', 'success')
-            return redirect(url_for('admin_farmers' if role == 'farmer' else 'admin_buyers'))
+            if role == 'farmer':
+                return redirect(url_for('admin_farmers'))
+            elif role == 'buyer':
+                return redirect(url_for('admin_buyers'))
+            else:
+                return redirect(url_for('admin_logistics'))
         except Exception as e:
             print("[!] Error creating user:", e)
             flash(f'Error creating user: {str(e)}', 'error')
             return render_template('admin/create_user.html', active_page='create_user')
 
     return render_template('admin/create_user.html', active_page='create_user')
+
+
+@app.route('/admin/logistics')
+@admin_required
+def admin_logistics():
+    logistics_users = db.get_all_logistics_users()
+    orders = db.get_logistics_orders()
+    stats = db.get_logistics_dashboard_stats()
+    return render_template(
+        'admin/logistics.html',
+        logistics_users=logistics_users,
+        orders=orders,
+        stats=stats,
+        active_page='logistics'
+    )
+
 
 @app.route('/admin/reset_database', methods=['GET', 'POST'])
 @admin_required
@@ -954,13 +1018,88 @@ def admin_reset_database():
         return redirect(url_for('login'))
     return render_template('admin/reset_database.html', active_page='reset_db')
 
+
+# --- LOGISTICS PORTAL ROUTES ---
+
+@app.route('/logistics/dashboard')
+@logistics_required
+def logistics_dashboard():
+    status_filter = request.args.get('status', 'ALL')
+    search = request.args.get('search', '').strip()
+    logistics_user = session.get('logistics_user', {})
+    
+    stats = db.get_logistics_dashboard_stats(logistics_user.get('id'))
+    orders = db.get_logistics_orders(logistics_user.get('id'), status_filter=status_filter, search=search)
+    
+    return render_template(
+        'logistics/dashboard.html',
+        stats=stats,
+        orders=orders,
+        status_filter=status_filter,
+        search=search,
+        user=logistics_user
+    )
+
+
+@app.route('/logistics/order/<order_id>')
+@logistics_required
+def logistics_order_detail(order_id):
+    order = db.get_logistics_order_by_id(order_id)
+    if not order:
+        flash('Order not found.', 'error')
+        return redirect(url_for('logistics_dashboard'))
+    
+    history = db.get_order_status_history(order_id)
+    current_status = order.get('logistics_status') or 'NONE'
+    valid_transitions = db.VALID_LOGISTICS_TRANSITIONS.get(current_status, [])
+    
+    return render_template(
+        'logistics/order_detail.html',
+        order=order,
+        history=history,
+        valid_transitions=valid_transitions,
+        user=session.get('logistics_user', {})
+    )
+
+
+@app.route('/logistics/order/<order_id>/update_status', methods=['POST'])
+@logistics_required
+def update_logistics_status(order_id):
+    next_status = request.form.get('next_status')
+    notes = request.form.get('notes', '').strip()
+    logistics_user = session.get('logistics_user', {})
+    
+    if not next_status:
+        flash('Invalid status target.', 'error')
+        return redirect(url_for('logistics_order_detail', order_id=order_id))
+    
+    success, msg, updated_order = db.update_logistics_order_status_atomic(
+        order_id=order_id,
+        next_status=next_status,
+        updated_by_user_id=logistics_user.get('id'),
+        updated_by_role='logistics',
+        notes=notes
+    )
+    
+    if success:
+        flash(f'Status updated to {next_status} successfully!', 'success')
+        # Non-blocking email milestone notification
+        try:
+            email_service.dispatch_logistics_milestone_emails(updated_order, next_status)
+        except Exception as e:
+            print(f"[!] Error triggering milestone emails for order {order_id}:", e)
+    else:
+        flash(msg, 'error')
+        
+    return redirect(url_for('logistics_order_detail', order_id=order_id))
+
+
 # --- SETTINGS & LOGOUT ---
 
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-
-    user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
+    user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user') or session.get('logistics_user')
     if not user:
         return redirect(url_for('login'))
     return render_template('settings.html', session_user=user, active_role=user['role'])

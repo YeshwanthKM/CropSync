@@ -331,3 +331,228 @@ def send_order_completed_email(order, recipient_user, role):
     except Exception as e:
         print("[!] Exception in send_order_completed_email:", e)
         return False, str(e)
+
+
+def send_logistics_status_email(order, recipient_email, recipient_name, subject, title, body_text, notification_type='LOGISTICS_STATUS_UPDATE'):
+    """Sends a logistics milestone notification safely without raising exceptions."""
+    try:
+        if not recipient_email:
+            return False, "Recipient email missing"
+
+        order_id = str(order.get('id', ''))
+        crop_name = order.get('crop_name', 'Crop')
+        quantity = order.get('quantity', 0)
+        total_price = order.get('total_price', 0)
+        fulfillment_method = order.get('fulfillment_method', 'Logistics Partner')
+
+        base_url = get_app_base_url()
+        view_url = f"{base_url}/login"
+
+        try:
+            html_content = render_template(
+                'emails/logistics_status_update.html',
+                order_id=order_id,
+                crop_name=crop_name,
+                quantity=quantity,
+                total_price=total_price,
+                recipient_name=recipient_name,
+                title=title,
+                body_text=body_text,
+                fulfillment_method=fulfillment_method,
+                logistics_status=order.get('logistics_status', ''),
+                view_url=view_url
+            )
+        except Exception:
+            html_content = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <h2 style="color: #27ae60; text-align: center;">🚛 CropSync Logistics Update</h2>
+                <p>Hello <strong>{recipient_name}</strong>,</p>
+                <h3 style="color: #333;">{title}</h3>
+                <p style="font-size: 15px; color: #555; line-height: 1.5;">{body_text}</p>
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                    <p><strong>Order ID:</strong> #{order_id[:8]}</p>
+                    <p><strong>Crop:</strong> {crop_name}</p>
+                    <p><strong>Quantity:</strong> {quantity} kg</p>
+                    <p><strong>Order Amount:</strong> ₹{total_price}</p>
+                    <p><strong>Fulfillment Method:</strong> {fulfillment_method}</p>
+                    <p><strong>Current Status:</strong> {order.get('logistics_status', 'Updated')}</p>
+                </div>
+                <p style="text-align: center; margin-top: 25px;">
+                    <a href="{view_url}" style="background: #27ae60; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Order on CropSync</a>
+                </p>
+            </div>
+            """
+
+        sent, err = _send_raw_email(recipient_email, subject, html_content)
+        status_str = 'SENT' if sent else 'FAILED'
+        db.log_email_notification(
+            order_id=order_id,
+            recipient_user_id=None,
+            notification_type=notification_type,
+            recipient_email=recipient_email,
+            status=status_str,
+            error_message=err
+        )
+        return sent, err
+    except Exception as e:
+        print(f"[!] Exception in send_logistics_status_email ({subject}):", e)
+        return False, str(e)
+
+
+def dispatch_logistics_milestone_emails(order, next_status):
+    """Triggers appropriate email notifications to Farmer, Buyer, and Logistics based on milestone status."""
+    try:
+        order_id = str(order.get('id', ''))
+        crop_name = order.get('crop_name', 'Crop')
+
+        farmer = db.get_user_by_id(order.get('farmer_id')) if order.get('farmer_id') else {}
+        buyer = db.get_user_by_id(order.get('buyer_id')) if order.get('buyer_id') else {}
+        
+        farmer_email = order.get('farmer_email') or (farmer.get('email') if farmer else None)
+        buyer_email = order.get('buyer_email') or (buyer.get('email') if buyer else None)
+        farmer_name = order.get('farmer_name') or (farmer.get('name') if farmer else 'Farmer')
+        buyer_name = order.get('buyer_name') or (buyer.get('name') if buyer else 'Buyer')
+
+        if next_status == 'LOGISTICS_REQUESTED':
+            # Email to prototype logistics user
+            logistics_user = db.get_user_by_email("logistics@cropsync.com")
+            if logistics_user and logistics_user.get('email'):
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=logistics_user['email'],
+                    recipient_name=logistics_user.get('name', 'CropSync Logistics'),
+                    subject=f"New CropSync Logistics Order #{order_id[:8]} Assigned",
+                    title="New Logistics Fulfillment Assignment",
+                    body_text=f"A new logistics fulfillment request for {order.get('quantity', 0)} kg of {crop_name} has been assigned to your portal.",
+                    notification_type='NEW_LOGISTICS_ORDER'
+                )
+
+        elif next_status == 'PICKUP_SCHEDULED':
+            if farmer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=farmer_email,
+                    recipient_name=farmer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Pickup Scheduled",
+                    title="Logistics Pickup Scheduled",
+                    body_text=f"Pickup for your {crop_name} order #{order_id[:8]} has been scheduled by CropSync Logistics.",
+                    notification_type='PICKUP_SCHEDULED'
+                )
+            if buyer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=buyer_email,
+                    recipient_name=buyer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Pickup Scheduled",
+                    title="Logistics Fulfillment Started",
+                    body_text=f"Your order for {crop_name} is scheduled for pickup from the farmer.",
+                    notification_type='LOGISTICS_STARTED'
+                )
+
+        elif next_status == 'PICKED_UP':
+            if farmer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=farmer_email,
+                    recipient_name=farmer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Crop Picked Up",
+                    title="Crop Picked Up from Farm",
+                    body_text=f"CropSync Logistics has successfully picked up your {crop_name} shipment.",
+                    notification_type='FARMER_PICKED_UP'
+                )
+            if buyer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=buyer_email,
+                    recipient_name=buyer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Order Picked Up",
+                    title="Produce Picked Up",
+                    body_text=f"Your {crop_name} order has been collected from the farmer and is being prepared for dispatch.",
+                    notification_type='BUYER_PICKED_UP'
+                )
+
+        elif next_status == 'IN_TRANSIT':
+            if buyer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=buyer_email,
+                    recipient_name=buyer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Order In Transit",
+                    title="Shipment In Transit",
+                    body_text=f"Your {crop_name} shipment is currently in transit to your delivery location.",
+                    notification_type='IN_TRANSIT'
+                )
+
+        elif next_status == 'OUT_FOR_DELIVERY':
+            if buyer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=buyer_email,
+                    recipient_name=buyer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Out for Delivery",
+                    title="Out for Delivery Today",
+                    body_text=f"Your {crop_name} shipment is out for delivery today. Please have cash/payment ready upon arrival.",
+                    notification_type='OUT_FOR_DELIVERY'
+                )
+
+        elif next_status == 'DELIVERED':
+            if buyer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=buyer_email,
+                    recipient_name=buyer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Order Delivered",
+                    title="Order Delivered Successfully",
+                    body_text=f"Your {crop_name} order #{order_id[:8]} has been delivered successfully.",
+                    notification_type='BUYER_DELIVERED'
+                )
+            if farmer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=farmer_email,
+                    recipient_name=farmer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Order Delivered",
+                    title="Shipment Delivered to Buyer",
+                    body_text=f"Your produce for order #{order_id[:8]} has been delivered to the buyer.",
+                    notification_type='FARMER_DELIVERED'
+                )
+
+        elif next_status == 'PAYMENT_COLLECTED':
+            if farmer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=farmer_email,
+                    recipient_name=farmer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Payment Collected",
+                    title="COD Payment Collected",
+                    body_text=f"Cash on Delivery payment for order #{order_id[:8]} has been collected by CropSync Logistics.",
+                    notification_type='PAYMENT_COLLECTED'
+                )
+
+        elif next_status == 'SETTLEMENT_PENDING':
+            if farmer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=farmer_email,
+                    recipient_name=farmer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Settlement Pending",
+                    title="Farmer Settlement Pending",
+                    body_text=f"Settlement of ₹{order.get('farmer_settlement_amount', order.get('total_price'))} for order #{order_id[:8]} is currently pending processing.",
+                    notification_type='SETTLEMENT_PENDING'
+                )
+
+        elif next_status == 'SETTLED':
+            if farmer_email:
+                send_logistics_status_email(
+                    order=order,
+                    recipient_email=farmer_email,
+                    recipient_name=farmer_name,
+                    subject=f"CropSync Order #{order_id[:8]} – Farmer Settlement Completed",
+                    title="Farmer Settlement Completed",
+                    body_text=f"Settlement of ₹{order.get('farmer_settlement_amount', order.get('total_price'))} for order #{order_id[:8]} has been completed.",
+                    notification_type='SETTLEMENT_COMPLETED'
+                )
+
+    except Exception as e:
+        print("[!] Exception in dispatch_logistics_milestone_emails:", e)
+

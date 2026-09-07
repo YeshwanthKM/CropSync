@@ -1,0 +1,249 @@
+{% extends "logistics/logistics_base.html" %}
+
+{% block title %}Logistics Order #{{ order.id[:8] }} — CropSync{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('logistics_dashboard') }}" style="color: #9ca3af; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1rem;">
+        ← Back to Logistics Dashboard
+    </a>
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-size: 2rem; font-weight: 900; color: #ffffff; margin: 0;">Order #{{ order.id }}</h1>
+            <p style="color: #9ca3af; font-size: 0.95rem; margin-top: 0.25rem;">Placed on {{ order.created_at[:10] }} • Fulfillment: <strong style="color: #3b82f6;">{{ order.fulfillment_method or 'Logistics Partner' }}</strong></p>
+        </div>
+        <div>
+            <span class="logistics-badge-pill status-{{ order.logistics_status or 'NONE' }}" style="font-size: 0.9rem; padding: 0.5rem 1.25rem;">
+                Status: {{ order.logistics_status or 'NONE' }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Fulfillment Timeline -->
+<div style="background: #0a0a0a; border: 1px solid #222; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem;">
+    <h3 style="font-size: 1rem; font-weight: 800; color: #ffffff; margin-top: 0; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Fulfillment & Delivery Progress</h3>
+    
+    {% set steps = [
+        ('LOGISTICS_REQUESTED', 'Requested'),
+        ('PICKUP_SCHEDULED', 'Pickup Scheduled'),
+        ('PICKED_UP', 'Picked Up'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('OUT_FOR_DELIVERY', 'Out for Delivery'),
+        ('DELIVERED', 'Delivered'),
+        ('PAYMENT_COLLECTED', 'Payment Collected'),
+        ('SETTLEMENT_PENDING', 'Settlement Pending'),
+        ('SETTLED', 'Settled')
+    ] %}
+
+    {% set curr = order.logistics_status or 'NONE' %}
+    
+    <div class="timeline-container">
+        {% for code, label in steps %}
+            {% set is_active = (curr == code) %}
+            {% set is_completed = false %}
+            {% if curr == 'SETTLED' %}
+                {% set is_completed = true %}
+            {% elif curr == 'SETTLEMENT_PENDING' and loop.index <= 8 %}
+                {% set is_completed = true %}
+            {% elif curr == 'PAYMENT_COLLECTED' and loop.index <= 7 %}
+                {% set is_completed = true %}
+            {% elif curr == 'DELIVERED' and loop.index <= 6 %}
+                {% set is_completed = true %}
+            {% elif curr == 'OUT_FOR_DELIVERY' and loop.index <= 5 %}
+                {% set is_completed = true %}
+            {% elif curr == 'IN_TRANSIT' and loop.index <= 4 %}
+                {% set is_completed = true %}
+            {% elif curr == 'PICKED_UP' and loop.index <= 3 %}
+                {% set is_completed = true %}
+            {% elif curr == 'PICKUP_SCHEDULED' and loop.index <= 2 %}
+                {% set is_completed = true %}
+            {% elif curr == 'LOGISTICS_REQUESTED' and loop.index <= 1 %}
+                {% set is_completed = true %}
+            {% endif %}
+
+            <div class="timeline-step {% if is_active %}active{% elif is_completed %}completed{% endif %}">
+                <div class="timeline-node">
+                    {% if is_completed and not is_active %}✓{% else %}{{ loop.index }}{% endif %}
+                </div>
+                <div class="timeline-label">{{ label }}</div>
+            </div>
+            {% if not loop.last %}
+                <div style="flex: 1; height: 2px; background: {% if is_completed %}#22c55e{% else %}#1f2937{% endif %}; margin: 0 0.5rem; margin-top: -1.25rem;"></div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Main Details Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Left Column: Order & Financial breakdown -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Order Info Card -->
+        <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 16px; padding: 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-top: 0; margin-bottom: 1rem;">Crop & Order Information</h3>
+            <table style="width: 100%; font-size: 0.9rem; color: #e5e7eb; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">Crop Name:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700; color: #fff;">{{ order.crop_name }}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">Quantity:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700; color: #fff;">{{ order.quantity }} kg</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">Order Status:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700; color: #22c55e;">{{ order.status }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">Assigned Logistics:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700; color: #3b82f6;">{{ order.logistics_partner_name or 'CropSync Logistics' }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Financial Breakdown & COD Card -->
+        <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 16px; padding: 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-top: 0; margin-bottom: 1rem;">Payment & COD Breakdown</h3>
+            <table style="width: 100%; font-size: 0.9rem; color: #e5e7eb; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">Crop Total Price:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700; color: #fff;">₹{{ order.total_price }}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">Logistics Fee:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700; color: #3b82f6;">₹{{ order.logistics_fee or 0.0 }}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">COD Cash to Collect:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 800; color: #eab308; font-size: 1.05rem;">
+                        ₹{{ order.cod_amount or order.total_price }}
+                    </td>
+                </tr>
+                <tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">COD Payment Status:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700;">
+                        {% if order.payment_status == 'COLLECTED' %}
+                            <span style="color: #22c55e;">✓ COLLECTED</span>
+                        {% else %}
+                            <span style="color: #ef4444;">UNPAID (Pending Delivery)</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr style="border-bottom: 1px solid #1a1a1a;">
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">Expected Farmer Settlement:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700; color: #a855f7;">
+                        ₹{{ order.farmer_settlement_amount or order.total_price }}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.6rem 0; color: #9ca3af;">Farmer Settlement Status:</td>
+                    <td style="padding: 0.6rem 0; text-align: right; font-weight: 700;">
+                        {% if order.settlement_status == 'SETTLED' %}
+                            <span style="color: #4ade80;">✓ SETTLED</span>
+                        {% elif order.settlement_status == 'SETTLEMENT_PENDING' %}
+                            <span style="color: #f59e0b;">⏳ SETTLEMENT PENDING</span>
+                        {% else %}
+                            <span style="color: #9ca3af;">UNSETTLED</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Column: Address & Server-Side Action Controls -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Pickup & Delivery Address Card -->
+        <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 16px; padding: 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-top: 0; margin-bottom: 1rem;">Pickup & Delivery Logistics</h3>
+            
+            <div style="margin-bottom: 1.25rem; padding: 1rem; background: #111; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div style="font-size: 0.75rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; margin-bottom: 0.25rem;">👨‍🌾 Pickup from Farmer</div>
+                <div style="font-weight: 700; color: #fff;">{{ order.farmer_name or 'Farmer' }}</div>
+                <div style="font-size: 0.85rem; color: #9ca3af; margin-top: 0.2rem;">📍 {{ order.farmer_location or 'Farm Location' }}</div>
+                <div style="font-size: 0.85rem; color: #9ca3af;">📞 {{ order.farmer_phone or 'Contact on acceptance' }}</div>
+                <div style="font-size: 0.85rem; color: #9ca3af;">✉️ {{ order.farmer_email or 'N/A' }}</div>
+            </div>
+
+            <div style="padding: 1rem; background: #111; border-radius: 8px; border-left: 4px solid #22c55e;">
+                <div style="font-size: 0.75rem; font-weight: 800; color: #22c55e; text-transform: uppercase; margin-bottom: 0.25rem;">🛒 Deliver to Buyer</div>
+                <div style="font-weight: 700; color: #fff;">{{ order.buyer_name or 'Buyer' }}</div>
+                <div style="font-size: 0.85rem; color: #9ca3af; margin-top: 0.2rem;">📍 {{ order.buyer_location or 'Delivery Address' }}</div>
+                <div style="font-size: 0.85rem; color: #9ca3af;">📞 {{ order.buyer_phone or 'Contact info' }}</div>
+                <div style="font-size: 0.85rem; color: #9ca3af;">✉️ {{ order.buyer_email or 'N/A' }}</div>
+            </div>
+        </div>
+
+        <!-- Next Valid Action Form Controls -->
+        <div style="background: #0a0a0a; border: 1px solid #222; border-radius: 16px; padding: 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-top: 0; margin-bottom: 0.5rem;">Next Milestone Action</h3>
+            <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1.25rem;">Only valid server-side state transitions are enabled. Every update dispatches automated email notifications.</p>
+
+            {% set next_actions = {
+                'LOGISTICS_REQUESTED': ('PICKUP_SCHEDULED', '📅 Mark Pickup Scheduled', '#3b82f6'),
+                'PICKUP_SCHEDULED': ('PICKED_UP', '📦 Mark as Picked Up from Farmer', '#a855f7'),
+                'PICKED_UP': ('IN_TRANSIT', '🚚 Mark In Transit', '#0ea5e9'),
+                'IN_TRANSIT': ('OUT_FOR_DELIVERY', '🏃 Mark Out for Delivery Today', '#f97316'),
+                'OUT_FOR_DELIVERY': ('DELIVERED', '✓ Mark Delivered to Buyer', '#22c55e'),
+                'DELIVERED': ('PAYMENT_COLLECTED', '💵 Record COD Payment Collected', '#10b981'),
+                'PAYMENT_COLLECTED': ('SETTLEMENT_PENDING', '⏳ Mark Farmer Settlement Pending', '#f59e0b'),
+                'SETTLEMENT_PENDING': ('SETTLED', '✅ Mark Farmer Settlement Completed', '#22c55e')
+            } %}
+
+            {% if order.logistics_status in next_actions %}
+                {% set next_code, next_label, next_color = next_actions[order.logistics_status] %}
+                <form method="POST" action="{{ url_for('update_logistics_order_status', order_id=order.id) }}">
+                    <input type="hidden" name="next_status" value="{{ next_code }}">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.85rem; color: #9ca3af; display: block; margin-bottom: 0.35rem;">Optional Action Note:</label>
+                        <input type="text" name="notes" placeholder="e.g. Scheduled for 10:00 AM pickup..." style="width: 100%; padding: 0.65rem 0.9rem; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 0.85rem;">
+                    </div>
+                    <button type="submit" style="width: 100%; padding: 0.9rem 1.5rem; background: {{ next_color }}; color: #000; border: none; border-radius: 50px; font-weight: 800; font-size: 0.95rem; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                        {{ next_label }}
+                    </button>
+                </form>
+            {% elif order.logistics_status == 'SETTLED' %}
+                <div style="padding: 1rem; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; text-align: center; color: #4ade80; font-weight: 700;">
+                    ✅ All Fulfillment & Settlement Steps Completed
+                </div>
+            {% else %}
+                <div style="padding: 1rem; background: #111; border-radius: 8px; text-align: center; color: #9ca3af;">
+                    No pending actions for current status ({{ order.logistics_status or 'NONE' }}).
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Status Audit History Section -->
+<div style="background: #0a0a0a; border: 1px solid #222; border-radius: 16px; padding: 1.5rem;">
+    <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-top: 0; margin-bottom: 1rem;">Status Audit History</h3>
+    {% if audit_history %}
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; color: #e5e7eb;">
+            <thead>
+                <tr style="background: #111; color: #9ca3af; text-transform: uppercase; font-size: 0.7rem; border-bottom: 1px solid #222;">
+                    <th style="padding: 0.75rem 1rem; text-align: left;">Timestamp</th>
+                    <th style="padding: 0.75rem 1rem; text-align: left;">Previous Status</th>
+                    <th style="padding: 0.75rem 1rem; text-align: left;">New Status</th>
+                    <th style="padding: 0.75rem 1rem; text-align: left;">Updated By</th>
+                    <th style="padding: 0.75rem 1rem; text-align: left;">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in audit_history %}
+                    <tr style="border-bottom: 1px solid #1a1a1a;">
+                        <td style="padding: 0.75rem 1rem; color: #9ca3af; font-family: monospace;">{{ h.created_at[:19] }}</td>
+                        <td style="padding: 0.75rem 1rem; color: #6b7280;">{{ h.previous_status or 'NONE' }}</td>
+                        <td style="padding: 0.75rem 1rem; font-weight: 700; color: #22c55e;">{{ h.new_status }}</td>
+                        <td style="padding: 0.75rem 1rem; color: #3b82f6;">{{ h.updated_by_role or 'system' }}</td>
+                        <td style="padding: 0.75rem 1rem; color: #d1d5db;">{{ h.notes or '' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: #6b7280; font-size: 0.85rem; margin: 0;">No status changes recorded yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

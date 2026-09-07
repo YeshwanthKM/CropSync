@@ -186,15 +186,19 @@
                                     <td>
                                         <div style="font-size: 0.85rem; font-weight: 600;">{{ crop.farmer_name }}</div>
                                         <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon order acceptance</div>
-                                    </td>
-                                    <td>
+                                    </                                    <td>
                                         <form action="{{ url_for('place_order') }}" method="POST"
-                                            style="display:flex; gap: 0.5rem; border: none; padding: 0; box-shadow: none; margin: 0; background: none;">
+                                            style="display:flex; flex-direction: column; gap: 0.35rem; border: none; padding: 0; box-shadow: none; margin: 0; background: none;">
                                             <input type="hidden" name="crop_id" value="{{ crop.id }}">
-                                            <input type="number" name="quantity" step="1" min="1" max="{{ crop.quantity }}" required
-                                                style="width: 70px;" placeholder="Qty">
-                                            <button type="submit" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">{{
-                                                get_text('buy') }}</button>
+                                            <div style="display: flex; gap: 0.35rem;">
+                                                <input type="number" name="quantity" step="1" min="1" max="{{ crop.quantity }}" required
+                                                    style="width: 65px; padding: 0.25rem 0.4rem; font-size: 0.75rem;" placeholder="Qty">
+                                                <button type="submit" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">{{ get_text('buy') }}</button>
+                                            </div>
+                                            <select name="fulfillment_method" style="padding: 0.2rem; font-size: 0.7rem; border-radius: 4px; background: var(--nav-bg); color: var(--text-color); border: 1px solid #333;">
+                                                <option value="Direct Collection">🤝 Direct Collection</option>
+                                                <option value="Logistics Partner">🚛 Logistics Partner</option>
+                                            </select>
                                         </form>
                                     </td>
                                 </tr>
@@ -213,8 +217,8 @@
             <div id="section-my-orders" class="dashboard-section" style="display: none;">
                 <h2>{{ get_text('my_orders') }}</h2>
                 <div style="background-color: rgba(39, 174, 96, 0.08); border-left: 4px solid #27ae60; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-color); line-height: 1.4;">
-                    <strong>💡 Direct Farmer–Buyer Trade Notice:</strong><br>
-                    CropSync connects farmers directly with buyers. CropSync does not process payments or provide physical delivery services. Payment and collection/delivery arrangements are made directly between the buyer and farmer once an order is accepted.
+                    <strong>💡 Direct Farmer–Buyer & Logistics Fulfillment:</strong><br>
+                    Choose between Direct Collection (arranged directly with farmer) or Logistics Partner delivery. For logistics-assisted orders, Cash on Delivery and live status tracking are managed by CropSync Logistics.
                 </div>
                 <div class="card" style="padding: 0;">
                     <div class="table-container">
@@ -225,6 +229,7 @@
                                 <th>Farmer Details</th>
                                 <th>{{ get_text('quantity') }}</th>
                                 <th>{{ get_text('total_price') }}</th>
+                                <th>Fulfillment & Delivery</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -245,6 +250,15 @@
                                 <td>{{ order.quantity }} kg</td>
                                 <td style="font-weight: 700; color: #27ae60;">₹{{ order.total_price }}</td>
                                 <td>
+                                    {% if order.fulfillment_method == 'Logistics Partner' %}
+                                        <div style="font-size: 0.75rem; font-weight: bold; color: #3b82f6;">🚛 Logistics Partner</div>
+                                        <div style="font-size: 0.7rem; color: #22c55e; font-weight: 600;">{{ order.logistics_status or 'LOGISTICS_REQUESTED' }}</div>
+                                        <div style="font-size: 0.7rem; color: #9ca3af;">COD: ₹{{ order.cod_amount or order.total_price }}</div>
+                                    {% else %}
+                                        <div style="font-size: 0.75rem; color: var(--secondary-text);">🤝 Direct Collection</div>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <span class="badge badge-{{ order.status|lower }}" style="padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
                                         {{ order.status }}
                                     </span>
@@ -263,7 +277,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" style="text-align: center; color: var(--secondary-text);">You haven't placed any orders yet.</td>
+                                <td colspan="7" style="text-align: center; color: var(--secondary-text);">You haven't placed any orders yet.</td>
                             </tr>
                             {% endfor %}
                         </tbody>

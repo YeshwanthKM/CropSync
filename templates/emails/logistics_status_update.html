@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }} — CropSync Logistics</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <!-- Header -->
+        <div style="background: #111827; color: #ffffff; padding: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">🌾 CropSync Logistics</h1>
+            <p style="margin: 5px 0 0 0; font-size: 13px; color: #9ca3af;">Transparent Agricultural Delivery & Fulfillment</p>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 25px;">
+            <p style="font-size: 16px; color: #1f2937; margin-top: 0;">Hello <strong>{{ recipient_name }}</strong>,</p>
+
+            <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 8px 0; color: #166534; font-size: 18px;">{{ title }}</h3>
+                <p style="margin: 0; color: #15803d; font-size: 14px; line-height: 1.5;">{{ body_text }}</p>
+            </div>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 18px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">Order & Delivery Details</h4>
+                <table style="width: 100%; font-size: 14px; color: #334155; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Order Reference:</td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">#{{ order_id[:8] }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Crop:</td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">{{ crop_name }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Quantity:</td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">{{ quantity }} kg</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Total Amount:</td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">₹{{ total_price }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Fulfillment Method:</td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #2563eb;">{{ fulfillment_method }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Logistics Status:</td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #16a34a;">{{ logistics_status }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="{{ view_url }}" style="display: inline-block; background: #22c55e; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 15px;">Log In to View Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #f1f5f9; padding: 15px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-size: 12px; color: #64748b;">CropSync — Connecting Farmers Directly with Consumers & Bulk Buyers.</p>
+        </div>
+    </div>
+</body>
+</html>

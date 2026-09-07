@@ -1,0 +1,146 @@
+{% extends "logistics/logistics_base.html" %}
+
+{% block title %}Logistics Dashboard — CropSync{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2.25rem; font-weight: 900; color: #ffffff; margin-bottom: 0.5rem; letter-spacing: -0.03em;">Fulfillment & Logistics Dashboard</h1>
+    <p style="color: #9ca3af; font-size: 1.05rem;">Manage assigned farm-to-buyer deliveries, Cash on Delivery collection, and farmer settlements.</p>
+</div>
+
+<!-- 8 Overview Stat Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 3rem;">
+    <div style="background: #0a0a0a; border: 1px solid #222; border-top: 4px solid #eab308; border-radius: 12px; padding: 1.25rem;">
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #eab308; letter-spacing: 0.05em; margin-bottom: 0.5rem;">New Orders</div>
+        <div style="font-size: 2rem; font-weight: 900; color: #ffffff;">{{ stats.new_orders }}</div>
+        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Awaiting pickup schedule</div>
+    </div>
+    <div style="background: #0a0a0a; border: 1px solid #222; border-top: 4px solid #3b82f6; border-radius: 12px; padding: 1.25rem;">
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #3b82f6; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Pickup Pending</div>
+        <div style="font-size: 2rem; font-weight: 900; color: #ffffff;">{{ stats.pickup_pending }}</div>
+        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Scheduled for farm collection</div>
+    </div>
+    <div style="background: #0a0a0a; border: 1px solid #222; border-top: 4px solid #a855f7; border-radius: 12px; padding: 1.25rem;">
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #a855f7; letter-spacing: 0.05em; margin-bottom: 0.5rem;">In Transit</div>
+        <div style="font-size: 2rem; font-weight: 900; color: #ffffff;">{{ stats.in_transit }}</div>
+        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Picked up & moving</div>
+    </div>
+    <div style="background: #0a0a0a; border: 1px solid #222; border-top: 4px solid #f97316; border-radius: 12px; padding: 1.25rem;">
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #f97316; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Out for Delivery</div>
+        <div style="font-size: 2rem; font-weight: 900; color: #ffffff;">{{ stats.out_for_delivery }}</div>
+        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Reaching buyer today</div>
+    </div>
+    <div style="background: #0a0a0a; border: 1px solid #222; border-top: 4px solid #22c55e; border-radius: 12px; padding: 1.25rem;">
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #22c55e; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Delivered</div>
+        <div style="font-size: 2rem; font-weight: 900; color: #ffffff;">{{ stats.delivered }}</div>
+        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Successfully handed over</div>
+    </div>
+    <div style="background: #0a0a0a; border: 1px solid #222; border-top: 4px solid #10b981; border-radius: 12px; padding: 1.25rem;">
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #10b981; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Payment Collected</div>
+        <div style="font-size: 2rem; font-weight: 900; color: #ffffff;">{{ stats.payment_collected }}</div>
+        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">COD cash received</div>
+    </div>
+    <div style="background: #0a0a0a; border: 1px solid #222; border-top: 4px solid #f59e0b; border-radius: 12px; padding: 1.25rem;">
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #f59e0b; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Settlement Pending</div>
+        <div style="font-size: 2rem; font-weight: 900; color: #ffffff;">{{ stats.settlement_pending }}</div>
+        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Farmer payout queued</div>
+    </div>
+    <div style="background: #0a0a0a; border: 1px solid #222; border-top: 4px solid #4ade80; border-radius: 12px; padding: 1.25rem;">
+        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #4ade80; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Settled</div>
+        <div style="font-size: 2rem; font-weight: 900; color: #ffffff;">{{ stats.settled }}</div>
+        <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">Farmer payout confirmed</div>
+    </div>
+</div>
+
+<!-- Search & Filter Controls -->
+<div style="background: #0a0a0a; border: 1px solid #222; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem;">
+    <form method="GET" action="{{ url_for('logistics_dashboard') }}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <div style="flex: 1; min-width: 250px;">
+            <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by Order ID, Crop, Farmer or Buyer..." style="width: 100%; padding: 0.75rem 1rem; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 0.95rem;">
+        </div>
+        <div style="width: 200px;">
+            <select name="status" style="width: 100%; padding: 0.75rem 1rem; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 0.95rem;">
+                <option value="ALL" {% if not current_filter or current_filter == 'ALL' %}selected{% endif %}>All Statuses</option>
+                <option value="LOGISTICS_REQUESTED" {% if current_filter == 'LOGISTICS_REQUESTED' %}selected{% endif %}>New / Requested</option>
+                <option value="PICKUP_SCHEDULED" {% if current_filter == 'PICKUP_SCHEDULED' %}selected{% endif %}>Pickup Scheduled</option>
+                <option value="PICKED_UP" {% if current_filter == 'PICKED_UP' %}selected{% endif %}>Picked Up</option>
+                <option value="IN_TRANSIT" {% if current_filter == 'IN_TRANSIT' %}selected{% endif %}>In Transit</option>
+                <option value="OUT_FOR_DELIVERY" {% if current_filter == 'OUT_FOR_DELIVERY' %}selected{% endif %}>Out for Delivery</option>
+                <option value="DELIVERED" {% if current_filter == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                <option value="PAYMENT_COLLECTED" {% if current_filter == 'PAYMENT_COLLECTED' %}selected{% endif %}>Payment Collected</option>
+                <option value="SETTLEMENT_PENDING" {% if current_filter == 'SETTLEMENT_PENDING' %}selected{% endif %}>Settlement Pending</option>
+                <option value="SETTLED" {% if current_filter == 'SETTLED' %}selected{% endif %}>Settled</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-primary" style="padding: 0.75rem 1.5rem; background: #22c55e; color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Filter Orders</button>
+        {% if search or (current_filter and current_filter != 'ALL') %}
+            <a href="{{ url_for('logistics_dashboard') }}" style="color: #9ca3af; text-decoration: none; font-size: 0.9rem; margin-left: 0.5rem;">Reset Filters</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Orders Table -->
+<div style="background: #0a0a0a; border: 1px solid #222; border-radius: 16px; overflow: hidden;">
+    <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #222; display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: #fff; margin: 0;">Assigned Logistics Orders</h3>
+        <span style="font-size: 0.85rem; color: #9ca3af;">Showing {{ orders|length }} order(s)</span>
+    </div>
+
+    {% if orders %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: #111; color: #9ca3af; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 1px solid #222;">
+                        <th style="padding: 1rem 1.25rem;">Order ID</th>
+                        <th style="padding: 1rem 1.25rem;">Crop & Quantity</th>
+                        <th style="padding: 1rem 1.25rem;">Farmer / Pickup</th>
+                        <th style="padding: 1rem 1.25rem;">Buyer / Delivery</th>
+                        <th style="padding: 1rem 1.25rem;">Financials</th>
+                        <th style="padding: 1rem 1.25rem;">Status</th>
+                        <th style="padding: 1rem 1.25rem; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody style="divide-y divide-gray-800;">
+                    {% for o in orders %}
+                        <tr style="border-bottom: 1px solid #1a1a1a; transition: background 0.2s;" onmouseover="this.style.background='#111'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 1rem 1.25rem; font-family: monospace; font-weight: 700; color: #3b82f6;">
+                                <a href="{{ url_for('logistics_order_detail', order_id=o.id) }}" style="color: #3b82f6; text-decoration: none;">#{{ o.id[:8] }}</a>
+                            </td>
+                            <td style="padding: 1rem 1.25rem;">
+                                <div style="font-weight: 700; color: #fff;">{{ o.crop_name }}</div>
+                                <div style="color: #9ca3af; font-size: 0.8rem;">{{ o.quantity }} kg</div>
+                            </td>
+                            <td style="padding: 1rem 1.25rem;">
+                                <div style="font-weight: 600; color: #e5e7eb;">{{ o.farmer_name or 'Farmer' }}</div>
+                                <div style="color: #9ca3af; font-size: 0.8rem;">📍 {{ o.farmer_location or 'Farm Location' }}</div>
+                            </td>
+                            <td style="padding: 1rem 1.25rem;">
+                                <div style="font-weight: 600; color: #e5e7eb;">{{ o.buyer_name or 'Buyer' }}</div>
+                                <div style="color: #9ca3af; font-size: 0.8rem;">📍 {{ o.buyer_location or 'Buyer Address' }}</div>
+                            </td>
+                            <td style="padding: 1rem 1.25rem;">
+                                <div style="font-weight: 700; color: #22c55e;">₹{{ o.total_price }}</div>
+                                <div style="color: #9ca3af; font-size: 0.75rem;">COD: ₹{{ o.cod_amount or o.total_price }}</div>
+                            </td>
+                            <td style="padding: 1rem 1.25rem;">
+                                <span class="logistics-badge-pill status-{{ o.logistics_status or 'NONE' }}">
+                                    {{ o.logistics_status or 'NONE' }}
+                                </span>
+                            </td>
+                            <td style="padding: 1rem 1.25rem; text-align: right;">
+                                <a href="{{ url_for('logistics_order_detail', order_id=o.id) }}" style="display: inline-block; padding: 0.4rem 0.9rem; background: #22c55e; color: #000; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.8rem;">View & Manage →</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="padding: 4rem 2rem; text-align: center; color: #9ca3af;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🚛</div>
+            <h3 style="font-size: 1.25rem; color: #fff; margin-bottom: 0.5rem;">No Logistics Orders Found</h3>
+            <p style="max-width: 400px; margin: 0 auto; font-size: 0.9rem;">Orders assigned for logistics fulfillment will appear here for status tracking and delivery management.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

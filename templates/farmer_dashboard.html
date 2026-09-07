@@ -282,6 +282,7 @@
                                 <th>Buyer</th>
                                 <th>{{ get_text('quantity') }}</th>
                                 <th>{{ get_text('total_price') }}</th>
+                                <th>Fulfillment & Delivery</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -295,12 +296,24 @@
                                     {% if order.status in ('Accepted', 'Completed') %}
                                         <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">📞 {{ order.buyer_phone or 'Contact Provided' }}</div>
                                     {% else %}
-
                                         <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon acceptance</div>
                                     {% endif %}
                                 </td>
                                 <td>{{ order.quantity }} kg</td>
                                 <td>₹{{ order.total_price }}</td>
+                                <td>
+                                    {% if order.fulfillment_method == 'Logistics Partner' %}
+                                        <div style="font-size: 0.75rem; font-weight: bold; color: #3b82f6;">🚛 Logistics Partner</div>
+                                        <div style="font-size: 0.7rem; color: #22c55e; font-weight: 600;">{{ order.logistics_status or 'LOGISTICS_REQUESTED' }}</div>
+                                        {% if order.settlement_status == 'SETTLED' %}
+                                            <div style="font-size: 0.7rem; color: #4ade80; font-weight: 700;">✓ Settled</div>
+                                        {% elif order.settlement_status == 'SETTLEMENT_PENDING' %}
+                                            <div style="font-size: 0.7rem; color: #f59e0b;">⏳ Settlement Pending</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div style="font-size: 0.75rem; color: var(--secondary-text);">🤝 Direct Collection</div>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <span class="badge badge-{{ order.status|lower }}" style="padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
                                         {{ order.status }}
@@ -322,8 +335,9 @@
                             </tr>
                             {% endfor %}
                             {% if not sold_orders %}
-                            <tr><td colspan="6" style="text-align: center; color: var(--secondary-text);">No orders found.</td></tr>
+                            <tr><td colspan="7" style="text-align: center; color: var(--secondary-text);">No orders found.</td></tr>
                             {% endif %}
+
                         </tbody>
                     </table>
                 </div>
