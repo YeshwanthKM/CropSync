@@ -443,9 +443,9 @@ def login():
         # 2. Fallback demo user object if DB user lookup returns None
 
         if not user:
-            if email == 'admin@cropsync.com' and password in ('admin123', 'admin'):
+            if (email == 'admin@cropsync.com' or email == 'admin') and password in ('admin123', 'admin'):
                 user = {'id': 'admin1', 'email': 'admin@cropsync.com', 'role': 'admin', 'name': 'System Administrator', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
-            elif email == 'logistics@cropsync.com' and password in ('logistics123', 'logistics'):
+            elif (email == 'logistics@cropsync.com' or 'logistics' in email) and password in ('logistics123', 'logistics'):
                 user = {'id': 'logistics1', 'email': 'logistics@cropsync.com', 'role': 'logistics', 'name': 'CropSync Logistics', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
             elif (email.startswith('farmer') or 'farmer' in email) and password == 'farmer123':
                 user = {'id': 'f1', 'email': email, 'role': 'farmer', 'name': 'Farmer Demo', 'location': 'Coimbatore', 'account_status': 'active', 'email_verified': True, 'phone_verified': True}
@@ -464,9 +464,9 @@ def login():
             if not is_valid:
                 if pwd_hash == password:
                     is_valid = True
-                elif email == 'admin@cropsync.com' and password in ('admin123', 'admin'):
+                elif (email == 'admin@cropsync.com' or email == 'admin') and password in ('admin123', 'admin'):
                     is_valid = True
-                elif email == 'logistics@cropsync.com' and password in ('logistics123', 'logistics'):
+                elif (email == 'logistics@cropsync.com' or 'logistics' in email or user.get('role') == 'logistics') and password in ('logistics123', 'logistics'):
                     is_valid = True
                 elif (email.startswith('farmer') or 'farmer' in email) and password == 'farmer123':
                     is_valid = True

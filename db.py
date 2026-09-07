@@ -1806,7 +1806,7 @@ def log_admin_action(admin_id, action, target_user_id=None, reason=None):
 
 def reset_database():
     conn, db_type = get_connection()
-    tables = ["email_notifications", "orders", "crops", "farmer_profiles", "buyer_profiles", "verification_tokens", "audit_logs", "users"]
+    tables = ["order_status_history", "logistics_profiles", "email_notifications", "orders", "crops", "farmer_profiles", "buyer_profiles", "verification_tokens", "audit_logs", "users"]
     try:
         cursor = conn.cursor()
         for t in tables:
