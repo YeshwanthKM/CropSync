@@ -196,15 +196,14 @@ body.landing-page {
 }
 
 .hero-brand-top {
-    font-size: clamp(4rem, 12vw, 7rem);
+    font-size: clamp(4.5rem, 12vw, 7.5rem);
     font-weight: 950;
     color: var(--text-primary);
-    margin-top: 1rem;
+    margin-top: 0.75rem;
     margin-bottom: 0.25rem;
     letter-spacing: -0.05em;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
+    line-height: 0.95;
+    display: block;
 }
 
 .hero-brand-top svg {
