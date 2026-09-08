@@ -238,7 +238,14 @@
                         <tbody>
                             {% for order in orders %}
                             <tr>
-                                <td style="text-transform: capitalize; font-weight: 700;">{{ order.crop_name }}</td>
+                                <td style="text-transform: capitalize; font-weight: 700;">
+                                    {{ order.crop_name }}
+                                    {% if order.msp_value %}
+                                        <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600; margin-top: 3px;">
+                                            Govt MSP: ₹{{ "%.2f"|format(order.msp_value) }}/kg ({{ order.msp_diff_text }})
+                                        </div>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <div><strong>{{ order.farmer_name }}</strong></div>
                                     {% if order.status in ('Accepted', 'Completed') %}

@@ -25,21 +25,37 @@ try:
 except Exception as _e:
     print("[!] Database initialization warning:", _e)
 
-# MSP Reference Data
-MSP_DATA = {
-    'rice': 21.83, 'Rice': 21.83,
-    'wheat': 22.75, 'Wheat': 22.75,
-    'maize': 20.90, 'Maize': 20.90,
-    'ragi': 38.46, 'Ragi': 38.46,
-    'bajra': 25.00, 'Bajra': 25.00,
-    'tur': 70.00, 'Tur': 70.00,
-    'moong': 85.58, 'Moong': 85.58,
-    'urad': 69.50, 'Urad': 69.50,
-    'groundnut': 63.77, 'Groundnut': 63.77,
-    'sunflower': 67.60, 'Sunflower': 67.60,
-    'soyabean': 46.00, 'Soyabean': 46.00,
-    'cotton': 66.20, 'Cotton': 66.20
-}
+# MSP Reference Data (Case-Insensitive Dictionary)
+class CaseInsensitiveMSPData(dict):
+    def get(self, key, default=None):
+        if not key or not isinstance(key, str):
+            return super().get(key, default)
+        k_lower = key.strip().lower()
+        for k, v in self.items():
+            if k.lower() == k_lower:
+                return v
+        return default
+
+    def __getitem__(self, key):
+        val = self.get(key)
+        if val is not None:
+            return val
+        return super().__getitem__(key)
+
+MSP_DATA = CaseInsensitiveMSPData({
+    'Rice': 21.83,
+    'Wheat': 22.75,
+    'Maize': 20.90,
+    'Ragi': 38.46,
+    'Bajra': 25.00,
+    'Tur': 70.00,
+    'Moong': 85.58,
+    'Urad': 69.50,
+    'Groundnut': 63.77,
+    'Sunflower': 67.60,
+    'Soyabean': 46.00,
+    'Cotton': 66.20
+})
 
 
 CROP_TRANSLATIONS_TA = {
@@ -722,9 +738,16 @@ def buyer_dashboard():
     
     filtered_crops = db.get_crops(search=search, location=location)
     for c in filtered_crops:
+        msp_val = None
         msp_record = db.get_msp_by_crop(c['crop_name'])
         if msp_record:
             msp_val = float(msp_record['msp_price_per_kg'])
+        else:
+            fallback = MSP_DATA.get(c['crop_name'])
+            if fallback:
+                msp_val = float(fallback)
+
+        if msp_val is not None:
             c['msp_value'] = msp_val
             farmer_price = float(c['price_per_kg'])
             diff_pct = round(((farmer_price - msp_val) / msp_val) * 100, 1)
@@ -736,6 +759,29 @@ def buyer_dashboard():
             c['msp_diff_text'] = 'N/A'
 
     orders = db.get_orders_for_buyer(session['buyer_user']['id'])
+    for o in orders:
+        c_name = o.get('crop_name', '')
+        msp_val = None
+        msp_record = db.get_msp_by_crop(c_name)
+        if msp_record:
+            msp_val = float(msp_record['msp_price_per_kg'])
+        else:
+            fallback = MSP_DATA.get(c_name)
+            if fallback:
+                msp_val = float(fallback)
+
+        if msp_val is not None:
+            o['msp_value'] = msp_val
+            qty = float(o.get('quantity', 1) or 1)
+            unit_price = float(o.get('total_price', 0)) / qty if qty > 0 else 0
+            diff_pct = round(((unit_price - msp_val) / msp_val) * 100, 1)
+            o['msp_diff_pct'] = diff_pct
+            o['msp_diff_text'] = f"+{diff_pct}% above MSP" if diff_pct >= 0 else f"{diff_pct}% below MSP"
+        else:
+            o['msp_value'] = None
+            o['msp_diff_pct'] = None
+            o['msp_diff_text'] = 'N/A'
+
     return render_template('buyer_dashboard.html', crops=filtered_crops, orders=orders, msp_data=MSP_DATA)
 
 
