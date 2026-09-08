@@ -170,8 +170,21 @@ class Phase4TestCase(unittest.TestCase):
         with self.client.session_transaction() as sess:
             sess['buyer_user'] = {'id': self.buyer_id, 'email': self.buyer_email, 'role': 'buyer'}
 
-        res = self.client.get(f'/complete_order/{order_id}')
-        self.assertEqual(res.status_code, 302)
+        # 1. Buyer confirms order receipt
+        res = self.client.get(f'/buyer/confirm_received/{order_id}', follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        orders = db.get_orders_for_buyer(self.buyer_id)
+        order = next(o for o in orders if str(o['id']) == str(order_id))
+        self.assertTrue(bool(order.get('buyer_confirmed_receipt')))
+
+        # 2. Farmer confirms payment received -> Order completed
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['farmer_user'] = {'id': self.farmer_id, 'email': self.farmer_email, 'role': 'farmer'}
+
+        res2 = self.client.get(f'/farmer/confirm_payment/{order_id}')
+        self.assertEqual(res2.status_code, 302)
 
         orders = db.get_orders_for_buyer(self.buyer_id)
         order = next(o for o in orders if str(o['id']) == str(order_id))

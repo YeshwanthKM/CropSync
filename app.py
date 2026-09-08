@@ -674,6 +674,22 @@ def reject_order(order_id):
 
     return redirect(url_for('farmer_dashboard', section='sold-items'))
 
+@app.route('/buyer/confirm_received/<order_id>')
+def buyer_confirm_order_received(order_id):
+    user = session.get('buyer_user')
+    if not user:
+        flash('Unauthorized access.', 'error')
+        return redirect(url_for('buyer_dashboard'))
+
+    buyer_id = user['id']
+    success, msg, updated_order = db.buyer_confirm_order_received_atomic(order_id, buyer_id)
+    if success:
+        flash('Order receipt confirmed! Waiting for farmer payment confirmation.', 'success')
+    else:
+        flash(msg, 'error')
+
+    return redirect(url_for('buyer_dashboard', section='my-orders'))
+
 @app.route('/complete_order/<order_id>')
 def complete_order(order_id):
     user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
@@ -682,11 +698,14 @@ def complete_order(order_id):
 
     user_id = user['id']
     role = user['role']
+    
+    if role == 'buyer':
+        return redirect(url_for('buyer_confirm_order_received', order_id=order_id))
+
     success, msg = db.complete_order_atomic(order_id, user_id, role)
 
     if success:
         flash('Order marked as Completed!', 'success')
-        # Dispatch completion email
         try:
             order = db.get_order_by_id_admin(order_id)
             if order:
@@ -703,8 +722,6 @@ def complete_order(order_id):
 
     if role == 'farmer':
         return redirect(url_for('farmer_dashboard', section='sold-items'))
-    elif role == 'buyer':
-        return redirect(url_for('buyer_dashboard', section='my-orders'))
     else:
         return redirect(url_for('admin_orders'))
 
@@ -1286,7 +1303,14 @@ def settings():
     user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user') or session.get('logistics_user')
     if not user:
         return redirect(url_for('login'))
-    return render_template('settings.html', session_user=user, active_role=user['role'])
+    
+    fresh_user = db.get_user_by_id(user['id']) or user
+    if user['role'] == 'farmer':
+        session['farmer_user'] = fresh_user
+    elif user['role'] == 'buyer':
+        session['buyer_user'] = fresh_user
+        
+    return render_template('settings.html', session_user=fresh_user, active_role=user['role'])
 
 @app.route('/logout')
 def logout():

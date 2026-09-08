@@ -271,7 +271,8 @@ def init_db():
                 "delivered_at TIMESTAMP WITH TIME ZONE",
                 "payment_collected_at TIMESTAMP WITH TIME ZONE",
                 "settlement_at TIMESTAMP WITH TIME ZONE",
-                "payment_status TEXT DEFAULT 'pending'"
+                "payment_status TEXT DEFAULT 'pending'",
+                "buyer_confirmed_receipt BOOLEAN DEFAULT FALSE"
             ]
             for col in pg_order_cols:
                 try:
@@ -445,6 +446,11 @@ def init_db():
 
             try:
                 cursor.execute("ALTER TABLE farmer_profiles ADD COLUMN is_verified INTEGER DEFAULT 0")
+            except Exception:
+                pass
+
+            try:
+                cursor.execute("ALTER TABLE orders ADD COLUMN buyer_confirmed_receipt INTEGER DEFAULT 0")
             except Exception:
                 pass
 
@@ -2271,6 +2277,55 @@ def farmer_confirm_payment_received_atomic(order_id, farmer_id):
         return True, "Payment receipt confirmed.", updated_order
     except Exception as e:
         print("[!] Error in farmer_confirm_payment_received_atomic:", e)
+        try: conn.rollback()
+        except: pass
+        return False, f"Server error: {e}", None
+    finally:
+        release_connection(conn, cursor)
+
+def buyer_confirm_order_received_atomic(order_id, buyer_id):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        
+        sql_fetch = f"SELECT * FROM orders WHERE id = {ph}"
+        cursor.execute(sql_fetch, (str(order_id),))
+        order = _dict_row(cursor.fetchone())
+        if not order:
+            return False, "Order not found.", None
+            
+        if str(order['buyer_id']) != str(buyer_id):
+            return False, "Unauthorized action.", None
+            
+        if order['status'] != 'Accepted':
+            return False, f"Cannot confirm receipt for an order with status '{order['status']}'.", order
+            
+        val_db = True if db_type == "postgres" else 1
+        sql_update = f"""
+            UPDATE orders 
+            SET buyer_confirmed_receipt = {ph}, 
+                updated_at = {ph} 
+            WHERE id = {ph}
+        """
+        cursor.execute(sql_update, (val_db, now, str(order_id)))
+        
+        hid = str(uuid.uuid4())
+        sql_hist = f"""
+            INSERT INTO order_status_history (id, order_id, previous_status, new_status, updated_by_id, updated_by_role, notes, created_at)
+            VALUES ({ph}, {ph}, 'Accepted', 'BUYER_RECEIVED', {ph}, 'buyer', 'Buyer confirmed receipt of crop order.', {ph})
+        """
+        cursor.execute(sql_hist, (hid, str(order_id), str(buyer_id), now))
+        
+        conn.commit()
+        
+        cursor.execute(sql_fetch, (str(order_id),))
+        updated_order = _dict_row(cursor.fetchone())
+        return True, "Order receipt confirmed by buyer.", updated_order
+    except Exception as e:
+        print("[!] Error in buyer_confirm_order_received_atomic:", e)
         try: conn.rollback()
         except: pass
         return False, f"Server error: {e}", None

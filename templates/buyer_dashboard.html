@@ -299,7 +299,11 @@
                                 </td>
                                 <td>
                                     {% if order.status == 'Accepted' %}
-                                        <a href="{{ url_for('complete_order', order_id=order.id) }}" class="btn-small" style="background: #1565c0; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;" onclick="return confirm('Mark this order as Completed?')">Mark Completed</a>
+                                        {% if order.buyer_confirmed_receipt %}
+                                            <span style="display: inline-block; font-size: 0.75rem; color: #4ade80; font-weight: 600;">✓ Order Received<br><span style="font-size: 0.65rem; color: var(--secondary-text); font-weight: normal;">(Awaiting Farmer Payment Confirmation)</span></span>
+                                        {% else %}
+                                            <a href="{{ url_for('buyer_confirm_order_received', order_id=order.id) }}" class="btn-small" style="background: #1565c0; color: white; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: 700; display: inline-block;" onclick="return confirm('Confirm that you have received the crop order from the farmer?')">✓ Mark Order Received</a>
+                                        {% endif %}
                                     {% elif order.status == 'Pending' %}
                                         <span style="color: var(--secondary-text); font-size: 0.75rem; font-style: italic;">Waiting for farmer</span>
                                     {% elif order.status == 'Rejected' %}
