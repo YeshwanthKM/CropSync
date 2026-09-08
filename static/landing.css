@@ -543,7 +543,7 @@ body.landing-page {
 /* ===== FEATURES ===== */
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4 cards in a row */
+    grid-template-columns: repeat(3, 1fr); /* 3 cards per row for balanced 3x2 grid */
     gap: 2rem;
     margin-top: 4rem;
 }
