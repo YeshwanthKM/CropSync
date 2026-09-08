@@ -312,25 +312,25 @@
                                         <div style="font-size: 0.75rem; font-weight: bold; color: #3b82f6;">🚛 Logistics Partner</div>
                                         {% set lstatus = order.logistics_status or 'LOGISTICS_REQUESTED' %}
                                         <div style="margin-top: 3px;">
-                                        {% if lstatus == 'LOGISTICS_REQUESTED' %}
-                                            <span style="font-size: 0.7rem; background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}1. கோரப்பட்டது{% else %}1. Requested{% endif %}</span>
-                                        {% elif lstatus == 'PICKUP_SCHEDULED' %}
-                                            <span style="font-size: 0.7rem; background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}2. பிக்கப் திட்டமிடப்பட்டது{% else %}2. Pickup Scheduled{% endif %}</span>
-                                        {% elif lstatus == 'PICKED_UP' %}
-                                            <span style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.15); color: #059669; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}3. எடுத்துச்செல்லப்பட்டது{% else %}3. Picked Up{% endif %}</span>
-                                        {% elif lstatus == 'IN_TRANSIT' %}
-                                            <span style="font-size: 0.7rem; background: rgba(99, 102, 241, 0.15); color: #4f46e5; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}4. வழியில் உள்ளது{% else %}4. In Transit{% endif %}</span>
-                                        {% elif lstatus == 'OUT_FOR_DELIVERY' %}
-                                            <span style="font-size: 0.7rem; background: rgba(236, 72, 153, 0.15); color: #db2777; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}5. விநியோகத்திற்கு வெளியே உள்ளது{% else %}5. Out for Delivery{% endif %}</span>
-                                        {% elif lstatus in ('DELIVERED', 'PAYMENT_COLLECTED') %}
-                                            <span style="font-size: 0.7rem; background: rgba(34, 197, 94, 0.15); color: #16a34a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}6. விநியோகிக்கப்பட்டது & ரொக்கம் பெறப்பட்டது{% else %}6. Delivered & COD Collected{% endif %}</span>
-                                        {% elif lstatus == 'SETTLEMENT_PENDING' %}
-                                            <span style="font-size: 0.7rem; background: rgba(245, 158, 11, 0.25); color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{% if farmer_lang == 'ta' %}⏳ பணம் அனுப்பப்பட்டது (உறுதிப்படுத்தவும்){% else %}⏳ Payment Sent by Logistics{% endif %}</span>
-                                        {% elif lstatus == 'SETTLED' %}
-                                            <span style="font-size: 0.7rem; background: rgba(34, 197, 94, 0.2); color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{% if farmer_lang == 'ta' %}✓ பணம் பெறப்பட்டது & நிறைவடைந்தது{% else %}✓ Payment Settled & Received{% endif %}</span>
-                                        {% else %}
-                                            <span style="font-size: 0.7rem; color: #22c55e; font-weight: 600;">{{ lstatus }}</span>
-                                        {% endif %}
+                                         {% if lstatus == 'LOGISTICS_REQUESTED' %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 3px 7px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}1. கோரப்பட்டது{% else %}1. Requested{% endif %}</span>
+                                         {% elif lstatus == 'PICKUP_SCHEDULED' %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 3px 7px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}2. பிக்கப் திட்டமிடப்பட்டது{% else %}2. Pickup Scheduled{% endif %}</span>
+                                         {% elif lstatus == 'PICKED_UP' %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 3px 7px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}3. எடுத்துச்செல்லப்பட்டது{% else %}3. Picked Up{% endif %}</span>
+                                         {% elif lstatus == 'IN_TRANSIT' %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 3px 7px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}4. வழியில் உள்ளது{% else %}4. In Transit{% endif %}</span>
+                                         {% elif lstatus == 'OUT_FOR_DELIVERY' %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; background: rgba(236, 72, 153, 0.15); color: #f472b6; padding: 3px 7px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}5. விநியோகத்திற்கு வெளியே உள்ளது{% else %}5. Out for Delivery{% endif %}</span>
+                                         {% elif lstatus in ('DELIVERED', 'PAYMENT_COLLECTED') %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 3px 7px; border-radius: 4px; font-weight: 600;">{% if farmer_lang == 'ta' %}6. விநியோகிக்கப்பட்டது & ரொக்கம் பெறப்பட்டது{% else %}6. Delivered & COD Collected{% endif %}</span>
+                                         {% elif lstatus == 'SETTLEMENT_PENDING' %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; background: rgba(245, 158, 11, 0.25); color: #fbbf24; padding: 3px 7px; border-radius: 4px; font-weight: bold;">{% if farmer_lang == 'ta' %}⏳ பணம் அனுப்பப்பட்டது (உறுதிப்படுத்தவும்){% else %}⏳ Payment Sent by Logistics{% endif %}</span>
+                                         {% elif lstatus == 'SETTLED' %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 3px 7px; border-radius: 4px; font-weight: bold;">{% if farmer_lang == 'ta' %}✓ பணம் பெறப்பட்டது & நிறைவடைந்தது{% else %}✓ Payment Settled & Received{% endif %}</span>
+                                         {% else %}
+                                             <span style="display: inline-block; white-space: nowrap; font-size: 0.7rem; color: #4ade80; padding: 3px 7px; border-radius: 4px; font-weight: 600;">{{ lstatus }}</span>
+                                         {% endif %}
                                         </div>
                                     {% else %}
                                         <div style="font-size: 0.75rem; color: var(--secondary-text);">🤝 Direct Collection</div>
