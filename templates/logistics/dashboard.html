@@ -127,8 +127,8 @@
                                     {{ o.logistics_status or 'NONE' }}
                                 </span>
                             </td>
-                            <td style="padding: 1rem 1.25rem; text-align: right;">
-                                <a href="{{ url_for('logistics_order_detail', order_id=o.id) }}" style="display: inline-block; padding: 0.4rem 0.9rem; background: #22c55e; color: #000; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.8rem;">View & Manage →</a>
+                            <td style="padding: 1rem 1.25rem; text-align: right; white-space: nowrap;">
+                                <a href="{{ url_for('logistics_order_detail', order_id=o.id) }}" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.45rem 0.85rem; background: #22c55e; color: #000; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.8rem; white-space: nowrap;">View & Manage &rarr;</a>
                             </td>
                         </tr>
                     {% endfor %}
