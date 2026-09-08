@@ -2201,10 +2201,9 @@ def update_logistics_order_status_atomic(order_id, next_status, updated_by_user_
         elif next_status == 'SETTLEMENT_PENDING':
             update_fields.append("settlement_status = 'SETTLEMENT_PENDING'")
         elif next_status == 'SETTLED':
-            update_fields.append("settlement_status = 'SETTLED'")
-            update_fields.append(f"status = {ph}")
+            update_fields.append("settlement_status = 'SETTLEMENT_PENDING'")
             update_fields.append(f"settlement_at = {ph}")
-            params.extend(['Completed', now])
+            params.append(now)
             
         params.append(str(order_id))
         sql_update = f"UPDATE orders SET {', '.join(update_fields)} WHERE id = {ph}"
