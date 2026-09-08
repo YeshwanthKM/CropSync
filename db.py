@@ -1141,21 +1141,24 @@ def get_crops(farmer_id=None, search=None, location=None):
         try:
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
-            query = """
-                SELECT c.*, fp.name as farmer_name, fp.phone as farmer_phone
+            join_sql = "JOIN users u ON c.farmer_id::text = u.id::text LEFT JOIN farmer_profiles fp ON u.id::text = fp.user_id::text" if db_type == "postgres" else "JOIN users u ON c.farmer_id = u.id LEFT JOIN farmer_profiles fp ON u.id = fp.user_id"
+            
+            query = f"""
+                SELECT c.*, COALESCE(fp.name, u.email, 'Farmer') as farmer_name, COALESCE(fp.phone, 'N/A') as farmer_phone
                 FROM crops c
-                JOIN farmer_profiles fp ON c.farmer_id = fp.user_id
+                {join_sql}
                 WHERE c.status = 'available'
             """
             params = []
             if farmer_id:
-                query = """
-                    SELECT c.*, fp.name as farmer_name, fp.phone as farmer_phone
+                farmer_where = "c.farmer_id::text = %s" if db_type == "postgres" else "c.farmer_id = ?"
+                query = f"""
+                    SELECT c.*, COALESCE(fp.name, u.email, 'Farmer') as farmer_name, COALESCE(fp.phone, 'N/A') as farmer_phone
                     FROM crops c
-                    JOIN farmer_profiles fp ON c.farmer_id = fp.user_id
-                    WHERE c.farmer_id = """ + ph + """ AND c.status = 'available'
+                    {join_sql}
+                    WHERE {farmer_where} AND c.status = 'available'
                 """
-                params.append(str(farmer_id))
+                params.append(str(farmer_id).strip())
             else:
                 if search:
                     query += f" AND LOWER(c.crop_name) LIKE {ph}"
