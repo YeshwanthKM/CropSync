@@ -7,12 +7,13 @@ import urllib.error
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import render_template
+import threading
 import db
 
 def get_app_base_url():
     return (os.environ.get('APP_BASE_URL') or 'https://crop-sync.vercel.app').rstrip('/')
 
-def _send_raw_email(to_email, subject, html_content, text_content=None):
+def _send_raw_email_sync(to_email, subject, html_content, text_content=None):
     gmail_user = (os.environ.get('GMAIL_USER') or os.environ.get('SMTP_USER') or '').strip()
     gmail_pass = (os.environ.get('GMAIL_APP_PASSWORD') or os.environ.get('SMTP_PASS') or '').strip().replace(' ', '')
     resend_api_key = (os.environ.get('RESEND_API_KEY') or '').strip()
@@ -77,6 +78,17 @@ def _send_raw_email(to_email, subject, html_content, text_content=None):
     else:
         print(f"[+] [DEV MODE EMAIL DISPATCH] To: {to_email} | Subject: {subject}")
         return True, None
+
+
+def _send_raw_email(to_email, subject, html_content, text_content=None):
+    """Non-blocking asynchronous email dispatch in a background daemon thread."""
+    thread = threading.Thread(
+        target=_send_raw_email_sync,
+        args=(to_email, subject, html_content, text_content),
+        daemon=True
+    )
+    thread.start()
+    return True, None
 
 
 def send_new_order_email(order, farmer, buyer=None):

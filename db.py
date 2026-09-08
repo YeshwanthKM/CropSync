@@ -48,11 +48,22 @@ def get_connection():
         _thread_local.conn = conn
         return conn, "postgres"
     else:
-        # Fallback to local SQLite database
+        # Fallback to local SQLite database with thread-local connection reuse
+        conn = getattr(_thread_local, 'sqlite_conn', None)
+        if conn is not None:
+            try:
+                conn.execute("SELECT 1")
+                return conn, "sqlite"
+            except Exception:
+                try: conn.close()
+                except Exception: pass
+                _thread_local.sqlite_conn = None
+
         data_dir = '/tmp' if os.environ.get('VERCEL') else '.'
         db_path = os.path.join(data_dir, 'cropsync.db')
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
+        _thread_local.sqlite_conn = conn
         return conn, "sqlite"
 
 
@@ -60,11 +71,6 @@ def release_connection(conn, cursor=None):
     if cursor:
         try:
             cursor.close()
-        except Exception:
-            pass
-    if not DB_URL and conn:
-        try:
-            conn.close()
         except Exception:
             pass
 
@@ -551,14 +557,29 @@ def init_db():
                 except Exception:
                     pass
 
+            # Create performance indexes across both Postgres and SQLite
+            perf_indexes = [
+                "CREATE INDEX IF NOT EXISTS idx_orders_farmer_id ON orders(farmer_id);",
+                "CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);",
+                "CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);",
+                "CREATE INDEX IF NOT EXISTS idx_orders_logistics_status ON orders(logistics_status);",
+                "CREATE INDEX IF NOT EXISTS idx_crops_farmer_id ON crops(farmer_id);",
+                "CREATE INDEX IF NOT EXISTS idx_crops_status ON crops(status);",
+                "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);"
+            ]
+            for p_idx in perf_indexes:
+                try:
+                    cursor.execute(p_idx)
+                except Exception:
+                    pass
+
             conn.commit()
 
 
     except Exception as e:
         print("[!] Error executing DDL in init_db:", e)
     finally:
-        try: conn.close()
-        except: pass
+        release_connection(conn, cursor)
 
 
 
