@@ -36,7 +36,14 @@
                     <td style="padding: 0.75rem 1rem; font-family: monospace; font-size: 0.85rem;">{{ l.id[:8] }}...</td>
                     <td style="padding: 0.75rem 1rem; font-weight: 700;">{{ l.crop_name }}</td>
                     <td style="padding: 0.75rem 1rem;">
-                        <div>{{ l.farmer_name or 'Farmer' }}</div>
+                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                            <span>{{ l.farmer_name or 'Farmer' }}</span>
+                            {% if l.is_verified %}
+                            <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; font-weight: 700;">✓ Verified</span>
+                            {% else %}
+                            <span style="background: rgba(156, 163, 175, 0.15); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.3); font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; font-weight: 500;">Not Verified</span>
+                            {% endif %}
+                        </div>
                         <div style="font-size: 0.75rem; color: var(--secondary-text);">{{ l.farmer_email }}</div>
                     </td>
                     <td style="padding: 0.75rem 1rem;">{{ l.location }}</td>

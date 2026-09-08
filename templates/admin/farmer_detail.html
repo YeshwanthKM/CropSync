@@ -73,5 +73,28 @@
             {% endif %}
         </form>
     </div>
+
+    <!-- Verification Management -->
+    <div class="card" style="grid-column: span 2;">
+        <h3>Farmer Marketplace Verification</h3>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; background: var(--nav-bg); padding: 1rem; border-radius: var(--border-radius); border: 1px solid var(--nav-border);">
+            <div>
+                <strong style="margin-right: 0.5rem;">Current Verification Tag:</strong>
+                {% if farmer.is_verified %}
+                <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); padding: 0.25rem 0.75rem; border-radius: 4px; font-weight: 700; font-size: 0.85rem;">✓ Verified Farmer</span>
+                {% else %}
+                <span style="background: rgba(156, 163, 175, 0.15); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.3); padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.85rem;">Not Verified</span>
+                {% endif %}
+                <p style="color: var(--secondary-text); font-size: 0.85rem; margin: 0.5rem 0 0 0;">Verified farmers display a green <strong>✓ Verified</strong> badge next to their name in the buyer marketplace and admin listings.</p>
+            </div>
+            <form method="POST" action="{{ url_for('admin_farmer_detail', farmer_id=farmer.id) }}" style="box-shadow: none; border: none; padding: 0; margin: 0; background: none;">
+                <input type="hidden" name="action" value="toggle_verification">
+                <input type="hidden" name="is_verified" value="{{ 'false' if farmer.is_verified else 'true' }}">
+                <button type="submit" class="btn" style="{% if farmer.is_verified %}background: #c62828; color: white;{% else %}background: #2e7d32; color: white;{% endif %} padding: 0.5rem 1.25rem; font-weight: 700;">
+                    {% if farmer.is_verified %}Unverify Farmer Account{% else %}✓ Verify Farmer Account{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

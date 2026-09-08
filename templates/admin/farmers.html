@@ -9,7 +9,8 @@
         <input type="text" name="search" value="{{ search or '' }}" placeholder="Search farmer by name, email, or location..." style="flex-grow: 1; min-width: 250px;">
         <select name="status" style="padding: 0.625rem; border: 1px solid var(--input-border); border-radius: var(--border-radius); background: var(--input-bg); color: var(--text-color);">
             <option value="all" {% if status_filter == 'all' or not status_filter %}selected{% endif %}>All Accounts</option>
-            <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Verified Active</option>
+            <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Verified Farmers</option>
+            <option value="unverified" {% if status_filter == 'unverified' %}selected{% endif %}>Unverified Farmers</option>
             <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Verification</option>
             <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
         </select>
@@ -27,8 +28,7 @@
                 <th>Farmer Name</th>
                 <th>Email</th>
                 <th>Phone</th>
-                <th>Email Verified</th>
-                <th>Phone Verified</th>
+                <th>Farmer Verified</th>
                 <th>Status</th>
                 <th>Registered At</th>
                 <th>Action</th>
@@ -37,23 +37,16 @@
         <tbody>
             {% for f in farmers %}
             <tr>
-                <td><strong>{{ f.name }}</strong></td>
                 <td>
-                    {{ f.email }}
+                    <div style="font-weight: 700;">{{ f.name }}</div>
                 </td>
+                <td>{{ f.email }}</td>
                 <td>{{ f.phone or 'N/A' }}</td>
                 <td>
-                    {% if f.email_verified %}
-                    <span style="color: #27ae60; font-weight: 600;">✓ Email</span>
+                    {% if f.is_verified %}
+                    <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">✓ Verified</span>
                     {% else %}
-                    <span style="color: #e74c3c;">✗ Pending</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if f.phone_verified %}
-                    <span style="color: #27ae60; font-weight: 600;">✓ Phone</span>
-                    {% else %}
-                    <span style="color: #e74c3c;">✗ Pending</span>
+                    <span style="background: rgba(156, 163, 175, 0.15); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.3); padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.75rem;">Not Verified</span>
                     {% endif %}
                 </td>
                 <td>
@@ -66,13 +59,18 @@
                     {% endif %}
                 </td>
                 <td>{{ (f.created_at|string)[:10] if f.created_at else 'N/A' }}</td>
-                <td>
-                    <a href="{{ url_for('admin_farmer_detail', farmer_id=f.id) }}" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Manage</a>
+                <td style="white-space: nowrap;">
+                    <div style="display: flex; gap: 0.35rem;">
+                        <a href="{{ url_for('admin_farmer_detail', farmer_id=f.id) }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Manage</a>
+                        <a href="{{ url_for('admin_toggle_verify_farmer', farmer_id=f.id) }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; {% if f.is_verified %}background: #c62828; color: white;{% else %}background: #2e7d32; color: white;{% endif %}" onclick="return confirm('{% if f.is_verified %}Unverify{% else %}Verify{% endif %} farmer {{ f.name }}?')">
+                            {% if f.is_verified %}Unverify{% else %}✓ Verify{% endif %}
+                        </a>
+                    </div>
                 </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="8" style="text-align: center; color: var(--secondary-text); padding: 2rem;">No farmers found matching query.</td>
+                <td colspan="7" style="text-align: center; color: var(--secondary-text); padding: 2rem;">No farmers found matching query.</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -600,11 +600,14 @@ def farmer_dashboard():
         except ValueError:
             flash('Invalid numbers!', 'error')
 
+    farmer_user = db.get_user_by_id(farmer_id) or session['farmer_user']
+    session['farmer_user'] = farmer_user
+
     user_crops = db.get_crops(farmer_id=farmer_id)
     sold_orders = db.get_orders_for_farmer(farmer_id=farmer_id)
     earnings = round(sum(float(o['total_price']) for o in sold_orders if o['status'] in ('Accepted', 'Completed')), 2)
 
-    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders)
+    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user)
 
 @app.route('/delete_crop/<crop_id>')
 def delete_crop(crop_id):
@@ -917,15 +920,41 @@ def admin_farmer_detail(farmer_id):
                 SupabaseAuthService.delete_user_by_email(email)
                 db.log_admin_action(admin_id, 'SUSPEND_AND_PURGE_USER', farmer_id, reason or 'Account suspended and purged by admin')
                 db.delete_user(farmer_id)
-                flash(f'Account for {email} has been completely removed. The email is now available for new registrations.', 'success')
-                return redirect(url_for('admin_farmers'))
+        elif action == 'toggle_verification':
+            is_verified = request.form.get('is_verified') == 'true'
+            success, msg = db.set_farmer_verification_admin(farmer_id, is_verified, admin_id=admin_id)
+            if success:
+                status_str = "Verified" if is_verified else "Unverified"
+                flash(f'Farmer verification updated to {status_str}.', 'success')
             else:
-                db.update_user_status(farmer_id, new_status, reason=reason)
-                db.log_admin_action(admin_id, f'UPDATE_STATUS_{new_status.upper()}', farmer_id, reason)
-                flash(f'Farmer account status updated to {new_status}.', 'success')
+                flash(msg, 'error')
         return redirect(url_for('admin_farmer_detail', farmer_id=farmer_id))
 
     return render_template('admin/farmer_detail.html', farmer=farmer, active_page='farmers')
+
+@app.route('/admin/farmers/toggle_verify/<farmer_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_toggle_verify_farmer(farmer_id):
+    farmer = db.get_user_by_id(farmer_id)
+    if not farmer or farmer['role'] != 'farmer':
+        flash('Farmer record not found', 'error')
+        return redirect(url_for('admin_farmers'))
+        
+    admin_id = session.get('admin_user', {}).get('id')
+    current_verified = bool(farmer.get('is_verified'))
+    new_verified = not current_verified
+    
+    success, msg = db.set_farmer_verification_admin(farmer_id, new_verified, admin_id=admin_id)
+    if success:
+        status_str = "Verified" if new_verified else "Unverified"
+        flash(f'Farmer {farmer.get("name", "account")} is now marked as {status_str}.', 'success')
+    else:
+        flash(msg, 'error')
+        
+    referrer = request.referrer
+    if referrer and 'farmer_detail' in referrer:
+        return redirect(url_for('admin_farmer_detail', farmer_id=farmer_id))
+    return redirect(url_for('admin_farmers'))
 
 @app.route('/admin/buyers', methods=['GET', 'POST'])
 @admin_required

@@ -142,6 +142,7 @@ def init_db():
                     phone TEXT,
                     address TEXT,
                     location TEXT,
+                    is_verified BOOLEAN DEFAULT FALSE NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
@@ -278,6 +279,11 @@ def init_db():
                 except Exception as e:
                     print(f"[!] Warning adding postgres column {col}:", e)
 
+            try:
+                cursor.execute("ALTER TABLE farmer_profiles ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;")
+            except Exception as e:
+                print("[!] Warning adding is_verified column to postgres farmer_profiles:", e)
+
             # Drop obsolete table if exists
             try:
                 cursor.execute("DROP TABLE IF EXISTS crop_price_history")
@@ -335,6 +341,7 @@ def init_db():
                     phone TEXT,
                     address TEXT,
                     location TEXT,
+                    is_verified INTEGER DEFAULT 0,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
@@ -435,6 +442,11 @@ def init_db():
                     cursor.execute(f"ALTER TABLE government_msp ADD COLUMN {mcol}")
                 except Exception:
                     pass
+
+            try:
+                cursor.execute("ALTER TABLE farmer_profiles ADD COLUMN is_verified INTEGER DEFAULT 0")
+            except Exception:
+                pass
 
             if db_type == "postgres":
                 try:
@@ -580,6 +592,7 @@ def get_user_by_email(email):
                        COALESCE(fp.phone, bp.phone, lp.phone) as phone,
                        COALESCE(fp.address, bp.address, lp.service_area) as address,
                        COALESCE(fp.location, bp.location, lp.service_area) as location,
+                       COALESCE(fp.is_verified, FALSE) as is_verified,
                        bp.organization
                 FROM users u
                 LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
@@ -592,6 +605,7 @@ def get_user_by_email(email):
                        COALESCE(fp.phone, bp.phone, lp.phone) as phone,
                        COALESCE(fp.address, bp.address, lp.service_area) as address,
                        COALESCE(fp.location, bp.location, lp.service_area) as location,
+                       COALESCE(fp.is_verified, FALSE) as is_verified,
                        bp.organization
                 FROM users u
                 LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
@@ -619,6 +633,7 @@ def get_user_by_id(user_id):
                        COALESCE(fp.phone, bp.phone, lp.phone) as phone,
                        COALESCE(fp.address, bp.address, lp.service_area) as address,
                        COALESCE(fp.location, bp.location, lp.service_area) as location,
+                       COALESCE(fp.is_verified, FALSE) as is_verified,
                        bp.organization
                 FROM users u
                 LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
@@ -631,6 +646,7 @@ def get_user_by_id(user_id):
                        COALESCE(fp.phone, bp.phone, lp.phone) as phone,
                        COALESCE(fp.address, bp.address, lp.service_area) as address,
                        COALESCE(fp.location, bp.location, lp.service_area) as location,
+                       COALESCE(fp.is_verified, FALSE) as is_verified,
                        bp.organization
                 FROM users u
                 LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
@@ -1006,7 +1022,9 @@ def get_all_farmers(search=None, status_filter=None):
                 params.extend([s_param, s_param, s_param])
                 
             if status_filter == 'verified':
-                where_clauses.append("u.account_status = 'active'")
+                where_clauses.append("(fp.is_verified = TRUE OR fp.is_verified = 1)")
+            elif status_filter == 'unverified':
+                where_clauses.append("(fp.is_verified IS NULL OR fp.is_verified = FALSE OR fp.is_verified = 0)")
             elif status_filter == 'pending':
                 where_clauses.append("u.account_status = 'pending'")
             elif status_filter == 'suspended':
@@ -1017,6 +1035,7 @@ def get_all_farmers(search=None, status_filter=None):
                 SELECT u.id, u.email, u.account_status, u.suspension_reason, u.created_at,
                        COALESCE(u.email_verified, FALSE) as email_verified,
                        COALESCE(u.phone_verified, FALSE) as phone_verified,
+                       COALESCE(fp.is_verified, FALSE) as is_verified,
                        COALESCE(fp.name, 'Farmer') as name, 
                        COALESCE(fp.phone, 'N/A') as phone, 
                        COALESCE(fp.address, 'N/A') as address, 
@@ -1037,6 +1056,40 @@ def get_all_farmers(search=None, status_filter=None):
     except Exception as e:
         print("[!] Error in get_all_farmers:", e)
         return [u for u in SEED_USERS if u['role'] == 'farmer']
+
+def set_farmer_verification_admin(farmer_id, is_verified, admin_id=None):
+    try:
+        conn, db_type = get_connection()
+        try:
+            cursor = conn.cursor()
+            ph = "%s" if db_type == "postgres" else "?"
+            now = datetime.utcnow().isoformat()
+            
+            val = True if is_verified in (True, 1, 'true', '1') else False
+            val_db = 1 if (db_type == "sqlite" and val) else (0 if db_type == "sqlite" else val)
+            
+            sql_chk = f"SELECT user_id FROM farmer_profiles WHERE user_id = {ph}"
+            cursor.execute(sql_chk, (str(farmer_id),))
+            row = cursor.fetchone()
+            
+            if row:
+                sql_upd = f"UPDATE farmer_profiles SET is_verified = {ph}, updated_at = {ph} WHERE user_id = {ph}"
+                cursor.execute(sql_upd, (val_db, now, str(farmer_id)))
+            else:
+                fid = str(uuid.uuid4())
+                sql_ins = f"INSERT INTO farmer_profiles (id, user_id, name, is_verified, created_at, updated_at) VALUES ({ph}, {ph}, 'Farmer', {ph}, {ph}, {ph})"
+                cursor.execute(sql_ins, (fid, str(farmer_id), val_db, now, now))
+                
+            conn.commit()
+            if admin_id:
+                action_name = "VERIFY_FARMER" if val else "UNVERIFY_FARMER"
+                log_admin_action(admin_id, action_name, farmer_id, f"Set farmer verification status to {val}")
+            return True, "Farmer verification status updated."
+        finally:
+            conn.close()
+    except Exception as e:
+        print("[!] Error in set_farmer_verification_admin:", e)
+        return False, f"Server error: {e}"
 
 def get_all_buyers(search=None, status_filter=None):
     try:
@@ -1144,7 +1197,7 @@ def get_crops(farmer_id=None, search=None, location=None):
             join_sql = "JOIN users u ON c.farmer_id::text = u.id::text LEFT JOIN farmer_profiles fp ON u.id::text = fp.user_id::text" if db_type == "postgres" else "JOIN users u ON c.farmer_id = u.id LEFT JOIN farmer_profiles fp ON u.id = fp.user_id"
             
             query = f"""
-                SELECT c.*, COALESCE(fp.name, u.email, 'Farmer') as farmer_name, COALESCE(fp.phone, 'N/A') as farmer_phone
+                SELECT c.*, COALESCE(fp.name, u.email, 'Farmer') as farmer_name, COALESCE(fp.phone, 'N/A') as farmer_phone, COALESCE(fp.is_verified, FALSE) as is_verified
                 FROM crops c
                 {join_sql}
                 WHERE c.status = 'available'
@@ -1153,7 +1206,7 @@ def get_crops(farmer_id=None, search=None, location=None):
             if farmer_id:
                 farmer_where = "c.farmer_id::text = %s" if db_type == "postgres" else "c.farmer_id = ?"
                 query = f"""
-                    SELECT c.*, COALESCE(fp.name, u.email, 'Farmer') as farmer_name, COALESCE(fp.phone, 'N/A') as farmer_phone
+                    SELECT c.*, COALESCE(fp.name, u.email, 'Farmer') as farmer_name, COALESCE(fp.phone, 'N/A') as farmer_phone, COALESCE(fp.is_verified, FALSE) as is_verified
                     FROM crops c
                     {join_sql}
                     WHERE {farmer_where} AND c.status = 'available'
@@ -1679,7 +1732,7 @@ def get_all_listings_admin():
                 msp_map[rd['crop_name'].strip().lower()] = float(rd['msp_price_per_kg'])
 
         sql = """
-            SELECT c.*, fp.name AS farmer_name, u.email AS farmer_email
+            SELECT c.*, fp.name AS farmer_name, u.email AS farmer_email, COALESCE(fp.is_verified, FALSE) AS is_verified
             FROM crops c
             JOIN users u ON c.farmer_id = u.id
             LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
@@ -1709,7 +1762,7 @@ def get_listing_by_id_admin(crop_id):
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"""
-            SELECT c.*, fp.name AS farmer_name, fp.phone AS farmer_phone, u.email AS farmer_email
+            SELECT c.*, fp.name AS farmer_name, fp.phone AS farmer_phone, u.email AS farmer_email, COALESCE(fp.is_verified, FALSE) AS is_verified
             FROM crops c
             JOIN users u ON c.farmer_id = u.id
             LEFT JOIN farmer_profiles fp ON u.id = fp.user_id

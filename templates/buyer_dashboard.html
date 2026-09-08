@@ -184,7 +184,14 @@
                                     <td>{{ crop.quantity }} kg</td>
                                     <td>{{ crop.location }}</td>
                                     <td>
-                                        <div style="font-size: 0.85rem; font-weight: 600;">{{ crop.farmer_name }}</div>
+                                        <div style="font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                                            <span>{{ crop.farmer_name }}</span>
+                                            {% if crop.is_verified %}
+                                            <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 2px;">✓ Verified</span>
+                                            {% else %}
+                                            <span style="background: rgba(156, 163, 175, 0.15); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.3); font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; font-weight: 500; display: inline-flex; align-items: center;">Not Verified</span>
+                                            {% endif %}
+                                        </div>
                                         <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon order acceptance</div>
                                     </td>
                                     <td>

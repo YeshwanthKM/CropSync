@@ -101,7 +101,14 @@
             </button>
             <div class="dashboard-header">
                 <h1 style="margin: 0;">{{ get_text('farmer_dashboard') }}</h1>
-                <div style="font-size: 0.875rem; color: var(--secondary-text);">{{ get_text('welcome_back') }}, <strong>{{ session['farmer_user']['name'] }}</strong></div>
+                <div style="font-size: 0.875rem; color: var(--secondary-text); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <span>{{ get_text('welcome_back') }}, <strong>{{ farmer_user['name'] if farmer_user else session['farmer_user']['name'] }}</strong></span>
+                    {% if (farmer_user and farmer_user.is_verified) or (session.get('farmer_user', {}).get('is_verified')) %}
+                    <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.4); font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;">✓ Verified Farmer</span>
+                    {% else %}
+                    <span style="background: rgba(156, 163, 175, 0.15); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.3); font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: 500;">Not Verified</span>
+                    {% endif %}
+                </div>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -350,7 +357,7 @@
                                     {% elif order.fulfillment_method == 'Logistics Partner' and order.settlement_status != 'SETTLED' and order.logistics_status in ('DELIVERED', 'PAYMENT_COLLECTED', 'SETTLEMENT_PENDING') %}
                                     <a href="{{ url_for('confirm_farmer_payment_received', order_id=order.id) }}" class="btn-small" style="background: #22c55e; color: #000; font-weight: 800; padding: 6px 12px; border-radius: 50px; text-decoration: none; font-size: 0.75rem; display: inline-block;" onclick="return confirm('Confirm that you have received the payout payment of ₹{{ order.farmer_settlement_amount or order.total_price }} for Order #{{ order.id[:8] }}?')">{{ get_text('confirm_payment_received') }}</a>
                                     {% elif order.status == 'Accepted' and order.fulfillment_method != 'Logistics Partner' %}
-                                    <a href="{{ url_for('complete_order', order_id=order.id) }}" class="btn-small" style="background: #1565c0; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-size: 0.75rem;" onclick="return confirm('Mark this order as Completed?')">{{ get_text('mark_completed') }}</a>
+                                    <a href="{{ url_for('confirm_farmer_payment_received', order_id=order.id) }}" class="btn-small" style="background: #22c55e; color: #000; font-weight: 800; padding: 6px 12px; border-radius: 50px; text-decoration: none; font-size: 0.75rem; display: inline-block;" onclick="return confirm('Confirm that you have received payment of ₹{{ order.total_price }} for Order #{{ order.id[:8] }}?')">✓ {% if farmer_lang == 'ta' %}பணம் பெறப்பட்டது{% else %}Confirm Payment Received{% endif %}</a>
                                     {% else %}
                                     <span style="color: var(--secondary-text); font-size: 0.75rem;">{{ order.status }}</span>
                                     {% endif %}
