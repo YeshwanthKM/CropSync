@@ -2069,7 +2069,7 @@ def get_logistics_orders(logistics_user_id=None, status_filter=None, search=None
             JOIN users bu ON o.buyer_id = bu.id
             LEFT JOIN farmer_profiles fp ON o.farmer_id = fp.user_id
             LEFT JOIN buyer_profiles bp ON o.buyer_id = bp.user_id
-            WHERE (o.fulfillment_method = 'Logistics Partner' OR (o.logistics_status IS NOT NULL AND o.logistics_status != 'NONE'))
+            WHERE o.fulfillment_method = 'Logistics Partner'
         """
         params = []
         if status_filter and status_filter != 'ALL':
@@ -2133,7 +2133,7 @@ def get_logistics_dashboard_stats(logistics_user_id=None):
                 COUNT(CASE WHEN settlement_status = 'SETTLEMENT_PENDING' THEN 1 END) as settlement_pending,
                 COUNT(CASE WHEN settlement_status = 'SETTLED' THEN 1 END) as settled
             FROM orders
-            WHERE fulfillment_method = 'Logistics Partner' OR (logistics_status IS NOT NULL AND logistics_status != 'NONE')
+            WHERE fulfillment_method = 'Logistics Partner'
         """
         cursor.execute(sql)
         row = cursor.fetchone()
@@ -2272,16 +2272,19 @@ def farmer_confirm_payment_received_atomic(order_id, farmer_id):
         if order['settlement_status'] == 'SETTLED':
             return False, "Payment is already marked as settled.", order
             
+        is_logistics = (order.get('fulfillment_method') == 'Logistics Partner')
+        new_logistics_status = 'SETTLED' if is_logistics else (order.get('logistics_status') or 'NONE')
+
         sql_update = f"""
             UPDATE orders 
             SET settlement_status = 'SETTLED', 
-                logistics_status = 'SETTLED', 
+                logistics_status = {ph}, 
                 status = 'Completed', 
                 settlement_at = {ph}, 
                 updated_at = {ph} 
             WHERE id = {ph}
         """
-        cursor.execute(sql_update, (now, now, str(order_id)))
+        cursor.execute(sql_update, (new_logistics_status, now, now, str(order_id)))
         
         hid = str(uuid.uuid4())
         sql_hist = f"""
