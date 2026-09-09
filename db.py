@@ -2128,10 +2128,10 @@ def get_logistics_dashboard_stats(logistics_user_id=None):
                 COUNT(CASE WHEN logistics_status = 'PICKUP_SCHEDULED' THEN 1 END) as pickup_pending,
                 COUNT(CASE WHEN logistics_status IN ('PICKED_UP', 'IN_TRANSIT') THEN 1 END) as in_transit,
                 COUNT(CASE WHEN logistics_status = 'OUT_FOR_DELIVERY' THEN 1 END) as out_for_delivery,
-                COUNT(CASE WHEN logistics_status IN ('DELIVERED', 'PAYMENT_COLLECTED', 'SETTLEMENT_PENDING', 'SETTLED') THEN 1 END) as delivered,
-                COUNT(CASE WHEN payment_status = 'COLLECTED' THEN 1 END) as payment_collected,
-                COUNT(CASE WHEN settlement_status = 'SETTLEMENT_PENDING' THEN 1 END) as settlement_pending,
-                COUNT(CASE WHEN settlement_status = 'SETTLED' THEN 1 END) as settled
+                COUNT(CASE WHEN logistics_status = 'DELIVERED' THEN 1 END) as delivered,
+                COUNT(CASE WHEN logistics_status = 'PAYMENT_COLLECTED' THEN 1 END) as payment_collected,
+                COUNT(CASE WHEN settlement_status = 'SETTLEMENT_PENDING' OR logistics_status = 'SETTLEMENT_PENDING' THEN 1 END) as settlement_pending,
+                COUNT(CASE WHEN settlement_status = 'SETTLED' OR logistics_status = 'SETTLED' THEN 1 END) as settled
             FROM orders
             WHERE fulfillment_method = 'Logistics Partner'
         """
