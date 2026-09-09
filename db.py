@@ -2175,6 +2175,16 @@ def get_order_status_history(order_id):
     finally:
         release_connection(conn, cursor)
 
+def _valid_user_id_or_none(cursor, user_id, ph):
+    if not user_id:
+        return None
+    try:
+        cursor.execute(f"SELECT id FROM users WHERE id = {ph}", (str(user_id),))
+        row = cursor.fetchone()
+        return str(user_id) if row else None
+    except Exception:
+        return None
+
 def update_logistics_order_status_atomic(order_id, next_status, updated_by_user_id, updated_by_role='logistics', notes=None):
     conn, db_type = get_connection()
     cursor = None
@@ -2231,12 +2241,13 @@ def update_logistics_order_status_atomic(order_id, next_status, updated_by_user_
         cursor.execute(sql_update, tuple(params))
         
         # 4. Record entry in order_status_history audit table
+        valid_user_id = _valid_user_id_or_none(cursor, updated_by_user_id, ph)
         hid = str(uuid.uuid4())
         sql_hist = f"""
             INSERT INTO order_status_history (id, order_id, previous_status, new_status, updated_by_id, updated_by_role, notes, created_at)
             VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
         """
-        cursor.execute(sql_hist, (hid, str(order_id), current_status, next_status, str(updated_by_user_id) if updated_by_user_id else None, updated_by_role, notes or f"Status updated to {next_status}", now))
+        cursor.execute(sql_hist, (hid, str(order_id), current_status, next_status, valid_user_id, updated_by_role, notes or f"Status updated to {next_status}", now))
         
         conn.commit()
         
@@ -2286,12 +2297,13 @@ def farmer_confirm_payment_received_atomic(order_id, farmer_id):
         """
         cursor.execute(sql_update, (new_logistics_status, now, now, str(order_id)))
         
+        valid_farmer_id = _valid_user_id_or_none(cursor, farmer_id, ph)
         hid = str(uuid.uuid4())
         sql_hist = f"""
             INSERT INTO order_status_history (id, order_id, previous_status, new_status, updated_by_id, updated_by_role, notes, created_at)
             VALUES ({ph}, {ph}, {ph}, 'SETTLED', {ph}, 'farmer', 'Farmer confirmed receipt of payout settlement.', {ph})
         """
-        cursor.execute(sql_hist, (hid, str(order_id), order.get('logistics_status', 'SETTLEMENT_PENDING'), str(farmer_id), now))
+        cursor.execute(sql_hist, (hid, str(order_id), order.get('logistics_status', 'SETTLEMENT_PENDING'), valid_farmer_id, now))
         
         conn.commit()
         
@@ -2335,12 +2347,13 @@ def buyer_confirm_order_received_atomic(order_id, buyer_id):
         """
         cursor.execute(sql_update, (val_db, now, str(order_id)))
         
+        valid_buyer_id = _valid_user_id_or_none(cursor, buyer_id, ph)
         hid = str(uuid.uuid4())
         sql_hist = f"""
             INSERT INTO order_status_history (id, order_id, previous_status, new_status, updated_by_id, updated_by_role, notes, created_at)
             VALUES ({ph}, {ph}, 'Accepted', 'BUYER_RECEIVED', {ph}, 'buyer', 'Buyer confirmed receipt of crop order.', {ph})
         """
-        cursor.execute(sql_hist, (hid, str(order_id), str(buyer_id), now))
+        cursor.execute(sql_hist, (hid, str(order_id), valid_buyer_id, now))
         
         conn.commit()
         
