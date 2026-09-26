@@ -431,19 +431,19 @@
                 </div>
 
                 <!-- Camera / Image Diagnostic Card -->
-                <div style="background: var(--card-bg); border: 1px solid rgba(39, 174, 96, 0.3); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <div style="background: var(--card-bg); border: 1px solid var(--nav-border); border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                         <div>
-                            <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; border: none;">
+                            <h3 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; border: none; font-weight: 700;">
                                 📸 <span>{% if farmer_lang == 'ta' %}பயிர் நோய் & பூச்சி கண்டறிதல் (கேமரா மூலம்){% else %}Crop Health & Pest Diagnostic Scanner{% endif %}</span>
                             </h3>
-                            <p style="margin: 0.35rem 0 0 0; color: var(--secondary-text); font-size: 0.85rem;">
+                            <p style="margin: 0.35rem 0 0 0; color: var(--secondary-text); font-size: 0.88rem;">
                                 {% if farmer_lang == 'ta' %}உங்கள் பயிர் அல்லது இலையின் புகைப்படத்தை எடுத்து உடனடி AI பரிசோதனை அறிக்கையைப் பெறவும்.{% else %}Take or upload a photo of affected crop leaves for instant Gemini AI disease diagnostics.{% endif %}
                             </p>
                         </div>
                         <div>
                             <input type="file" id="crop-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleCropCameraUpload(event)">
-                            <button type="button" onclick="document.getElementById('crop-camera-input').click()" style="background: linear-gradient(135deg, #27ae60, #2ea043); color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);">
+                            <button type="button" onclick="document.getElementById('crop-camera-input').click()" style="background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; border: none; padding: 0.75rem 1.4rem; border-radius: 25px; font-weight: 700; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(39, 174, 96, 0.3); transition: transform 0.2s ease;">
                                 <span>📸</span>
                                 <span>{% if farmer_lang == 'ta' %}புகைப்படம் எடு / பதிவேற்று{% else %}Scan Crop Health / Camera{% endif %}</span>
                             </button>
@@ -451,12 +451,12 @@
                     </div>
 
                     <!-- Image Preview & Diagnostic Result Container -->
-                    <div id="ai-scan-result-container" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);">
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start;">
-                            <div style="flex: 0 0 140px;">
-                                <img id="ai-scan-image-preview" src="" alt="Crop Scan Preview" style="width: 140px; height: 140px; object-fit: cover; border-radius: 12px; border: 2px solid #27ae60;">
+                    <div id="ai-scan-result-container" style="display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px dashed var(--nav-border);">
+                        <div style="display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: flex-start;">
+                            <div style="flex: 0 0 150px;">
+                                <img id="ai-scan-image-preview" src="" alt="Crop Scan Preview" style="width: 150px; height: 150px; object-fit: cover; border-radius: 14px; border: 2px solid #27ae60; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2);">
                             </div>
-                            <div style="flex: 1; min-width: 240px;" id="ai-scan-report-body">
+                            <div style="flex: 1; min-width: 260px;" id="ai-scan-report-body">
                                 <!-- Dynamic Diagnostic Card Content -->
                             </div>
                         </div>
@@ -464,22 +464,22 @@
 
                     <!-- Past Scan History (If any) -->
                     {% if ai_scan_history %}
-                    <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border-color);">
-                        <div style="font-size: 0.8rem; font-weight: bold; color: var(--secondary-text); margin-bottom: 0.5rem; text-transform: uppercase;">
+                    <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--nav-border);">
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--secondary-text); margin-bottom: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em;">
                             📋 {% if farmer_lang == 'ta' %}சமீபத்திய பரிசோதனை வரலாறு{% else %}Recent Scan History{% endif %}
                         </div>
                         <div style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem;">
                             {% for scan in ai_scan_history %}
-                            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.8rem; min-width: 200px; flex-shrink: 0;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                            <div style="background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.82rem; min-width: 210px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                                     <strong style="color: var(--text-color);">{{ scan.disease_name or 'Crop Scan' }}</strong>
                                     {% set sev = (scan.severity or 'Moderate')|lower %}
                                     {% if 'mild' in sev %}
-                                    <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">Mild</span>
+                                    <span style="background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">🟢 Mild</span>
                                     {% elif 'severe' in sev %}
-                                    <span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">Severe</span>
+                                    <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">🔴 Severe</span>
                                     {% else %}
-                                    <span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">Moderate</span>
+                                    <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">⚠️ Moderate</span>
                                     {% endif %}
                                 </div>
                                 <div style="color: var(--secondary-text); font-size: 0.75rem;">{{ scan.created_at[:16].replace('T', ' ') if scan.created_at else '' }}</div>
@@ -491,18 +491,18 @@
                 </div>
 
                 <!-- Mandi Price Trends & AI Sell Advisor Card -->
-                <div style="background: var(--card-bg); border: 1px solid rgba(41, 128, 185, 0.3); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <div style="background: var(--card-bg); border: 1px solid var(--nav-border); border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                         <div>
-                            <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; border: none;">
+                            <h3 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; border: none; font-weight: 700;">
                                 📈 <span>{% if farmer_lang == 'ta' %}மண்டி விலை போக்கின் கணிப்பு & விற்பனை நேரம்{% else %}Mandi Price Trends & AI Sell Timing Advisor{% endif %}</span>
                             </h3>
-                            <p style="margin: 0.35rem 0 0 0; color: var(--secondary-text); font-size: 0.85rem;">
+                            <p style="margin: 0.35rem 0 0 0; color: var(--secondary-text); font-size: 0.88rem;">
                                 {% if farmer_lang == 'ta' %}சந்தை விலை நிலவரம் மற்றும் பயிரை விற்பனை செய்ய சிறந்த நேரத்தை AI மூலம் அறியவும்.{% else %}District Mandi rates vs MSP benchmarks with AI price trend forecasting.{% endif %}
                             </p>
                         </div>
                         <div>
-                            <select id="trend-crop-select" onchange="fetchCropPriceTrend(this.value)" style="padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-weight: 600; font-size: 0.85rem;">
+                            <select id="trend-crop-select" onchange="fetchCropPriceTrend(this.value)" style="padding: 0.6rem 1.2rem; border-radius: 20px; border: 1px solid var(--nav-border); background: var(--bg-color); color: var(--text-color); font-weight: 600; font-size: 0.88rem; cursor: pointer;">
                                 <option value="Rice" selected>🌾 {{ crop_display('Rice') }}</option>
                                 <option value="Wheat">🌾 {{ crop_display('Wheat') }}</option>
                                 <option value="Maize">🌽 {{ crop_display('Maize') }}</option>
@@ -516,32 +516,32 @@
                     </div>
 
                     <!-- Trend Data Display Box -->
-                    <div id="ai-price-trend-box" style="margin-top: 1rem; padding: 1rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.85rem;">
+                    <div id="ai-price-trend-box" style="margin-top: 1.25rem; padding: 1.25rem; background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
                             <div>
-                                <span style="font-size: 0.8rem; color: var(--secondary-text); text-transform: uppercase; font-weight: bold;">Mandi Modal Price</span>
-                                <div style="font-size: 1.35rem; font-weight: bold; color: var(--text-color);" id="trend-modal-price">₹24.50 / kg</div>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Mandi Modal Price</span>
+                                <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-color);" id="trend-modal-price">₹24.50 / kg</div>
                             </div>
                             <div>
-                                <span style="font-size: 0.8rem; color: var(--secondary-text); text-transform: uppercase; font-weight: bold;">Govt MSP Benchmark</span>
-                                <div style="font-size: 1.1rem; font-weight: 600; color: #27ae60;" id="trend-msp-benchmark">₹21.83 / kg</div>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Govt MSP Benchmark</span>
+                                <div style="font-size: 1.15rem; font-weight: 700; color: #27ae60;" id="trend-msp-benchmark">₹21.83 / kg</div>
                             </div>
                             <div>
-                                <span style="font-size: 0.8rem; color: var(--secondary-text); text-transform: uppercase; font-weight: bold;">2-4 Wk Forecast</span>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">2-4 Wk Forecast</span>
                                 <div id="trend-badge-container">
-                                    <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem;">📈 Bullish (+4.2%)</span>
+                                    <span style="background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 5px 12px; border-radius: 14px; font-weight: bold; font-size: 0.85rem;">📈 Bullish (+4.2%)</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- AI Sell Advisor Banner -->
-                        <div style="background: rgba(39, 174, 96, 0.1); border-left: 4px solid #27ae60; padding: 0.85rem; border-radius: 8px; margin-bottom: 0.75rem;">
-                            <div style="font-size: 0.85rem; font-weight: bold; color: #27ae60; margin-bottom: 0.2rem;">💡 AI Sell Timing Advisory:</div>
-                            <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-color);" id="trend-recommendation-text">Hold 10-14 days for optimal return (+4.2% projected rise)</div>
+                        <div style="background: rgba(39, 174, 96, 0.12); border-left: 4px solid #27ae60; padding: 0.9rem 1.1rem; border-radius: 10px; margin-bottom: 0.85rem;">
+                            <div style="font-size: 0.82rem; font-weight: 800; color: #27ae60; margin-bottom: 0.2rem; text-transform: uppercase;">💡 AI Sell Timing Advisory:</div>
+                            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-color);" id="trend-recommendation-text">Hold 10-14 days for optimal return (+4.2% projected rise)</div>
                         </div>
 
                         <!-- Market Analysis Body -->
-                        <div style="font-size: 0.85rem; color: var(--secondary-text); line-height: 1.5;" id="trend-market-analysis">
+                        <div style="font-size: 0.88rem; color: var(--secondary-text); line-height: 1.6;" id="trend-market-analysis">
                             Select a crop above to load real-time Mandi price intelligence.
                         </div>
                     </div>
