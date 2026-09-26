@@ -659,3 +659,15 @@ Keep response under 200 words, structured with clean bullet points and emoji ico
     }
 
 
+def format_text_for_speech(text):
+    """
+    Cleans raw markdown formatting for smooth text-to-speech audio synthesis.
+    """
+    if not text:
+        return ""
+    cleaned = str(text).replace('**', '').replace('*', '').replace('#', '').replace('`', '')
+    cleaned = cleaned.replace('•', ', ').replace('-', ', ')
+    return cleaned.strip()
+
+
+

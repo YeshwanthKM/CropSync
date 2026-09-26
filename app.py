@@ -633,6 +633,7 @@ def cropsync_ai_query():
         return jsonify({'success': False, 'error': 'Query cannot be empty'}), 400
         
     advice_response = ai_service.generate_agri_advice(query, category=category, language=lang)
+    speech_text = ai_service.format_text_for_speech(advice_response)
     
     # Save chat to DB
     db.save_cropsync_ai_chat(user_id, query, advice_response, category=category, language=lang)
@@ -641,6 +642,7 @@ def cropsync_ai_query():
         'success': True,
         'query': query,
         'response': advice_response,
+        'speech_text': speech_text,
         'category': category,
         'language': lang,
         'timestamp': datetime.utcnow().isoformat()
