@@ -609,8 +609,9 @@ def farmer_dashboard():
     earnings = round(sum(float(o['total_price']) for o in sold_orders if o['status'] in ('Accepted', 'Completed')), 2)
     ai_chat_history = db.get_cropsync_ai_chat_history(farmer_id, limit=20)
     ai_scan_history = db.get_cropsync_ai_scans_history(farmer_id, limit=10)
+    mandi_trends = db.get_mandi_price_trends()
 
-    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user, ai_chat_history=ai_chat_history, ai_scan_history=ai_scan_history)
+    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user, ai_chat_history=ai_chat_history, ai_scan_history=ai_scan_history, mandi_trends=mandi_trends)
 
 @app.route('/ai/query', methods=['POST'])
 def cropsync_ai_query():
@@ -694,6 +695,23 @@ def cropsync_ai_diagnose():
         'language': lang,
         'timestamp': datetime.utcnow().isoformat()
     })
+
+@app.route('/ai/price_trend', methods=['GET', 'POST'])
+def cropsync_ai_price_trend():
+    if 'farmer_user' not in session and 'user_id' not in session and 'buyer_user' not in session:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    crop_name = request.args.get('crop_name') or request.form.get('crop_name')
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        crop_name = crop_name or data.get('crop_name')
+        
+    crop_name = (crop_name or 'Rice').strip()
+    district = request.args.get('district') or 'Coimbatore'
+    lang = session.get('farmer_lang') or 'en'
+    
+    result = ai_service.predict_crop_price_trend(crop_name, district=district, language=lang)
+    return jsonify(result)
 
 @app.route('/delete_crop/<crop_id>')
 def delete_crop(crop_id):

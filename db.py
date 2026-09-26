@@ -270,6 +270,19 @@ def init_db():
                     diagnosis_report TEXT NOT NULL,
                     language TEXT DEFAULT 'en',
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                CREATE TABLE IF NOT EXISTS cropsync_mandi_prices (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    crop_name TEXT NOT NULL,
+                    district TEXT DEFAULT 'Coimbatore',
+                    state TEXT DEFAULT 'Tamil Nadu',
+                    min_price NUMERIC(10,2) NOT NULL,
+                    max_price NUMERIC(10,2) NOT NULL,
+                    modal_price NUMERIC(10,2) NOT NULL,
+                    msp_benchmark NUMERIC(10,2) NOT NULL,
+                    trend TEXT DEFAULT 'UP',
+                    predicted_change_pct NUMERIC(5,2) DEFAULT 0.0,
+                    recommendation TEXT NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
             """)
             # Schema migrations for Postgres constraints
@@ -456,6 +469,20 @@ def init_db():
                     language TEXT DEFAULT 'en',
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS cropsync_mandi_prices (
+                    id TEXT PRIMARY KEY,
+                    crop_name TEXT NOT NULL,
+                    district TEXT DEFAULT 'Coimbatore',
+                    state TEXT DEFAULT 'Tamil Nadu',
+                    min_price REAL NOT NULL,
+                    max_price REAL NOT NULL,
+                    modal_price REAL NOT NULL,
+                    msp_benchmark REAL NOT NULL,
+                    trend TEXT DEFAULT 'UP',
+                    predicted_change_pct REAL DEFAULT 0.0,
+                    recommendation TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
                 DROP TABLE IF EXISTS crop_price_history;
             """)
 
@@ -614,6 +641,10 @@ def init_db():
                     pass
 
             conn.commit()
+            try:
+                seed_mandi_prices()
+            except Exception as _e_seed:
+                print("[!] Warning seeding Mandi prices:", _e_seed)
 
 
     except Exception as e:
@@ -2509,5 +2540,89 @@ def get_cropsync_ai_scans_history(user_id, limit=10):
         return []
     finally:
         release_connection(conn, cursor)
+
+
+def save_mandi_price(crop_name, min_price, max_price, modal_price, msp_benchmark, district='Coimbatore', state='Tamil Nadu', trend='UP', predicted_change_pct=0.0, recommendation=''):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        mid = str(uuid.uuid4())
+        sql = f"""
+            INSERT INTO cropsync_mandi_prices (id, crop_name, district, state, min_price, max_price, modal_price, msp_benchmark, trend, predicted_change_pct, recommendation, created_at)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+        """
+        cursor.execute(sql, (mid, crop_name.capitalize(), district, state, float(min_price), float(max_price), float(modal_price), float(msp_benchmark), trend, float(predicted_change_pct), recommendation, now))
+        conn.commit()
+        return True, mid
+    except Exception as e:
+        print("[!] Error in save_mandi_price:", e)
+        try: conn.rollback()
+        except: pass
+        return False, str(e)
+    finally:
+        release_connection(conn, cursor)
+
+
+def get_mandi_price_trends(crop_name=None, district='Coimbatore'):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        if crop_name:
+            sql = f"SELECT * FROM cropsync_mandi_prices WHERE LOWER(crop_name) = LOWER({ph}) ORDER BY created_at DESC LIMIT 1"
+            cursor.execute(sql, (str(crop_name).strip(),))
+            row = cursor.fetchone()
+            return _dict_row(row) if row else None
+        else:
+            sql = "SELECT * FROM cropsync_mandi_prices ORDER BY created_at DESC"
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+            return [_dict_row(r) for r in rows]
+    except Exception as e:
+        print("[!] Error in get_mandi_price_trends:", e)
+        return None if crop_name else []
+    finally:
+        release_connection(conn, cursor)
+
+
+def seed_mandi_prices():
+    """Seed initial Mandi price intelligence dataset if empty."""
+    existing = get_mandi_price_trends()
+    if existing and len(existing) > 0:
+        return
+
+    mandi_seeds = [
+        {"crop": "Rice", "min": 23.0, "max": 26.0, "modal": 24.5, "msp": 21.83, "trend": "UP", "pct": 4.2, "rec": "Hold 10-14 days for optimal return (+4.2% projected rise)"},
+        {"crop": "Wheat", "min": 24.5, "max": 27.0, "modal": 25.8, "msp": 22.75, "trend": "STABLE", "pct": 0.5, "rec": "Good price to list now; market steady"},
+        {"crop": "Maize", "min": 21.0, "max": 23.5, "modal": 22.1, "msp": 20.90, "trend": "UP", "pct": 3.5, "rec": "Market demand rising due to feed industry"},
+        {"crop": "Ragi", "min": 39.0, "max": 43.5, "modal": 41.5, "msp": 38.46, "trend": "UP", "pct": 5.0, "rec": "Hold 2 weeks for peak price (+5.0% projected)"},
+        {"crop": "Bajra", "min": 25.0, "max": 28.0, "modal": 26.5, "msp": 25.00, "trend": "STABLE", "pct": 0.0, "rec": "Sell as harvested; price matches market average"},
+        {"crop": "Tur", "min": 72.0, "max": 80.0, "modal": 76.0, "msp": 70.00, "trend": "UP", "pct": 6.8, "rec": "Strong pulse market demand; price surging"},
+        {"crop": "Moong", "min": 88.0, "max": 95.0, "modal": 92.0, "msp": 85.58, "trend": "UP", "pct": 5.5, "rec": "High market rate (+7.5% above MSP benchmark)"},
+        {"crop": "Urad", "min": 71.0, "max": 77.0, "modal": 74.5, "msp": 69.50, "trend": "STABLE", "pct": 1.2, "rec": "Fair market value; stable buying interest"},
+        {"crop": "Groundnut", "min": 65.0, "max": 72.0, "modal": 68.5, "msp": 63.77, "trend": "UP", "pct": 4.0, "rec": "Oil mill demand strong; price trending upward"},
+        {"crop": "Sunflower", "min": 68.0, "max": 74.0, "modal": 71.0, "msp": 67.60, "trend": "STABLE", "pct": 0.8, "rec": "Sell at current rate"},
+        {"crop": "Soyabean", "min": 47.0, "max": 51.0, "modal": 49.2, "msp": 46.00, "trend": "DOWN", "pct": -1.5, "rec": "Sell now before seasonal harvest influx drops price"},
+        {"crop": "Cotton", "min": 68.0, "max": 75.0, "modal": 72.0, "msp": 66.20, "trend": "UP", "pct": 5.2, "rec": "Textile industry buying aggressively"}
+    ]
+
+    for item in mandi_seeds:
+        save_mandi_price(
+            crop_name=item["crop"],
+            min_price=item["min"],
+            max_price=item["max"],
+            modal_price=item["modal"],
+            msp_benchmark=item["msp"],
+            district="Coimbatore",
+            state="Tamil Nadu",
+            trend=item["trend"],
+            predicted_change_pct=item["pct"],
+            recommendation=item["rec"]
+        )
+
 
 
