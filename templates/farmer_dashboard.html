@@ -1214,6 +1214,11 @@
                         }
 
                         if (advisoryElem) advisoryElem.innerHTML = formatMarkdownResponse(data.advisory_report);
+                    } else {
+                        if (tempElem) tempElem.innerText = `⚠️ Location '${escapeHTML(loc)}' Not Found`;
+                        if (humElem) humElem.innerText = `N/A`;
+                        if (rainBadge) rainBadge.innerHTML = `<span style="background: rgba(239, 68, 68, 0.18); color: #ef4444; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem;">⚠️ Invalid Location</span>`;
+                        if (advisoryElem) advisoryElem.innerHTML = `<div style="background: rgba(239, 68, 68, 0.12); border-left: 4px solid #ef4444; padding: 0.85rem 1rem; border-radius: 8px; color: #ef4444; font-weight: 600;">⚠️ ${escapeHTML(data.error || 'Location not found. Please enter a valid city, district, or town name (e.g. Coimbatore, Madurai, Chennai, Delhi).')}</div>`;
                     }
                 })
                 .catch(err => {

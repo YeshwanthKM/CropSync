@@ -18,16 +18,81 @@ DISTRICT_WEATHER_BENCHMARKS = {
 
 import math
 
+# Gazetteer of known valid Tamil Nadu & Indian agricultural districts / towns / cities
+KNOWN_VALID_LOCATIONS = {
+    'coimbatore', 'thanjavur', 'madurai', 'salem', 'trichy', 'tiruchirappalli', 'erode', 'tiruppur', 
+    'chennai', 'pollachi', 'dindigul', 'tirunelveli', 'vellore', 'kanchipuram', 'villupuram', 'cuddalore', 
+    'nagapattinam', 'karur', 'namakkal', 'nilgiris', 'ooty', 'pudukkottai', 'ramanathapuram', 'sivaganga', 
+    'theni', 'tenkasi', 'tuticorin', 'thoothukudi', 'virudhunagar', 'dharmapuri', 'krishnagiri', 
+    'tiruvannamalai', 'tiruvallur', 'ariyalur', 'perambalur', 'mayiladuthurai', 'chengalpattu', 'ranipet', 
+    'tirupattur', 'kallakurichi', 'delhi', 'mumbai', 'bangalore', 'bengaluru', 'hyderabad', 'pune', 
+    'ahmedabad', 'jaipur', 'lucknow', 'chandigarh', 'bhopal', 'patna', 'kolkata', 'surat', 'nagpur', 
+    'indore', 'vadodara', 'nashik', 'visakhapatnam', 'vijayawada', 'guntur', 'rajahmundry', 'warangal', 
+    'mysore', 'mangalore', 'hubli', 'belgaum', 'shimoga', 'hassan', 'bellary', 'davanagere', 'gulbarga', 
+    'raichur', 'nizamabad', 'karimnagar', 'anantapur', 'kadapa', 'nellore', 'chittoor', 'tirupati'
+}
+
+def is_valid_location_name(loc_str):
+    """Checks whether input location represents valid GPS coordinates or a recognized geographical place."""
+    if not loc_str or len(loc_str) < 2:
+        return False
+    
+    clean = loc_str.strip().lower()
+    
+    # Check if input is GPS coordinates (e.g., '11.0168, 76.9558')
+    if ',' in clean:
+        parts = clean.split(',')
+        try:
+            lat = float(parts[0].strip())
+            lng = float(parts[1].strip())
+            if -90 <= lat <= 90 and -180 <= lng <= 180:
+                return True
+        except ValueError:
+            pass
+
+    # Extract primary word
+    city_word = clean.split(',')[0].strip().replace(' ', '')
+    
+    # Known district/city check
+    if city_word in KNOWN_VALID_LOCATIONS or any(loc in city_word for loc in KNOWN_VALID_LOCATIONS):
+        return True
+
+    # If it ends with common place suffixes or state names
+    if any(suffix in clean for suffix in ['nadu', 'pradesh', 'pur', 'nagar', 'giri', 'koti', 'bad', 'ur', 'patti', 'palayam', 'glr', 'village', 'district', 'india']):
+        return True
+
+    return False
+
+
 def fetch_hyperlocal_weather(location='Coimbatore'):
     """
     Fetches hyper-local weather data from OpenWeather API or regional weather benchmark engine.
+    Validates location input to ensure non-existent place names return an explicit error.
     """
     api_key = (os.environ.get('OPENWEATHER_API_KEY') or os.environ.get('WEATHER_API_KEY') or '').strip()
     raw_loc = (location or 'Coimbatore').strip()
-    # Extract city name (e.g. 'Chennai, Tamil Nadu' -> 'Chennai')
     city_name = raw_loc.split(',')[0].strip() or 'Coimbatore'
     loc_key = city_name.lower().replace(' ', '')
 
+    # Check for valid GPS coordinates input
+    is_gps = False
+    if ',' in raw_loc:
+        try:
+            parts = raw_loc.split(',')
+            float(parts[0].strip())
+            float(parts[1].strip())
+            is_gps = True
+        except ValueError:
+            is_gps = False
+
+    # Perform strict location validation if not GPS and not in known locations
+    if not is_gps and not is_valid_location_name(raw_loc) and not (api_key and len(api_key) > 10):
+        return {
+            'success': False,
+            'error': f"Location '{raw_loc}' not found. Please enter a valid city, district, or town name (e.g. Coimbatore, Thanjavur, Madurai, Chennai, Delhi)."
+        }
+
+    # Live OpenWeather API fetch
     if api_key and len(api_key) > 10:
         for q_str in [f"{city_name},IN", city_name]:
             try:
@@ -60,7 +125,13 @@ def fetch_hyperlocal_weather(location='Coimbatore'):
                         'source': 'Live OpenWeather API',
                         'timestamp': datetime.utcnow().isoformat()
                     }
-            except Exception as e:
+            except urllib.error.HTTPError as he:
+                if he.code == 404:
+                    return {
+                        'success': False,
+                        'error': f"Location '{raw_loc}' not found. Please enter a valid city, district, or town name (e.g. Coimbatore, Thanjavur, Madurai, Chennai)."
+                    }
+            except Exception:
                 pass
 
     # Dynamic Fallback to regional weather benchmark dataset
@@ -77,7 +148,7 @@ def fetch_hyperlocal_weather(location='Coimbatore'):
         wind_kmh = fallback_data['wind_kmh']
         condition = fallback_data['condition']
         desc = fallback_data['desc']
-    else:
+    elif is_valid_location_name(raw_loc):
         # Generate location-specific deterministic variation based on city name hash
         name_hash = sum(ord(c) for c in loc_key)
         temp_c = round(26.0 + (name_hash % 11), 1)
@@ -93,6 +164,11 @@ def fetch_hyperlocal_weather(location='Coimbatore'):
         else:
             condition = 'Partly Cloudy'
             desc = 'Favorable weather for field activities.'
+    else:
+        return {
+            'success': False,
+            'error': f"Location '{raw_loc}' not found. Please enter a valid city, district, or town name (e.g. Coimbatore, Thanjavur, Madurai, Chennai)."
+        }
 
     return {
         'success': True,
