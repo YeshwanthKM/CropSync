@@ -3,6 +3,11 @@ import json
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
+from dotenv import load_dotenv
+
+# Explicitly load environment variables from project .env
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 
 
