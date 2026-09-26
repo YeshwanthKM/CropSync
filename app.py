@@ -743,16 +743,21 @@ def cropsync_ai_satellite():
         
     location = request.args.get('location') or request.form.get('location')
     crop_name = request.args.get('crop_name') or request.form.get('crop_name')
+    lat = request.args.get('lat') or request.form.get('lat')
+    lng = request.args.get('lng') or request.form.get('lng')
+
     if request.is_json:
         data = request.get_json(silent=True) or {}
         location = location or data.get('location')
         crop_name = crop_name or data.get('crop_name')
+        lat = lat or data.get('lat')
+        lng = lng or data.get('lng')
         
     location = (location or 'Coimbatore').strip()
     crop_name = (crop_name or 'Rice').strip()
     lang = session.get('farmer_lang') or 'en'
     
-    result = ai_service.get_regenerative_crop_recommendation(location=location, crop_name=crop_name, language=lang)
+    result = ai_service.get_regenerative_crop_recommendation(location=location, crop_name=crop_name, language=lang, lat=lat, lng=lng)
     return jsonify(result)
 
 # ==========================================

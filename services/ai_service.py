@@ -754,10 +754,10 @@ Provide actionable regenerative farming advice (cover cropping, organic mulching
 Keep advice clear, structured, and practical for Indian farmers.
 """
 
-def get_regenerative_crop_recommendation(location='Coimbatore', crop_name='Rice', language='en'):
+def get_regenerative_crop_recommendation(location='Coimbatore', crop_name='Rice', language='en', lat=None, lng=None):
     from services.satellite_service import fetch_satellite_field_analytics
 
-    satellite_info = fetch_satellite_field_analytics(location)
+    satellite_info = fetch_satellite_field_analytics(location, lat=lat, lng=lng)
     ndvi = satellite_info.get('ndvi', 0.75)
     ndwi = satellite_info.get('ndwi', 0.60)
     soil_carbon = satellite_info.get('soil_organic_carbon_pct', 1.3)
