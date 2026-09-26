@@ -141,6 +141,15 @@ def generate_agri_advice(query, category='general', language='en'):
 
     lang_code = 'ta' if language == 'ta' or any(ord(c) > 0x0B80 and ord(c) < 0x0BFF for c in query) else 'en'
 
+    # Check for simple greetings
+    q_clean = q_lower.strip('!.,? ')
+    greetings = ['hi', 'hello', 'hey', 'namaste', 'vanakkam', 'வணக்கம்', 'ஹலோ', 'good morning', 'good evening', 'hi there']
+    if q_clean in greetings or any(q_clean.startswith(g) for g in ['hi ', 'hello ', 'hey ', 'வணக்கம் ']):
+        if lang_code == 'ta':
+            return "வணக்கம்! நான் உங்கள் **CropSync AI** விவசாய ஆலோசகர். பயிர் மேலாண்மை, அரசு ஆதரவு விலை (MSP), உரம் அல்லது பூச்சி கட்டுப்பாடு பற்றி ஏதேனும் கேட்கலாம். இன்று உங்களுக்கு எவ்வாறு உதவட்டும்?"
+        else:
+            return "Hello! I am **CropSync AI**, your smart agricultural advisor. How can I help you today? Ask me anything about your crops, government MSP reference rates, fertilizer plans, market trends, or pest management!"
+
     # Try Gemini API if valid key exists
     if api_key and len(api_key) > 10:
         try:
