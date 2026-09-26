@@ -747,4 +747,97 @@ def format_text_for_speech(text):
     return cleaned.strip()
 
 
+SYSTEM_REGENERATIVE_PROMPT = """
+You are CropSync AI Regenerative Agriculture Specialist.
+Analyze the field's satellite NDVI vegetation index, soil moisture, and organic carbon level.
+Provide actionable regenerative farming advice (cover cropping, organic mulching, nitrogen-fixing intercropping, zero-tillage, bio-char application).
+Keep advice clear, structured, and practical for Indian farmers.
+"""
+
+def get_regenerative_crop_recommendation(location='Coimbatore', crop_name='Rice', language='en'):
+    from services.satellite_service import fetch_satellite_field_analytics
+
+    satellite_info = fetch_satellite_field_analytics(location)
+    ndvi = satellite_info.get('ndvi', 0.75)
+    ndwi = satellite_info.get('ndwi', 0.60)
+    soil_carbon = satellite_info.get('soil_organic_carbon_pct', 1.3)
+    soil_ph = satellite_info.get('soil_ph', 6.8)
+    biomass_status = satellite_info.get('biomass_status', 'Healthy Dense Canopy')
+
+    lang_code = str(language or 'en').strip().lower()
+    api_key = (os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or '').strip()
+
+    if api_key and len(api_key) > 10:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            prompt_text = f"""
+{SYSTEM_REGENERATIVE_PROMPT}
+
+Location: {location}
+Crop: {crop_name}
+Satellite NDVI (Vegetation Vigor): {ndvi}
+Satellite NDWI (Water Index): {ndwi}
+Soil Organic Carbon: {soil_carbon}%
+Soil pH: {soil_ph}
+Biomass Canopy Status: {biomass_status}
+
+Language: Respond strictly in {'Tamil' if lang_code == 'ta' else 'English'}.
+Keep response under 200 words, structured with clean bullet points and emoji icons.
+"""
+            payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            with urllib.request.urlopen(req, timeout=5) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                candidates = result.get('candidates', [])
+                if candidates:
+                    parts = candidates[0].get('content', {}).get('parts', [])
+                    if parts and 'text' in parts[0]:
+                        ai_report = parts[0]['text'].strip()
+                        return {
+                            'success': True,
+                            'location': location.capitalize(),
+                            'crop_name': crop_name.capitalize(),
+                            'satellite': satellite_info,
+                            'regenerative_advisory': ai_report,
+                            'language': lang_code
+                        }
+        except Exception as e:
+            print("[!] Gemini Regenerative AI request failed, using domain advisory:", e)
+
+    # Domain Fallback Advisory
+    if lang_code == 'ta':
+        advisory = f"""🌱 **செயற்கைகோள் & இயற்கை வேளாண்மை ஆலோசனை (Sentinel-2)**:
+• **பயிர் அடர்த்தி (NDVI)**: {ndvi} ({biomass_status})
+• **மண் கரிம வளம் (Organic Carbon)**: {soil_carbon}% | **மண் pH**: {soil_ph}
+
+🌿 **இயற்கை வேளாண்மை வழிகாட்டுதல்**:
+1. **ஊடு பயிர் செய்தல்**: {crop_name} பயிருடன் உளுந்து அல்லது பாசிப்பயறு பயிரிடுவதன் மூலம் மண்ணில் நைட்ரஜன் இயற்கை முறையில் அதிகரிக்கும்.
+2. **மண் போர்த்தல் (Mulching)**: பயிர் கழிவுகளை நிலத்தில் மூடாக்காக பயன்படுத்துவது நீர் ஆவியாவதை தடுக்கும்.
+3. **இயற்கை உரம்**: ஏக்கருக்கு 5 டன் மண்புழு உரம் அல்லது தொழுவுரம் இடவும்."""
+    else:
+        advisory = f"""🌱 **Satellite Remote Sensing & Regenerative Farming Advisor**:
+• **Canopy Vigor Index (NDVI)**: {ndvi} ({biomass_status})
+• **Soil Organic Carbon**: {soil_carbon}% | **Soil pH**: {soil_ph}
+
+🌿 **Regenerative Farming Plan for {crop_name.capitalize()}**:
+1. **Nitrogen-Fixing Intercropping**: Intercrop pulses (Green Gram / Black Gram) with {crop_name} to naturally enhance soil nitrogen fixation.
+2. **Organic Biomass Mulching**: Retain crop residues as soil mulch to reduce moisture evaporation and increase soil organic matter.
+3. **Bio-Char & Soil Enrichment**: Apply 5 tons/acre compost or bio-char to improve long-term soil carbon sequestration."""
+
+    return {
+        'success': True,
+        'location': location.capitalize(),
+        'crop_name': crop_name.capitalize(),
+        'satellite': satellite_info,
+        'regenerative_advisory': advisory,
+        'language': lang_code
+    }
+
+
+
 

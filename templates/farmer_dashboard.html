@@ -600,6 +600,50 @@
                         <!-- Advisory Report Body -->
                         <div style="font-size: 0.88rem; color: var(--secondary-text); line-height: 1.6;" id="weather-advisory-body">
                             Click Update or load CropSync AI to fetch local weather advisory.
+                    </div>
+                </div>
+
+                <!-- Satellite Remote Sensing & Regenerative Farming Card -->
+                <div style="background: var(--card-bg); border: 1px solid var(--nav-border); border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; border: none; font-weight: 700;">
+                                🛰️ <span>{% if farmer_lang == 'ta' %}செயற்கைகோள் ஆய்வு & இயற்கை வேளாண்மை{% else %}Satellite Field Sensing & Regenerative AI{% endif %}</span>
+                                <span style="background: rgba(39, 174, 96, 0.15); color: #27ae60; font-size: 0.7rem; padding: 3px 10px; border-radius: 12px; font-weight: 800;">Sentinel-2 DPG</span>
+                            </h3>
+                            <p style="margin: 0.35rem 0 0 0; color: var(--secondary-text); font-size: 0.88rem;">
+                                {% if farmer_lang == 'ta' %}செயற்கைகோள் NDVI பயிர் அடர்த்தி, மண் கரிம வளம் மற்றும் இயற்கை வேளாண்மை ஆலோசனைகள்.{% else %}Real-time Sentinel-2 NDVI canopy index, soil organic carbon %, and regenerative farming plans.{% endif %}
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                            <a href="/api/v1/dpg/agro_advisory" target="_blank" style="background: var(--nav-bg); color: var(--text-color); border: 1px solid var(--nav-border); padding: 0.55rem 0.9rem; border-radius: 16px; font-size: 0.82rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 0.35rem;">
+                                🌐 Open DPG API ➔
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Satellite Data Display Box -->
+                    <div id="ai-satellite-box" style="margin-top: 1.25rem; padding: 1.25rem; background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Vegetation Index (NDVI)</span>
+                                <div style="font-size: 1.3rem; font-weight: 800; color: #27ae60;" id="sat-ndvi-display">0.78 • Healthy Dense Canopy</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Canopy Water Index (NDWI)</span>
+                                <div style="font-size: 1.05rem; font-weight: 700; color: #3b82f6;" id="sat-ndwi-display">0.65 (Optimal Hydration)</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Soil Organic Carbon</span>
+                                <div id="sat-soil-badge">
+                                    <span style="background: rgba(39, 174, 96, 0.15); color: #27ae60; padding: 5px 12px; border-radius: 14px; font-weight: bold; font-size: 0.85rem;">🌱 1.4% Carbon (pH 6.8)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Regenerative Advisory Body -->
+                        <div style="font-size: 0.88rem; color: var(--secondary-text); line-height: 1.6;" id="sat-advisory-body">
+                            Select a crop or update CropSync AI to load Sentinel-2 remote sensing metrics.
                         </div>
                     </div>
                 </div>
@@ -1094,6 +1138,36 @@
                 });
         }
 
+        function fetchSatelliteAnalytics(locationName, cropName) {
+            const inputLoc = document.getElementById('weather-location-input');
+            const loc = locationName || (inputLoc ? inputLoc.value.trim() : 'Coimbatore') || 'Coimbatore';
+            const crop = cropName || 'Rice';
+
+            const ndviElem = document.getElementById('sat-ndvi-display');
+            const ndwiElem = document.getElementById('sat-ndwi-display');
+            const soilBadge = document.getElementById('sat-soil-badge');
+            const advisoryElem = document.getElementById('sat-advisory-body');
+
+            if (advisoryElem) advisoryElem.innerHTML = '<em>Analyzing Sentinel-2 satellite canopy data & soil health... 🛰️</em>';
+
+            fetch(`/ai/satellite?location=${encodeURIComponent(loc)}&crop_name=${encodeURIComponent(crop)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.satellite) {
+                        const s = data.satellite;
+                        if (ndviElem) ndviElem.innerText = `${s.ndvi} • ${s.biomass_status || 'Healthy Canopy'}`;
+                        if (ndwiElem) ndwiElem.innerText = `💧 NDWI ${s.ndwi} (Hydrated)`;
+                        if (soilBadge) {
+                            soilBadge.innerHTML = `<span style="background: rgba(39, 174, 96, 0.18); color: #27ae60; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem;">🌱 ${s.soil_organic_carbon_pct}% Carbon (pH ${s.soil_ph})</span>`;
+                        }
+                        if (advisoryElem) advisoryElem.innerHTML = formatMarkdownResponse(data.regenerative_advisory);
+                    }
+                })
+                .catch(err => {
+                    if (advisoryElem) advisoryElem.innerText = 'Unable to fetch satellite analytics. Please try again.';
+                });
+        }
+
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, 
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
@@ -1121,6 +1195,7 @@
                 if (sectionId === 'cropsync-ai') {
                     fetchCropPriceTrend('Rice');
                     fetchHyperlocalWeather();
+                    fetchSatelliteAnalytics();
                 }
             }
 

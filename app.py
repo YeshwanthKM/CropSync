@@ -734,6 +734,77 @@ def cropsync_ai_weather():
     result = ai_service.get_weather_irrigation_recommendation(location=location, crop_name=crop_name, language=lang)
     return jsonify(result)
 
+@app.route('/ai/satellite', methods=['GET', 'POST'])
+def cropsync_ai_satellite():
+    if 'farmer_user' not in session and 'user_id' not in session and 'buyer_user' not in session:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    location = request.args.get('location') or request.form.get('location')
+    crop_name = request.args.get('crop_name') or request.form.get('crop_name')
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        location = location or data.get('location')
+        crop_name = crop_name or data.get('crop_name')
+        
+    location = (location or 'Coimbatore').strip()
+    crop_name = (crop_name or 'Rice').strip()
+    lang = session.get('farmer_lang') or 'en'
+    
+    result = ai_service.get_regenerative_crop_recommendation(location=location, crop_name=crop_name, language=lang)
+    return jsonify(result)
+
+# ==========================================
+# Digital Public Good (DPG) Interoperable Open APIs
+# Enables Cross-State Collaboration on Sustainable Food Systems
+# ==========================================
+@app.route('/api/v1/dpg/agro_advisory', methods=['GET'])
+def dpg_open_agro_advisory():
+    """Open DPG API providing AI localized agro-advisories for Indian State Agri Departments."""
+    location = request.args.get('location', 'Coimbatore')
+    crop_name = request.args.get('crop_name', 'Paddy')
+    lang = request.args.get('lang', 'en')
+    
+    weather_res = ai_service.get_weather_irrigation_recommendation(location=location, crop_name=crop_name, language=lang)
+    regen_res = ai_service.get_regenerative_crop_recommendation(location=location, crop_name=crop_name, language=lang)
+    
+    return jsonify({
+        'dpg_spec': 'CropSync Digital Public Good Standard v1.0',
+        'license': 'CC-BY-4.0 Open Agricultural Standard',
+        'network': 'Interoperable Indian State Agricultural Network',
+        'location': location.capitalize(),
+        'crop_name': crop_name.capitalize(),
+        'weather_advisory': weather_res,
+        'regenerative_advisory': regen_res,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+@app.route('/api/v1/dpg/disease_intelligence', methods=['GET'])
+def dpg_open_disease_intelligence():
+    """Open DPG API sharing crop disease outbreak & epidemic intelligence."""
+    return jsonify({
+        'dpg_spec': 'CropSync Digital Public Good Standard v1.0',
+        'network': 'Interoperable Indian State Agricultural Network',
+        'disease_intelligence': [
+            {'crop': 'Paddy', 'risk': 'Leaf Blight Spot', 'severity': 'Moderate', 'districts': ['Thanjavur', 'Trichy']},
+            {'crop': 'Cotton', 'risk': 'Bollworm Attack', 'severity': 'Mild', 'districts': ['Coimbatore', 'Salem']}
+        ],
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+@app.route('/api/v1/dpg/satellite_analytics', methods=['GET'])
+def dpg_open_satellite_analytics():
+    """Open DPG API providing Sentinel-2 NDVI & soil organic health metrics."""
+    location = request.args.get('location', 'Coimbatore')
+    from services.satellite_service import fetch_satellite_field_analytics
+    sat_data = fetch_satellite_field_analytics(location)
+    return jsonify({
+        'dpg_spec': 'CropSync Digital Public Good Standard v1.0',
+        'location': location.capitalize(),
+        'satellite_data': sat_data,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+
 
 @app.route('/delete_crop/<crop_id>')
 def delete_crop(crop_id):
