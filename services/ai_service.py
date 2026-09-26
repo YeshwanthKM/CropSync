@@ -469,16 +469,35 @@ def predict_crop_price_trend(crop_name, district='Coimbatore', language='en'):
     api_key = (os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or '').strip()
     lang_code = 'ta' if language == 'ta' else 'en'
     
+    # Comprehensive Crop-Specific Mandi & MSP Benchmarks
+    CROP_BENCHMARKS = {
+        'rice': {'modal': 24.50, 'msp': 21.83, 'min': 23.0, 'max': 26.0, 'trend': 'UP', 'pct': 4.2, 'rec': 'Hold 10-14 days for optimal return (+4.2% projected rise)'},
+        'wheat': {'modal': 25.80, 'msp': 22.75, 'min': 24.5, 'max': 27.0, 'trend': 'STABLE', 'pct': 0.5, 'rec': 'Good price to list now; market steady'},
+        'maize': {'modal': 22.10, 'msp': 20.90, 'min': 21.0, 'max': 23.5, 'trend': 'UP', 'pct': 3.5, 'rec': 'Market demand rising due to feed industry'},
+        'ragi': {'modal': 41.50, 'msp': 38.46, 'min': 39.0, 'max': 43.5, 'trend': 'UP', 'pct': 5.0, 'rec': 'Hold 2 weeks for peak price (+5.0% projected)'},
+        'bajra': {'modal': 26.50, 'msp': 25.00, 'min': 25.0, 'max': 28.0, 'trend': 'STABLE', 'pct': 0.0, 'rec': 'Sell as harvested; price matches market average'},
+        'cotton': {'modal': 72.00, 'msp': 66.20, 'min': 68.0, 'max': 75.0, 'trend': 'UP', 'pct': 5.2, 'rec': 'Textile industry buying aggressively (+5.2% projected rise)'},
+        'groundnut': {'modal': 68.50, 'msp': 63.77, 'min': 65.0, 'max': 72.0, 'trend': 'UP', 'pct': 4.0, 'rec': 'Oil mill demand strong; price trending upward'},
+        'tur': {'modal': 76.00, 'msp': 70.00, 'min': 72.0, 'max': 80.0, 'trend': 'UP', 'pct': 6.8, 'rec': 'Strong pulse market demand; price surging (+6.8%)'},
+        'moong': {'modal': 92.00, 'msp': 85.58, 'min': 88.0, 'max': 95.0, 'trend': 'UP', 'pct': 5.5, 'rec': 'High market rate (+7.5% above MSP benchmark)'},
+        'urad': {'modal': 74.50, 'msp': 69.50, 'min': 71.0, 'max': 77.0, 'trend': 'STABLE', 'pct': 1.2, 'rec': 'Fair market value; stable buying interest'},
+        'soyabean': {'modal': 49.20, 'msp': 46.00, 'min': 47.0, 'max': 51.0, 'trend': 'DOWN', 'pct': -1.5, 'rec': 'Sell now before seasonal harvest influx drops price'},
+        'sunflower': {'modal': 71.00, 'msp': 67.60, 'min': 68.0, 'max': 74.0, 'trend': 'STABLE', 'pct': 0.8, 'rec': 'Sell at current rate'}
+    }
+
+    c_key = str(crop_name or 'Rice').strip().lower()
+    crop_fallback = CROP_BENCHMARKS.get(c_key) or CROP_BENCHMARKS.get('rice')
+
     # 1. Fetch Mandi benchmark from DB
     mandi_data = db.get_mandi_price_trends(crop_name=crop_name, district=district)
     
-    modal_price = mandi_data.get('modal_price') if mandi_data else 25.0
-    msp_price = mandi_data.get('msp_benchmark') if mandi_data else 22.0
-    min_price = mandi_data.get('min_price') if mandi_data else modal_price * 0.92
-    max_price = mandi_data.get('max_price') if mandi_data else modal_price * 1.08
-    trend = mandi_data.get('trend') if mandi_data else 'UP'
-    pct_change = mandi_data.get('predicted_change_pct') if mandi_data else 4.0
-    rec_text = mandi_data.get('recommendation') if mandi_data else 'Hold 10-14 days for optimal return'
+    modal_price = mandi_data.get('modal_price') if mandi_data and mandi_data.get('modal_price') else crop_fallback['modal']
+    msp_price = mandi_data.get('msp_benchmark') if mandi_data and mandi_data.get('msp_benchmark') else crop_fallback['msp']
+    min_price = mandi_data.get('min_price') if mandi_data and mandi_data.get('min_price') else crop_fallback['min']
+    max_price = mandi_data.get('max_price') if mandi_data and mandi_data.get('max_price') else crop_fallback['max']
+    trend = mandi_data.get('trend') if mandi_data and mandi_data.get('trend') else crop_fallback['trend']
+    pct_change = mandi_data.get('predicted_change_pct') if mandi_data and mandi_data.get('predicted_change_pct') is not None else crop_fallback['pct']
+    rec_text = mandi_data.get('recommendation') if mandi_data and mandi_data.get('recommendation') else crop_fallback['rec']
 
     if api_key and len(api_key) > 10:
         try:

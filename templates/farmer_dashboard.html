@@ -6,39 +6,52 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
     /* Leaflet Dark Theme Overrides & Clean Layout */
+    .leaflet-top.leaflet-left {
+        top: 12px !important;
+        left: 12px !important;
+    }
     .leaflet-control-zoom {
         border: none !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        margin: 0 !important;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.4) !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
     }
     .leaflet-control-zoom a {
-        background-color: var(--nav-bg, #1a252f) !important;
-        color: var(--text-color, #ecf0f1) !important;
-        border: 1px solid var(--nav-border, rgba(255,255,255,0.15)) !important;
-        line-height: 26px !important;
-        width: 30px !important;
-        height: 30px !important;
-        font-weight: bold !important;
+        background-color: #0f172a !important;
+        color: #27ae60 !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        line-height: 28px !important;
+        width: 32px !important;
+        height: 32px !important;
+        font-weight: 900 !important;
+        font-size: 1.1rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-decoration: none !important;
     }
     .leaflet-control-zoom a:hover {
-        background-color: var(--bg-color, #2c3e50) !important;
-        color: #27ae60 !important;
+        background-color: #1e293b !important;
+        color: #2ecc71 !important;
     }
     .leaflet-control-attribution {
-        background: rgba(15, 23, 42, 0.85) !important;
+        background: rgba(15, 23, 42, 0.88) !important;
         color: #94a3b8 !important;
         font-size: 0.72rem !important;
         border-radius: 6px !important;
         padding: 2px 8px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
     }
     .leaflet-control-attribution a {
         color: #27ae60 !important;
     }
     .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-        background: #1e293b !important;
+        background: #0f172a !important;
         color: #f8fafc !important;
         border: 1px solid #27ae60 !important;
-        box-shadow: 0 6px 16px rgba(0,0,0,0.4) !important;
-        border-radius: 10px !important;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.5) !important;
+        border-radius: 12px !important;
     }
 </style>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -599,6 +612,9 @@
                         </div>
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
                             <input type="text" id="weather-location-input" placeholder="e.g. Coimbatore" value="{{ farmer_user.location or 'Coimbatore' }}" style="padding: 0.55rem 0.9rem; border-radius: 16px; border: 1px solid var(--nav-border); background: var(--bg-color); color: var(--text-color); font-size: 0.85rem; width: 140px;">
+                            <button type="button" onclick="fetchUserGPSLocation()" style="background: rgba(39, 174, 96, 0.12); color: #27ae60; border: 1px solid #27ae60; padding: 0.55rem 0.85rem; border-radius: 16px; font-weight: bold; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 0.3rem;" title="Detect my device GPS location">
+                                📍 Detect GPS
+                            </button>
                             <button type="button" onclick="fetchHyperlocalWeather()" style="background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; border: none; padding: 0.55rem 1rem; border-radius: 16px; font-weight: bold; cursor: pointer; font-size: 0.85rem; box-shadow: 0 3px 10px rgba(39, 174, 96, 0.25);">
                                 🔄 {% if farmer_lang == 'ta' %}புதுப்பி{% else %}Update{% endif %}
                             </button>
@@ -655,6 +671,9 @@
                             </p>
                         </div>
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                            <button type="button" onclick="fetchUserGPSLocation()" style="background: rgba(39, 174, 96, 0.15); color: #27ae60; border: 1px solid #27ae60; padding: 0.55rem 0.9rem; border-radius: 16px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                                📍 GPS Field Position
+                            </button>
                             <a href="/api/v1/dpg/agro_advisory" target="_blank" style="background: var(--nav-bg); color: var(--text-color); border: 1px solid var(--nav-border); padding: 0.55rem 0.9rem; border-radius: 16px; font-size: 0.82rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 0.35rem;">
                                 🌐 Open DPG API ➔
                             </a>
@@ -1364,6 +1383,90 @@
             localStorage.setItem('theme', newTheme);
         });
 
+        function toggleAIChatDrawer() {
+            const drawer = document.getElementById('ai-chat-drawer');
+            if (!drawer) return;
+            if (drawer.style.display === 'none' || drawer.style.display === '') {
+                drawer.style.display = 'flex';
+                document.getElementById('ai-drawer-input').focus();
+            } else {
+                drawer.style.display = 'none';
+            }
+        }
+
+        function sendAIDrawerMessage(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('ai-drawer-input');
+            const chatBox = document.getElementById('ai-drawer-chat-box');
+            if (!input || !chatBox) return;
+
+            const query = input.value.trim();
+            if (!query) return;
+
+            // Append User Message
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'ai-msg ai-msg-user';
+            userMsgDiv.style.textAlign = 'right';
+            userMsgDiv.innerHTML = `<div style="display: inline-block; background: #27ae60; color: white; padding: 0.65rem 0.95rem; border-radius: 14px; font-size: 0.88rem; text-align: left; max-width: 85%;">${escapeHTML(query)}</div>`;
+            chatBox.appendChild(userMsgDiv);
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Loading indicator
+            const botLoadingDiv = document.createElement('div');
+            botLoadingDiv.className = 'ai-msg ai-msg-bot';
+            botLoadingDiv.innerHTML = `<div style="background: var(--nav-bg); border: 1px solid var(--nav-border); padding: 0.75rem 0.95rem; border-radius: 14px; font-size: 0.85rem; color: var(--secondary-text);"><em>Thinking... ⌛</em></div>`;
+            chatBox.appendChild(botLoadingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            fetch('/ai/query', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: query, location: 'Coimbatore' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    botLoadingDiv.innerHTML = `<div style="background: var(--nav-bg); border: 1px solid var(--nav-border); padding: 0.85rem; border-radius: 14px; font-size: 0.88rem; color: var(--text-color);"><strong style="color: #27ae60;">CropSync AI:</strong><br>${formatMarkdownResponse(data.response)}</div>`;
+                } else {
+                    botLoadingDiv.innerHTML = `<div style="background: var(--nav-bg); border: 1px solid var(--nav-border); padding: 0.85rem; border-radius: 14px; font-size: 0.88rem; color: #ef4444;">${escapeHTML(data.error || 'Unable to process query.')}</div>`;
+                }
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(err => {
+                botLoadingDiv.innerHTML = `<div style="background: var(--nav-bg); border: 1px solid var(--nav-border); padding: 0.85rem; border-radius: 14px; font-size: 0.88rem; color: #ef4444;">Network error. Please try again.</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+        }
+
+        function fetchUserGPSLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+            showLoader();
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    hideLoader();
+                    const lat = parseFloat(pos.coords.latitude.toFixed(4));
+                    const lng = parseFloat(pos.coords.longitude.toFixed(4));
+
+                    if (leafletMap && fieldMarker) {
+                        leafletMap.setView([lat, lng], 14);
+                        fieldMarker.setLatLng([lat, lng]);
+                        fieldMarker.bindPopup(`<b>🌾 Your Current GPS Field Location</b><br>Lat: ${lat}, Lng: ${lng}`).openPopup();
+                    }
+                    fetchSatelliteAnalytics(lat, lng, 'My Location');
+                    fetchHyperlocalWeather(`${lat},${lng}`);
+                },
+                function(err) {
+                    hideLoader();
+                    alert('Unable to access device GPS location. Please check browser permissions.');
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
         // Initialize display based on URL
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -1372,6 +1475,48 @@
             renderAllMarkdownBubbles();
         });
     </script>
+
+    <!-- Floating CropSync AI Chatbot FAB Drawer -->
+    <div id="ai-fab-container" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
+        <button type="button" onclick="toggleAIChatDrawer()" id="ai-fab-btn" style="background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; border: none; padding: 13px 20px; border-radius: 30px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 0.55rem; box-shadow: 0 8px 24px rgba(39, 174, 96, 0.45); transition: transform 0.2s ease;">
+            <span style="font-size: 1.25rem;">✨</span>
+            <span>CropSync AI</span>
+            <span style="background: rgba(255,255,255,0.22); padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">🌿 Assistant</span>
+        </button>
+
+        <!-- Floating Chatbot Drawer Window -->
+        <div id="ai-chat-drawer" style="display: none; position: absolute; bottom: 65px; right: 0; width: 380px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 100px); background: var(--card-bg, #1e293b); border: 1px solid var(--nav-border, rgba(255,255,255,0.15)); border-radius: 20px; box-shadow: 0 12px 36px rgba(0,0,0,0.45); overflow: hidden; flex-direction: column;">
+            <!-- Drawer Header -->
+            <div style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.18), rgba(30, 132, 73, 0.1)); padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--nav-border); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="font-size: 0.95rem; color: var(--text-color); display: flex; align-items: center; gap: 0.4rem;">
+                        ✨ CropSync AI Assistant 🌿
+                    </strong>
+                    <div style="font-size: 0.72rem; color: #27ae60; font-weight: 700;">Online & Ready to help</div>
+                </div>
+                <button type="button" onclick="toggleAIChatDrawer()" style="background: none; border: none; color: var(--secondary-text); font-size: 1.2rem; cursor: pointer; padding: 4px;">✕</button>
+            </div>
+
+            <!-- Drawer Message Container -->
+            <div id="ai-drawer-chat-box" style="flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem; background: var(--bg-color);">
+                <div class="ai-msg ai-msg-bot">
+                    <div style="background: var(--nav-bg); border: 1px solid var(--nav-border); padding: 0.85rem; border-radius: 14px; font-size: 0.88rem; color: var(--text-color);">
+                        <strong style="color: #27ae60;">CropSync AI:</strong><br>
+                        Hello! Ask me anything about crop recommendations, NPK fertilizers, Mandi prices, weather, or pest control.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drawer Input Area -->
+            <div style="padding: 0.75rem 0.85rem; border-top: 1px solid var(--nav-border); background: var(--nav-bg);">
+                <form id="ai-drawer-form" onsubmit="sendAIDrawerMessage(event)" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button type="button" onclick="startVoiceInput('drawer')" style="background: rgba(39,174,96,0.15); color: #27ae60; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.95rem;" title="Speech to text">🎙️</button>
+                    <input type="text" id="ai-drawer-input" placeholder="Ask CropSync AI..." style="flex: 1; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--nav-border); padding: 0.55rem 0.85rem; border-radius: 20px; font-size: 0.85rem;">
+                    <button type="submit" style="background: #27ae60; color: white; border: none; padding: 0.55rem 0.95rem; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem;">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
