@@ -493,3 +493,169 @@ Language: Respond strictly in {'Tamil' if lang_code == 'ta' else 'English'}. Kee
         'language': lang_code
     }
 
+
+SYSTEM_WEATHER_PROMPT = """
+You are CropSync AI Weather & Smart Irrigation Specialist.
+Analyze the local weather conditions, temperature, humidity, rain probability, and wind speed.
+Provide a concise, practical irrigation schedule advisory and spraying window recommendation for the specified crop.
+Keep the advice farmer-friendly, clear, and actionable.
+"""
+
+def get_weather_irrigation_recommendation(location='Coimbatore', crop_name='Rice', language='en'):
+    from services.weather_service import fetch_hyperlocal_weather
+
+    weather_info = fetch_hyperlocal_weather(location)
+    temp_c = weather_info.get('temp_c', 30.0)
+    humidity = weather_info.get('humidity', 65)
+    rain_prob = weather_info.get('rain_prob', 20)
+    wind_kmh = weather_info.get('wind_kmh', 12.0)
+    condition = weather_info.get('condition', 'Partly Cloudy')
+    desc = weather_info.get('description', 'Partly cloudy weather')
+
+    if rain_prob >= 50:
+        irrigation_status = "HOLD_IRRIGATION"
+    elif temp_c >= 33 or humidity <= 50:
+        irrigation_status = "WATER_TODAY"
+    else:
+        irrigation_status = "NORMAL_CYCLE"
+
+    if wind_kmh >= 15:
+        spraying_status = "UNSAFE_HIGH_WIND"
+    elif rain_prob >= 60:
+        spraying_status = "UNSAFE_RAIN"
+    else:
+        spraying_status = "SAFE_WINDOW"
+
+    lang_code = str(language or 'en').strip().lower()
+    api_key = (os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or '').strip()
+
+    if api_key and len(api_key) > 10:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            prompt_text = f"""
+{SYSTEM_WEATHER_PROMPT}
+
+Location: {location}
+Crop: {crop_name}
+Temperature: {temp_c}°C
+Humidity: {humidity}%
+Rain Probability: {rain_prob}%
+Wind Speed: {wind_kmh} km/h
+Weather Condition: {condition} ({desc})
+
+Irrigation Status Rule: {irrigation_status}
+Spraying Status Rule: {spraying_status}
+
+Language: Respond strictly in {'Tamil' if lang_code == 'ta' else 'English'}.
+Keep response under 200 words, structured with clean bullet points and emoji icons.
+"""
+            payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            with urllib.request.urlopen(req, timeout=5) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                candidates = result.get('candidates', [])
+                if candidates:
+                    parts = candidates[0].get('content', {}).get('parts', [])
+                    if parts and 'text' in parts[0]:
+                        ai_report = parts[0]['text'].strip()
+                        db.save_weather_log(
+                            location=location,
+                            temp_c=temp_c,
+                            humidity=humidity,
+                            rain_prob=rain_prob,
+                            wind_kmh=wind_kmh,
+                            condition=condition,
+                            irrigation_status=irrigation_status,
+                            spraying_status=spraying_status,
+                            advisory_report=ai_report
+                        )
+                        return {
+                            'success': True,
+                            'location': location.capitalize(),
+                            'crop_name': crop_name.capitalize(),
+                            'weather': weather_info,
+                            'irrigation_status': irrigation_status,
+                            'spraying_status': spraying_status,
+                            'advisory_report': ai_report,
+                            'language': lang_code
+                        }
+        except Exception as e:
+            print("[!] Gemini Weather AI request failed, using domain advisory:", e)
+
+    # Domain Fallback Advisory
+    if lang_code == 'ta':
+        if irrigation_status == "HOLD_IRRIGATION":
+            irr_rec = "🌧️ **பாசனத்தை தற்காலிகமாக நிறுத்துங்கள்**: மழை வர வாய்ப்பு 50%+ உள்ளது."
+        elif irrigation_status == "WATER_TODAY":
+            irr_rec = "💧 **இன்றே நீர் பாய்ச்சவும்**: அதிக வெப்பநிலை காரணமாக நீர் தேவை அதிகம்."
+        else:
+            irr_rec = "🌱 **சாதாரண நீர் பாசனம்**: மிதமான வெப்பநிலை."
+
+        if spraying_status == "UNSAFE_HIGH_WIND":
+            spray_rec = "⚠️ **மருந்து தெளிப்பதைத் தவிர்க்கவும்**: காற்றின் வேகம் அதிகம் (>15 km/h)."
+        elif spraying_status == "UNSAFE_RAIN":
+            spray_rec = "🌧️ **மருந்து தெளிப்பதைத் தவிர்க்கவும்**: மழை மருந்தை அடித்துச் சென்றுவிடும்."
+        else:
+            spray_rec = "✅ **மருந்து தெளிக்க உகந்த நேரம்**: சாதகமான வானிலை."
+
+        advisory = f"""🌤️ **வானிலை & பாசன ஆலோசனை**:
+• **வெப்பநிலை**: {temp_c}°C | **ஈரப்பதம்**: {humidity}%
+• **மழை வாய்ப்பு**: {rain_prob}% | **காற்றின் வேகம்**: {wind_kmh} km/h ({condition})
+
+{irr_rec}
+{spray_rec}
+
+💡 **குறிப்பு**: அதிகாலையில் நீர் பாய்ச்சுவது நீர் ஆவியாவதை தடுக்கும்."""
+    else:
+        if irrigation_status == "HOLD_IRRIGATION":
+            irr_rec = "🌧️ **Hold Irrigation Today**: Rain probability is high (>=50%). Save water & prevent soil waterlogging."
+        elif irrigation_status == "WATER_TODAY":
+            irr_rec = "💧 **Water Crop Today**: High temperature & low humidity increase soil evaporation rates."
+        else:
+            irr_rec = "🌱 **Maintain Regular Irrigation Cycle**: Weather conditions are balanced."
+
+        if spraying_status == "UNSAFE_HIGH_WIND":
+            spray_rec = "⚠️ **Avoid Chemical Spraying Today**: Wind speed exceeds 15 km/h, causing spray drift."
+        elif spraying_status == "UNSAFE_RAIN":
+            spray_rec = "🌧️ **Avoid Chemical Spraying Today**: Approaching rain will wash off foliar sprays."
+        else:
+            spray_rec = "✅ **Optimal Spraying Window**: Wind speed and humidity are ideal for pesticide/fertilizer spray."
+
+        advisory = f"""🌤️ **Hyper-Local Weather & Irrigation Advisor**:
+• **Temperature**: {temp_c}°C | **Humidity**: {humidity}%
+• **Rain Probability**: {rain_prob}% | **Wind Speed**: {wind_kmh} km/h ({condition})
+
+{irr_rec}
+{spray_rec}
+
+💡 **Pro-Tip**: Irrigating early in the morning reduces evaporation losses by up to 25%."""
+
+    db.save_weather_log(
+        location=location,
+        temp_c=temp_c,
+        humidity=humidity,
+        rain_prob=rain_prob,
+        wind_kmh=wind_kmh,
+        condition=condition,
+        irrigation_status=irrigation_status,
+        spraying_status=spraying_status,
+        advisory_report=advisory
+    )
+
+    return {
+        'success': True,
+        'location': location.capitalize(),
+        'crop_name': crop_name.capitalize(),
+        'weather': weather_info,
+        'irrigation_status': irrigation_status,
+        'spraying_status': spraying_status,
+        'advisory_report': advisory,
+        'language': lang_code
+    }
+
+

@@ -713,6 +713,26 @@ def cropsync_ai_price_trend():
     result = ai_service.predict_crop_price_trend(crop_name, district=district, language=lang)
     return jsonify(result)
 
+@app.route('/ai/weather', methods=['GET', 'POST'])
+def cropsync_ai_weather():
+    if 'farmer_user' not in session and 'user_id' not in session and 'buyer_user' not in session:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    location = request.args.get('location') or request.form.get('location')
+    crop_name = request.args.get('crop_name') or request.form.get('crop_name')
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        location = location or data.get('location')
+        crop_name = crop_name or data.get('crop_name')
+        
+    location = (location or 'Coimbatore').strip()
+    crop_name = (crop_name or 'Rice').strip()
+    lang = session.get('farmer_lang') or 'en'
+    
+    result = ai_service.get_weather_irrigation_recommendation(location=location, crop_name=crop_name, language=lang)
+    return jsonify(result)
+
+
 @app.route('/delete_crop/<crop_id>')
 def delete_crop(crop_id):
     if 'farmer_user' not in session:

@@ -547,6 +547,63 @@
                     </div>
                 </div>
 
+                <!-- Hyper-Local Weather Forecast & Smart Irrigation Card -->
+                <div style="background: var(--card-bg); border: 1px solid var(--nav-border); border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; border: none; font-weight: 700;">
+                                🌤️ <span>{% if farmer_lang == 'ta' %}வானிலை & நீர் பாசன ஆலோசனை{% else %}Hyper-Local Weather & Smart Irrigation Advisor{% endif %}</span>
+                            </h3>
+                            <p style="margin: 0.35rem 0 0 0; color: var(--secondary-text); font-size: 0.88rem;">
+                                {% if farmer_lang == 'ta' %}உங்கள் வட்டாரத்தின் வானிலை நிலவரம் மற்றும் பாசன வழிகாட்டுதலை பெறவும்.{% else %}Hyper-local metrics, rain probability, irrigation scheduling, and spraying windows.{% endif %}
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                            <input type="text" id="weather-location-input" placeholder="e.g. Coimbatore" value="{{ farmer_user.location or 'Coimbatore' }}" style="padding: 0.55rem 0.9rem; border-radius: 16px; border: 1px solid var(--nav-border); background: var(--bg-color); color: var(--text-color); font-size: 0.85rem; width: 140px;">
+                            <button type="button" onclick="fetchHyperlocalWeather()" style="background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; border: none; padding: 0.55rem 1rem; border-radius: 16px; font-weight: bold; cursor: pointer; font-size: 0.85rem; box-shadow: 0 3px 10px rgba(39, 174, 96, 0.25);">
+                                🔄 {% if farmer_lang == 'ta' %}புதுப்பி{% else %}Update{% endif %}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Weather Data Display Box -->
+                    <div id="ai-weather-box" style="margin-top: 1.25rem; padding: 1.25rem; background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Location & Temp</span>
+                                <div style="font-size: 1.3rem; font-weight: 800; color: var(--text-color);" id="weather-temp-display">Coimbatore • 29.5°C</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Humidity & Wind</span>
+                                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-color);" id="weather-humidity-display">68% | 12 km/h</div>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.78rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Rain Chance</span>
+                                <div id="weather-rain-badge">
+                                    <span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 5px 12px; border-radius: 14px; font-weight: bold; font-size: 0.85rem;">🌧️ 15% Rain Prob</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Badges Grid -->
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.85rem;">
+                            <div id="weather-irrigation-status-badge" style="background: rgba(39, 174, 96, 0.12); border-left: 4px solid #27ae60; padding: 0.75rem 1rem; border-radius: 10px; flex: 1; min-width: 220px;">
+                                <div style="font-size: 0.78rem; font-weight: 800; color: #27ae60; text-transform: uppercase;">💧 Smart Irrigation Schedule:</div>
+                                <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-color);" id="weather-irrigation-text">🌱 Maintain Regular Irrigation Cycle</div>
+                            </div>
+                            <div id="weather-spraying-status-badge" style="background: rgba(59, 130, 246, 0.12); border-left: 4px solid #3b82f6; padding: 0.75rem 1rem; border-radius: 10px; flex: 1; min-width: 220px;">
+                                <div style="font-size: 0.78rem; font-weight: 800; color: #3b82f6; text-transform: uppercase;">🌿 Pesticide / Spraying Window:</div>
+                                <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-color);" id="weather-spraying-text">✅ Optimal Spraying Window</div>
+                            </div>
+                        </div>
+
+                        <!-- Advisory Report Body -->
+                        <div style="font-size: 0.88rem; color: var(--secondary-text); line-height: 1.6;" id="weather-advisory-body">
+                            Click Update or load CropSync AI to fetch local weather advisory.
+                        </div>
+                    </div>
+                </div>
+
                 <!-- AI Chat Container -->
                 <div class="ai-chat-card" style="background: var(--card-bg); border: 1px solid var(--nav-border); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; min-height: 440px; max-height: 600px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
                     <div id="ai-chat-messages" style="flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
@@ -836,6 +893,64 @@
                 });
         }
 
+        function fetchHyperlocalWeather(locationName) {
+            const inputLoc = document.getElementById('weather-location-input');
+            const loc = locationName || (inputLoc ? inputLoc.value.trim() : 'Coimbatore') || 'Coimbatore';
+
+            const tempElem = document.getElementById('weather-temp-display');
+            const humElem = document.getElementById('weather-humidity-display');
+            const rainBadge = document.getElementById('weather-rain-badge');
+            const irrText = document.getElementById('weather-irrigation-text');
+            const irrBadge = document.getElementById('weather-irrigation-status-badge');
+            const sprayText = document.getElementById('weather-spraying-text');
+            const sprayBadge = document.getElementById('weather-spraying-status-badge');
+            const advisoryElem = document.getElementById('weather-advisory-body');
+
+            if (advisoryElem) advisoryElem.innerHTML = '<em>Fetching hyper-local weather & smart irrigation advisory... 🌤️</em>';
+
+            fetch(`/ai/weather?location=${encodeURIComponent(loc)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.weather) {
+                        const w = data.weather;
+                        if (tempElem) tempElem.innerText = `${data.location || 'Coimbatore'} • ${w.temp_c}°C (${w.condition})`;
+                        if (humElem) humElem.innerText = `💧 ${w.humidity}% | 💨 ${w.wind_kmh} km/h`;
+                        if (rainBadge) {
+                            rainBadge.innerHTML = `<span style="background: rgba(59, 130, 246, 0.18); color: #3b82f6; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem;">🌧️ ${w.rain_prob}% Rain Prob</span>`;
+                        }
+
+                        const irrStat = data.irrigation_status || 'NORMAL_CYCLE';
+                        if (irrStat === 'HOLD_IRRIGATION') {
+                            if (irrText) irrText.innerText = '🌧️ Hold Irrigation — Rain Expected';
+                            if (irrBadge) irrBadge.style.borderLeftColor = '#3b82f6';
+                        } else if (irrStat === 'WATER_TODAY') {
+                            if (irrText) irrText.innerText = '💧 Water Crop Today — High Evaporation';
+                            if (irrBadge) irrBadge.style.borderLeftColor = '#f59e0b';
+                        } else {
+                            if (irrText) irrText.innerText = '🌱 Maintain Regular Irrigation Cycle';
+                            if (irrBadge) irrBadge.style.borderLeftColor = '#27ae60';
+                        }
+
+                        const sprayStat = data.spraying_status || 'SAFE_WINDOW';
+                        if (sprayStat === 'UNSAFE_HIGH_WIND') {
+                            if (sprayText) sprayText.innerText = '⚠️ Hold Spraying — Wind Speed High';
+                            if (sprayBadge) sprayBadge.style.borderLeftColor = '#ef4444';
+                        } else if (sprayStat === 'UNSAFE_RAIN') {
+                            if (sprayText) sprayText.innerText = '🌧️ Hold Spraying — Rain Washing Risk';
+                            if (sprayBadge) sprayBadge.style.borderLeftColor = '#f59e0b';
+                        } else {
+                            if (sprayText) sprayText.innerText = '✅ Optimal Spraying Window';
+                            if (sprayBadge) sprayBadge.style.borderLeftColor = '#27ae60';
+                        }
+
+                        if (advisoryElem) advisoryElem.innerHTML = formatMarkdownResponse(data.advisory_report);
+                    }
+                })
+                .catch(err => {
+                    if (advisoryElem) advisoryElem.innerText = 'Unable to fetch weather forecast. Please try again.';
+                });
+        }
+
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, 
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
@@ -862,8 +977,10 @@
                 targetSection.style.display = 'block';
                 if (sectionId === 'cropsync-ai') {
                     fetchCropPriceTrend('Rice');
+                    fetchHyperlocalWeather();
                 }
             }
+
             
             // Update URL without reloading
             const url = new URL(window.location);

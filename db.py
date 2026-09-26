@@ -284,6 +284,19 @@ def init_db():
                     recommendation TEXT NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS cropsync_weather_logs (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    location TEXT NOT NULL,
+                    temp_c NUMERIC(5,2) NOT NULL,
+                    humidity NUMERIC(5,2) NOT NULL,
+                    rain_prob NUMERIC(5,2) NOT NULL,
+                    wind_kmh NUMERIC(5,2) NOT NULL,
+                    condition TEXT NOT NULL,
+                    irrigation_status TEXT NOT NULL,
+                    spraying_status TEXT NOT NULL,
+                    advisory_report TEXT NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
             """)
             # Schema migrations for Postgres constraints
             try:
@@ -481,6 +494,19 @@ def init_db():
                     trend TEXT DEFAULT 'UP',
                     predicted_change_pct REAL DEFAULT 0.0,
                     recommendation TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS cropsync_weather_logs (
+                    id TEXT PRIMARY KEY,
+                    location TEXT NOT NULL,
+                    temp_c REAL NOT NULL,
+                    humidity REAL NOT NULL,
+                    rain_prob REAL NOT NULL,
+                    wind_kmh REAL NOT NULL,
+                    condition TEXT NOT NULL,
+                    irrigation_status TEXT NOT NULL,
+                    spraying_status TEXT NOT NULL,
+                    advisory_report TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
                 DROP TABLE IF EXISTS crop_price_history;
@@ -2623,6 +2649,51 @@ def seed_mandi_prices():
             predicted_change_pct=item["pct"],
             recommendation=item["rec"]
         )
+
+
+def save_weather_log(location, temp_c, humidity, rain_prob, wind_kmh, condition, irrigation_status, spraying_status, advisory_report):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        wid = str(uuid.uuid4())
+        sql = f"""
+            INSERT INTO cropsync_weather_logs (id, location, temp_c, humidity, rain_prob, wind_kmh, condition, irrigation_status, spraying_status, advisory_report, created_at)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+        """
+        cursor.execute(sql, (wid, (location or 'Coimbatore').capitalize(), float(temp_c), float(humidity), float(rain_prob), float(wind_kmh), condition, irrigation_status, spraying_status, advisory_report, now))
+        conn.commit()
+        return True, wid
+    except Exception as e:
+        print("[!] Error in save_weather_log:", e)
+        try: conn.rollback()
+        except: pass
+        return False, str(e)
+    finally:
+        release_connection(conn, cursor)
+
+
+def get_latest_weather_log(location='Coimbatore'):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"SELECT * FROM cropsync_weather_logs WHERE LOWER(location) = LOWER({ph}) ORDER BY created_at DESC LIMIT 1"
+        cursor.execute(sql, (str(location).strip(),))
+        row = cursor.fetchone()
+        if not row:
+            sql_all = "SELECT * FROM cropsync_weather_logs ORDER BY created_at DESC LIMIT 1"
+            cursor.execute(sql_all)
+            row = cursor.fetchone()
+        return _dict_row(row) if row else None
+    except Exception as e:
+        print("[!] Error in get_latest_weather_log:", e)
+        return None
+    finally:
+        release_connection(conn, cursor)
 
 
 
