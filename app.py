@@ -12,6 +12,7 @@ import db
 import migrate_data
 from otp_service import OTPService
 import services.email_service as email_service
+import services.ai_service as ai_service
 
 
 
@@ -606,8 +607,42 @@ def farmer_dashboard():
     user_crops = db.get_crops(farmer_id=farmer_id)
     sold_orders = db.get_orders_for_farmer(farmer_id=farmer_id)
     earnings = round(sum(float(o['total_price']) for o in sold_orders if o['status'] in ('Accepted', 'Completed')), 2)
+    ai_chat_history = db.get_cropsync_ai_chat_history(farmer_id, limit=20)
 
-    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user)
+    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user, ai_chat_history=ai_chat_history)
+
+@app.route('/ai/query', methods=['POST'])
+def cropsync_ai_query():
+    if 'farmer_user' not in session and 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    farmer_user = session.get('farmer_user') or {}
+    user_id = farmer_user.get('id') or session.get('user_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User session expired'}), 401
+        
+    data = request.get_json(silent=True) or {}
+    query = (data.get('query') or request.form.get('query') or '').strip()
+    category = data.get('category') or 'general'
+    lang = session.get('farmer_lang') or 'en'
+    
+    if not query:
+        return jsonify({'success': False, 'error': 'Query cannot be empty'}), 400
+        
+    advice_response = ai_service.generate_agri_advice(query, category=category, language=lang)
+    
+    # Save chat to DB
+    db.save_cropsync_ai_chat(user_id, query, advice_response, category=category, language=lang)
+    
+    return jsonify({
+        'success': True,
+        'query': query,
+        'response': advice_response,
+        'category': category,
+        'language': lang,
+        'timestamp': datetime.utcnow().isoformat()
+    })
 
 @app.route('/delete_crop/<crop_id>')
 def delete_crop(crop_id):

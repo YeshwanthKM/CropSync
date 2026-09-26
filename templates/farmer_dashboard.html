@@ -74,6 +74,7 @@
                 <button class="sidebar-link" onclick="showSection('my-listings')">{{ get_text('my_crop_listings') }}</button>
                 <button class="sidebar-link" onclick="showSection('sold-items')">Orders & Sales</button>
                 <button class="sidebar-link" onclick="showSection('msp-reference')">{{ get_text('msp_reference') }}</button>
+                <button class="sidebar-link" onclick="showSection('cropsync-ai')">🤖 CropSync AI</button>
 
 
             </nav>
@@ -400,10 +401,206 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Section: CropSync AI -->
+            <div id="section-cropsync-ai" class="dashboard-section" style="display: none;">
+                <div style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.12), rgba(46, 204, 113, 0.04)); border: 1px solid rgba(39, 174, 96, 0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 style="margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; border: none;">
+                                🤖 <span>CropSync AI</span>
+                                <span style="background: #27ae60; color: white; font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; font-weight: bold;">{% if farmer_lang == 'ta' %}செயற்கை நுண்ணறிவு{% else %}AI Smart Advisor{% endif %}</span>
+                            </h2>
+                            <p style="margin: 0.5rem 0 0 0; color: var(--secondary-text); font-size: 0.9rem;">
+                                {% if farmer_lang == 'ta' %}பயிர் மேலாண்மை, பூச்சி கட்டுப்பாடு, மண் வளம் மற்றும் அரசு ஆதரவு விலை (MSP) ஆலோசனைகளைப் பெற கேட்கவும்.{% else %}Ask anything about crop selection, pest control, fertilizer guidance, soil health, and Govt MSP reference rates.{% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <button type="button" onclick="clearAIChatUI()" class="btn-small" style="background: var(--nav-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;">🧹 Clear Chat</button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Suggestion Chips -->
+                    <div style="margin-top: 1.25rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" onclick="sendAIQuickPrompt('What are the best crops to plant for this season?')" class="ai-chip">🌾 {% if farmer_lang == 'ta' %}இந்த பருவத்திற்கு சிறந்த பயிர்கள்{% else %}Best crops for this season{% endif %}</button>
+                        <button type="button" onclick="sendAIQuickPrompt('Show me Government MSP prices for rice and wheat')" class="ai-chip">💡 {% if farmer_lang == 'ta' %}அரசு MSP விலை வழிகாட்டி{% else %}Govt MSP Rates & Guidance{% endif %}</button>
+                        <button type="button" onclick="sendAIQuickPrompt('How do I identify and treat crop leaf blight or caterpillars?')" class="ai-chip">🐛 {% if farmer_lang == 'ta' %}பூச்சி நோய் கட்டுப்பாடு{% else %}Pest & Disease Control{% endif %}</button>
+                        <button type="button" onclick="sendAIQuickPrompt('What fertilizer ratio (NPK) should I use for high yield?')" class="ai-chip">🌱 {% if farmer_lang == 'ta' %}மண் மற்றும் உரம் ஆலோசனை{% else %}Soil & NPK Fertilizer Plan{% endif %}</button>
+                    </div>
+                </div>
+
+                <!-- AI Chat Container -->
+                <div class="ai-chat-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-height: 420px; max-height: 600px;">
+                    <div id="ai-chat-messages" style="flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- Initial AI Greeting -->
+                        <div class="ai-msg ai-msg-bot">
+                            <div class="ai-avatar">🤖</div>
+                            <div class="ai-bubble">
+                                <strong>CropSync AI:</strong><br>
+                                {% if farmer_lang == 'ta' %}
+                                வணக்கம்! நான் உங்கள் பயிர் ஆலோசகர் **CropSync AI**. பயிர் மேலாண்மை, அரசு ஆதரவு விலை (MSP), உரம் அல்லது பூச்சி கட்டுப்பாடு பற்றி ஏதேனும் கேட்கவும்.
+                                {% else %}
+                                Welcome! I am **CropSync AI**, your smart agricultural advisor. Ask me anything about your crops, government MSP reference rates, fertilizer plans, or pest management!
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Persistent Chat History -->
+                        {% if ai_chat_history %}
+                        {% for chat in ai_chat_history %}
+                        <div class="ai-msg ai-msg-user">
+                            <div class="ai-avatar">👨‍🌾</div>
+                            <div class="ai-bubble user-bubble">{{ chat.query }}</div>
+                        </div>
+                        <div class="ai-msg ai-msg-bot">
+                            <div class="ai-avatar">🤖</div>
+                            <div class="ai-bubble">{{ chat.response|safe }}</div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <!-- Chat Input Form -->
+                    <div style="padding: 1rem; background: var(--nav-bg); border-top: 1px solid var(--border-color);">
+                        <form id="ai-chat-form" onsubmit="submitAIChat(event)" style="display: flex; gap: 0.75rem; align-items: center; margin: 0;">
+                            <input type="text" id="ai-user-input" placeholder="{% if farmer_lang == 'ta' %}உங்கள் கேள்வியை உள்ளிடவும் (எ.கா: நெல் பயிரில் பூச்சி கட்டுப்பாடு)...{% else %}Ask CropSync AI (e.g. Best fertilizer for wheat, paddy MSP rates)...{% endif %}" required style="flex: 1; padding: 0.85rem 1.1rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 25px; color: var(--text-color); font-size: 0.95rem; outline: none;">
+                            <button type="submit" id="ai-send-btn" style="background: #27ae60; color: white; border: none; padding: 0.85rem 1.4rem; border-radius: 25px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+                                <span>{% if farmer_lang == 'ta' %}அனுப்பு{% else %}Ask AI{% endif %}</span>
+                                <span>➔</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
     <script>
+        // CropSync AI AJAX Functions
+        function sendAIQuickPrompt(promptText) {
+            const input = document.getElementById('ai-user-input');
+            if (input) {
+                input.value = promptText;
+                submitAIChat();
+            }
+        }
+
+        function clearAIChatUI() {
+            const chatContainer = document.getElementById('ai-chat-messages');
+            if (chatContainer) {
+                chatContainer.innerHTML = `
+                    <div class="ai-msg ai-msg-bot">
+                        <div class="ai-avatar">🤖</div>
+                        <div class="ai-bubble">
+                            <strong>CropSync AI:</strong><br>
+                            Chat cleared. Ask a new question or pick a quick suggestion above!
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function formatMarkdownResponse(text) {
+            if (!text) return '';
+            let formatted = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n- /g, '<br>• ')
+                .replace(/\n\* /g, '<br>• ')
+                .replace(/\n(\d+)\. /g, '<br>$1. ');
+            return formatted;
+        }
+
+        function submitAIChat(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('ai-user-input');
+            if (!input) return;
+            const query = input.value.trim();
+            if (!query) return;
+
+            const chatContainer = document.getElementById('ai-chat-messages');
+            const sendBtn = document.getElementById('ai-send-btn');
+
+            // 1. Append User Message
+            const userDiv = document.createElement('div');
+            userDiv.className = 'ai-msg ai-msg-user';
+            userDiv.innerHTML = `
+                <div class="ai-avatar">👨‍🌾</div>
+                <div class="ai-bubble user-bubble">${escapeHTML(query)}</div>
+            `;
+            chatContainer.appendChild(userDiv);
+            input.value = '';
+
+            // 2. Append Loading Placeholder
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'ai-msg ai-msg-bot';
+            loadingDiv.id = 'ai-loading-placeholder';
+            loadingDiv.innerHTML = `
+                <div class="ai-avatar">🤖</div>
+                <div class="ai-bubble ai-loading-pulse">
+                    <em>CropSync AI is analyzing... 🧠</em>
+                </div>
+            `;
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if (sendBtn) sendBtn.disabled = true;
+
+            // 3. Send AJAX Request
+            fetch('/ai/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const placeholder = document.getElementById('ai-loading-placeholder');
+                if (placeholder) placeholder.remove();
+                if (sendBtn) sendBtn.disabled = false;
+
+                const botDiv = document.createElement('div');
+                botDiv.className = 'ai-msg ai-msg-bot';
+
+                if (data.success) {
+                    botDiv.innerHTML = `
+                        <div class="ai-avatar">🤖</div>
+                        <div class="ai-bubble">${formatMarkdownResponse(data.response)}</div>
+                    `;
+                } else {
+                    botDiv.innerHTML = `
+                        <div class="ai-avatar">🤖</div>
+                        <div class="ai-bubble" style="color: #e74c3c;">
+                            ⚠️ Error: ${data.error || 'Failed to generate advice. Please try again.'}
+                        </div>
+                    `;
+                }
+                chatContainer.appendChild(botDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            })
+            .catch(err => {
+                const placeholder = document.getElementById('ai-loading-placeholder');
+                if (placeholder) placeholder.remove();
+                if (sendBtn) sendBtn.disabled = false;
+
+                const botDiv = document.createElement('div');
+                botDiv.className = 'ai-msg ai-msg-bot';
+                botDiv.innerHTML = `
+                    <div class="ai-avatar">🤖</div>
+                    <div class="ai-bubble" style="color: #e74c3c;">
+                        ⚠️ Connection error. Please check your network.
+                    </div>
+                `;
+                chatContainer.appendChild(botDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
         // Section Switching Logic
         function showSection(sectionId) {
             const loader = document.getElementById('global-loading-screen');
