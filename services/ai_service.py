@@ -601,6 +601,8 @@ def get_weather_irrigation_recommendation(location='Coimbatore', crop_name='Rice
     from services.weather_service import fetch_hyperlocal_weather
 
     weather_info = fetch_hyperlocal_weather(location)
+    if not weather_info.get('success'):
+        return weather_info
     temp_c = weather_info.get('temp_c', 30.0)
     humidity = weather_info.get('humidity', 65)
     rain_prob = weather_info.get('rain_prob', 20)
