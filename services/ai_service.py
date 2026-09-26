@@ -13,6 +13,7 @@ Guidelines:
 2. Structure your responses clearly with bold section headers, clean bullet points, and practical steps.
 3. If Government MSP rates are provided in the context, refer to them accurately to help farmers get the best market value.
 4. Keep the tone warm, encouraging, respectful, and clear.
+5. STRICT SCOPE RULE: You are strictly an Agricultural & Farming Assistant. If the user's question is unrelated to agriculture, farming, crops, weather, mandi prices, soil, fertilizers, or government MSP schemes (e.g. general trivia, coding, sports, entertainment, politics, general science), politely refuse to answer and instruct the user to ask ONLY agriculture-related questions. Provide a clean bulleted list of valid farming topics they can ask about.
 """
 
 # Agricultural Knowledge Base for Fallback Engine
@@ -119,6 +120,78 @@ def _fetch_msp_context():
     return "Standard MSP rates apply."
 
 
+AGRI_KEYWORDS = [
+    'crop', 'plant', 'farm', 'seed', 'soil', 'fertilizer', 'npk', 'urea', 'dap',
+    'paddy', 'rice', 'wheat', 'maize', 'cotton', 'sugarcane', 'ragi', 'bajra',
+    'tur', 'moong', 'urad', 'groundnut', 'pest', 'disease', 'blight', 'bug',
+    'caterpillar', 'spray', 'fungus', 'insect', 'harvest', 'irrigation', 'water',
+    'weather', 'rain', 'monsoon', 'mandi', 'price', 'market', 'msp', 'yield',
+    'acre', 'quintal', 'kg', 'tnau', 'kisan', 'farmer', 'agriculture', 'agri',
+    'compost', 'field', 'sow', 'tiller', 'tractor', 'leaf', 'root', 'stem',
+    'flower', 'fruit', 'vegetable', 'grain', 'land', 'district', 'season',
+    'kharif', 'rabi', 'zaid', 'selling', 'buy', 'buyer', 'listing', 'store',
+    # Tamil keywords
+    'பயிர்', 'விவசாய', 'உரம்', 'மண்', 'பூச்சி', 'நோய்', 'நெல்', 'கோதுமை',
+    'விலை', 'மழை', 'பாசனம்', 'அரசு', 'msp', 'மண்டி', 'விதை', 'இலை',
+    'தண்டு', 'ஏக்கர்', 'குவிண்டால்', 'கிலோ', 'செடி', 'பருவம்', 'காரிஃப்',
+    'ரபி', 'சந்தை', 'ஆலோசனை'
+]
+
+EXPLICIT_IRRELEVANT_PATTERNS = [
+    'cricket', 'ipl', 'football', 'movie', 'actor', 'actress', 'song', 'sing', 'joke',
+    'python', 'javascript', 'coding', 'programmer', 'code', 'html', 'css', 'java',
+    'prime minister', 'president', 'quantum', 'physics', 'chemistry', 'algebra',
+    'who won', 'who is the', 'tell me a joke', 'write a poem', 'play a game',
+    'who is president', 'who is prime minister', 'movie review', 'bitcoin', 'crypto',
+    'capital of', 'weather in usa', 'recipe for cake', 'what is python'
+]
+
+def is_agri_related_query(query):
+    q_lower = (query or '').lower().strip()
+    if not q_lower:
+        return True
+
+    # Explicit irrelevant topic patterns
+    if any(pattern in q_lower for pattern in EXPLICIT_IRRELEVANT_PATTERNS):
+        return False
+
+    # Agri keyword presence
+    if any(k in q_lower for k in AGRI_KEYWORDS):
+        return True
+
+    # If query is long enough without any agri keywords, flag as out of scope
+    words = [w.strip('!.,? ') for w in q_lower.split() if w.strip()]
+    if len(words) >= 2 and not any(k in q_lower for k in AGRI_KEYWORDS):
+        return False
+
+    return True
+
+def get_out_of_scope_response(language='en'):
+    lang_code = str(language or 'en').strip().lower()
+    if lang_code == 'ta':
+        return """⚠️ **CropSync AI அறிவிப்பு**:
+நான் **வேளாண்மை மற்றும் பயிர் மேலாண்மை** சார்ந்த கேள்விகளுக்கு மட்டுமே பதிலளிக்க உருவாக்கப்பட்டுள்ளேன். தயவுசெய்து விவசாயம் தொடர்பான கேள்விகளைக் கேட்கவும்.
+
+🌿 **நீங்கள் கேட்கக்கூடிய முக்கிய தலைப்புகள்**:
+• 🌾 **பயிர்கள் தேர்வு & பருவகால திட்டமிடல்** (நெல், கோதுமை, சோளம், பருத்தி)
+• 🐛 **பூச்சி மற்றும் நோய் மேலாண்மை** (இலை சுருக்கம், புழு தாக்குதல்)
+• 🌱 **மண் வளம் & உர மேலாண்மை** (N-P-K, யுரியா, DAP)
+• 💡 **அரசு குறைந்தபட்ச ஆதரவு விலை (MSP)**
+• 📈 **மண்டி சந்தை விலை நிலவரம் & விற்பனை நேரம்**
+• 🌤️ **வானிலை நிலவரம் & நீர் பாசன ஆலோசனை**"""
+    else:
+        return """⚠️ **CropSync AI Assistant Notice**:
+I am specialized strictly in **agricultural and farming advisories**. Please ask questions related to farming, crops, soil health, weather, and market intelligence!
+
+🌿 **Topics You Can Ask Me About**:
+• 🌾 **Crop Selection & Seasonal Planning** (Paddy, Wheat, Maize, Cotton, Pulses)
+• 🐛 **Pest & Disease Identification & Control** (Leaf blight, caterpillars, aphids)
+• 🌱 **Soil Health & N-P-K Fertilizer Guidance** (Urea, DAP, Potash ratios)
+• 💡 **Government Minimum Support Price (MSP) Rates**
+• 📈 **Mandi Price Trends & Sell Advisories**
+• 🌤️ **Hyper-Local Weather Forecast & Smart Irrigation**"""
+
+
 def generate_agri_advice(query, category='general', language='en'):
     """
     Generates intelligent agricultural advice using Gemini API or offline domain knowledge base.
@@ -149,6 +222,10 @@ def generate_agri_advice(query, category='general', language='en'):
             return "வணக்கம்! நான் உங்கள் **CropSync AI** விவசாய ஆலோசகர். பயிர் மேலாண்மை, அரசு ஆதரவு விலை (MSP), உரம் அல்லது பூச்சி கட்டுப்பாடு பற்றி ஏதேனும் கேட்கலாம். இன்று உங்களுக்கு எவ்வாறு உதவட்டும்?"
         else:
             return "Hello! I am **CropSync AI**, your smart agricultural advisor. How can I help you today? Ask me anything about your crops, government MSP reference rates, fertilizer plans, market trends, or pest management!"
+
+    # Out of Scope Check
+    if not is_agri_related_query(query):
+        return get_out_of_scope_response(lang_code)
 
     # Try Gemini API if valid key exists
     if api_key and len(api_key) > 10:

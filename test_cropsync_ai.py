@@ -61,5 +61,16 @@ class TestCropSyncAI(unittest.TestCase):
         self.assertIn('response', data)
         self.assertIn('Caterpillar', data.get('response'))
 
+    def test_4_out_of_scope_query_filter(self):
+        # Test irrelevant query filtering in English
+        resp_en = ai_service.generate_agri_advice("Who won the cricket match today?", language="en")
+        self.assertIn("CropSync AI Assistant Notice", resp_en)
+        self.assertIn("Topics You Can Ask Me About", resp_en)
+
+        # Test irrelevant query filtering in Tamil
+        resp_ta = ai_service.generate_agri_advice("ஹாலிவுட் திரைப்படம் பற்றி சொல்லுங்கள்", language="ta")
+        self.assertIn("CropSync AI அறிவிப்பு", resp_ta)
+        self.assertIn("நீங்கள் கேட்கக்கூடிய முக்கிய தலைப்புகள்", resp_ta)
+
 if __name__ == '__main__':
     unittest.main()
