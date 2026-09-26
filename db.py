@@ -261,6 +261,16 @@ def init_db():
                     language TEXT DEFAULT 'en',
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS cropsync_ai_scans (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                    image_data TEXT,
+                    disease_name TEXT,
+                    severity TEXT,
+                    diagnosis_report TEXT NOT NULL,
+                    language TEXT DEFAULT 'en',
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
             """)
             # Schema migrations for Postgres constraints
             try:
@@ -436,6 +446,16 @@ def init_db():
                     language TEXT DEFAULT 'en',
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS cropsync_ai_scans (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                    image_data TEXT,
+                    disease_name TEXT,
+                    severity TEXT,
+                    diagnosis_report TEXT NOT NULL,
+                    language TEXT DEFAULT 'en',
+                    created_at TEXT NOT NULL
+                );
                 DROP TABLE IF EXISTS crop_price_history;
             """)
 
@@ -584,7 +604,8 @@ def init_db():
                 "CREATE INDEX IF NOT EXISTS idx_crops_farmer_id ON crops(farmer_id);",
                 "CREATE INDEX IF NOT EXISTS idx_crops_status ON crops(status);",
                 "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);",
-                "CREATE INDEX IF NOT EXISTS idx_cropsync_ai_chats_user ON cropsync_ai_chats(user_id);"
+                "CREATE INDEX IF NOT EXISTS idx_cropsync_ai_chats_user ON cropsync_ai_chats(user_id);",
+                "CREATE INDEX IF NOT EXISTS idx_cropsync_ai_scans_user ON cropsync_ai_scans(user_id);"
             ]
             for p_idx in perf_indexes:
                 try:
@@ -2437,4 +2458,56 @@ def get_cropsync_ai_chat_history(user_id, limit=20):
         return []
     finally:
         release_connection(conn, cursor)
+
+
+def save_cropsync_ai_scan(user_id, image_data, disease_name, severity, diagnosis_report, language='en'):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        sid = str(uuid.uuid4())
+        
+        valid_user_id = _valid_user_id_or_none(cursor, user_id, ph)
+        if not valid_user_id:
+            return False, "Invalid user ID", None
+            
+        sql = f"""
+            INSERT INTO cropsync_ai_scans (id, user_id, image_data, disease_name, severity, diagnosis_report, language, created_at)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+        """
+        cursor.execute(sql, (sid, valid_user_id, image_data or '', disease_name or 'Unspecified', severity or 'Moderate', diagnosis_report, language, now))
+        conn.commit()
+        return True, "Scan saved", sid
+    except Exception as e:
+        print("[!] Error in save_cropsync_ai_scan:", e)
+        try: conn.rollback()
+        except: pass
+        return False, str(e), None
+    finally:
+        release_connection(conn, cursor)
+
+
+def get_cropsync_ai_scans_history(user_id, limit=10):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"""
+            SELECT * FROM cropsync_ai_scans
+            WHERE user_id = {ph}
+            ORDER BY created_at DESC
+            LIMIT {limit}
+        """
+        cursor.execute(sql, (str(user_id),))
+        rows = cursor.fetchall()
+        return [_dict_row(r) for r in rows]
+    except Exception as e:
+        print(f"[!] Error in get_cropsync_ai_scans_history({user_id}):", e)
+        return []
+    finally:
+        release_connection(conn, cursor)
+
 

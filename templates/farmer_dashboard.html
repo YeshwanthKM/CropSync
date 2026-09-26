@@ -429,6 +429,66 @@
                     </div>
                 </div>
 
+                <!-- Camera / Image Diagnostic Card -->
+                <div style="background: var(--card-bg); border: 1px solid rgba(39, 174, 96, 0.3); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; border: none;">
+                                📸 <span>{% if farmer_lang == 'ta' %}பயிர் நோய் & பூச்சி கண்டறிதல் (கேமரா மூலம்){% else %}Crop Health & Pest Diagnostic Scanner{% endif %}</span>
+                            </h3>
+                            <p style="margin: 0.35rem 0 0 0; color: var(--secondary-text); font-size: 0.85rem;">
+                                {% if farmer_lang == 'ta' %}உங்கள் பயிர் அல்லது இலையின் புகைப்படத்தை எடுத்து உடனடி AI பரிசோதனை அறிக்கையைப் பெறவும்.{% else %}Take or upload a photo of affected crop leaves for instant Gemini AI disease diagnostics.{% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <input type="file" id="crop-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleCropCameraUpload(event)">
+                            <button type="button" onclick="document.getElementById('crop-camera-input').click()" style="background: linear-gradient(135deg, #27ae60, #2ea043); color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);">
+                                <span>📸</span>
+                                <span>{% if farmer_lang == 'ta' %}புகைப்படம் எடு / பதிவேற்று{% else %}Scan Crop Health / Camera{% endif %}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Image Preview & Diagnostic Result Container -->
+                    <div id="ai-scan-result-container" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);">
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start;">
+                            <div style="flex: 0 0 140px;">
+                                <img id="ai-scan-image-preview" src="" alt="Crop Scan Preview" style="width: 140px; height: 140px; object-fit: cover; border-radius: 12px; border: 2px solid #27ae60;">
+                            </div>
+                            <div style="flex: 1; min-width: 240px;" id="ai-scan-report-body">
+                                <!-- Dynamic Diagnostic Card Content -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Past Scan History (If any) -->
+                    {% if ai_scan_history %}
+                    <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border-color);">
+                        <div style="font-size: 0.8rem; font-weight: bold; color: var(--secondary-text); margin-bottom: 0.5rem; text-transform: uppercase;">
+                            📋 {% if farmer_lang == 'ta' %}சமீபத்திய பரிசோதனை வரலாறு{% else %}Recent Scan History{% endif %}
+                        </div>
+                        <div style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                            {% for scan in ai_scan_history %}
+                            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.8rem; min-width: 200px; flex-shrink: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <strong style="color: var(--text-color);">{{ scan.disease_name or 'Crop Scan' }}</strong>
+                                    {% set sev = (scan.severity or 'Moderate')|lower %}
+                                    {% if 'mild' in sev %}
+                                    <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">Mild</span>
+                                    {% elif 'severe' in sev %}
+                                    <span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">Severe</span>
+                                    {% else %}
+                                    <span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">Moderate</span>
+                                    {% endif %}
+                                </div>
+                                <div style="color: var(--secondary-text); font-size: 0.75rem;">{{ scan.created_at[:16].replace('T', ' ') if scan.created_at else '' }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
                 <!-- AI Chat Container -->
                 <div class="ai-chat-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-height: 420px; max-height: 600px;">
                     <div id="ai-chat-messages" style="flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
@@ -594,6 +654,76 @@
                 chatContainer.appendChild(botDiv);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             });
+        }
+
+        function handleCropCameraUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const container = document.getElementById('ai-scan-result-container');
+            const previewImg = document.getElementById('ai-scan-image-preview');
+            const reportBody = document.getElementById('ai-scan-report-body');
+
+            if (container) container.style.display = 'block';
+
+            // Create image preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                if (previewImg) previewImg.src = base64Data;
+
+                if (reportBody) {
+                    reportBody.innerHTML = `
+                        <div class="ai-loading-pulse" style="padding: 1rem 0;">
+                            <div style="font-weight: bold; color: #27ae60; font-size: 0.95rem;">🔬 Analyzing crop image with CropSync AI Vision...</div>
+                            <div style="font-size: 0.85rem; color: var(--secondary-text); margin-top: 0.25rem;">Checking leaves for spots, pests, pathogens, and nutrient deficiencies...</div>
+                        </div>
+                    `;
+                }
+
+                // Send Base64 payload to /ai/diagnose
+                fetch('/ai/diagnose', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_data: base64Data })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const sev = (data.severity || 'Moderate').toLowerCase();
+                        let badgeHTML = '<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">⚠️ Moderate</span>';
+                        if (sev.includes('mild')) {
+                            badgeHTML = '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">🟢 Mild</span>';
+                        } else if (sev.includes('severe')) {
+                            badgeHTML = '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">🔴 Severe</span>';
+                        }
+
+                        reportBody.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <h4 style="margin: 0; color: var(--text-color); font-size: 1.05rem;">${escapeHTML(data.disease_name || 'Crop Health Report')}</h4>
+                                ${badgeHTML}
+                            </div>
+                            <div class="ai-bubble" style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; font-size: 0.88rem; line-height: 1.5;">
+                                ${formatMarkdownResponse(data.diagnosis_report)}
+                            </div>
+                        `;
+                    } else {
+                        reportBody.innerHTML = `
+                            <div style="color: #e74c3c; font-weight: bold;">
+                                ⚠️ Diagnostic Error: ${escapeHTML(data.error || 'Failed to process crop image.')}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    reportBody.innerHTML = `
+                        <div style="color: #e74c3c; font-weight: bold;">
+                            ⚠️ Connection error while uploading crop image. Please try again.
+                        </div>
+                    `;
+                });
+            };
+            reader.readAsDataURL(file);
         }
 
         function escapeHTML(str) {

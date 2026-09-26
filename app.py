@@ -608,8 +608,9 @@ def farmer_dashboard():
     sold_orders = db.get_orders_for_farmer(farmer_id=farmer_id)
     earnings = round(sum(float(o['total_price']) for o in sold_orders if o['status'] in ('Accepted', 'Completed')), 2)
     ai_chat_history = db.get_cropsync_ai_chat_history(farmer_id, limit=20)
+    ai_scan_history = db.get_cropsync_ai_scans_history(farmer_id, limit=10)
 
-    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user, ai_chat_history=ai_chat_history)
+    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user, ai_chat_history=ai_chat_history, ai_scan_history=ai_scan_history)
 
 @app.route('/ai/query', methods=['POST'])
 def cropsync_ai_query():
@@ -640,6 +641,56 @@ def cropsync_ai_query():
         'query': query,
         'response': advice_response,
         'category': category,
+        'language': lang,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+@app.route('/ai/diagnose', methods=['POST'])
+def cropsync_ai_diagnose():
+    if 'farmer_user' not in session and 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    farmer_user = session.get('farmer_user') or {}
+    user_id = farmer_user.get('id') or session.get('user_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User session expired'}), 401
+        
+    lang = session.get('farmer_lang') or 'en'
+    image_base64 = None
+    mime_type = 'image/jpeg'
+
+    # Support JSON base64 or multipart file upload
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        image_base64 = data.get('image_data') or data.get('image')
+    elif 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename:
+            import base64
+            mime_type = file.mimetype or 'image/jpeg'
+            image_base64 = base64.b64encode(file.read()).decode('utf-8')
+            
+    if not image_base64:
+        return jsonify({'success': False, 'error': 'No image uploaded'}), 400
+        
+    result = ai_service.diagnose_crop_image(image_base64, mime_type=mime_type, language=lang)
+    
+    # Save scan entry in DB
+    db.save_cropsync_ai_scan(
+        user_id=user_id,
+        image_data='',
+        disease_name=result.get('disease_name'),
+        severity=result.get('severity'),
+        diagnosis_report=result.get('diagnosis_report'),
+        language=lang
+    )
+    
+    return jsonify({
+        'success': True,
+        'disease_name': result.get('disease_name'),
+        'severity': result.get('severity'),
+        'diagnosis_report': result.get('diagnosis_report'),
         'language': lang,
         'timestamp': datetime.utcnow().isoformat()
     })
