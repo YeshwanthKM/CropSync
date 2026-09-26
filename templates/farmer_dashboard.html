@@ -101,15 +101,17 @@
             document.addEventListener('click', function(e) {
                 const target = e.target.closest('a, button, input[type="submit"], .btn, .sidebar-link');
                 if (target) {
-                    if (target.id === 'theme-toggle' || target.classList.contains('mobile-toggle') || target.classList.contains('sidebar-overlay') || target.closest('#section-cropsync-ai')) return;
+                    if (target.id === 'theme-toggle' || target.id === 'ai-fab-btn' || target.classList.contains('mobile-toggle') || target.classList.contains('sidebar-overlay') || target.classList.contains('sidebar-link') || target.classList.contains('ai-chip') || target.closest('#section-cropsync-ai') || target.closest('#ai-fab-container') || target.closest('#ai-chat-drawer')) return;
                     const href = target.getAttribute('href');
-                    if (href && (href.startsWith('#') || href.startsWith('javascript:'))) return;
+                    const isButton = target.tagName === 'BUTTON' || target.getAttribute('type') === 'button';
+                    const hasOnClick = target.hasAttribute('onclick');
+                    if (isButton || hasOnClick || !href || href.startsWith('#') || href.startsWith('javascript:')) return;
                     showLoader();
                 }
             }, true);
 
             document.addEventListener('submit', function(e) {
-                if (e.target && (e.target.id === 'ai-chat-form' || e.target.closest('#section-cropsync-ai'))) return;
+                if (e.target && (e.target.id === 'ai-chat-form' || e.target.closest('#section-cropsync-ai') || e.target.closest('#ai-fab-container') || e.target.closest('#ai-chat-drawer'))) return;
                 showLoader();
             }, true);
         })();
@@ -1342,7 +1344,8 @@
             if (!drawer) return;
             if (drawer.style.display === 'none' || drawer.style.display === '') {
                 drawer.style.display = 'flex';
-                document.getElementById('ai-drawer-input').focus();
+                const input = document.getElementById('ai-user-input') || document.getElementById('ai-drawer-input');
+                if (input) input.focus();
             } else {
                 drawer.style.display = 'none';
             }
