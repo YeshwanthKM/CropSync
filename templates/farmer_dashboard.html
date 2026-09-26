@@ -3,6 +3,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CropSync - {{ get_text('farmer_dashboard') }}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     const theme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', theme);
@@ -645,6 +647,21 @@
                         <div style="font-size: 0.88rem; color: var(--secondary-text); line-height: 1.6;" id="sat-advisory-body">
                             Select a crop or update CropSync AI to load Sentinel-2 remote sensing metrics.
                         </div>
+
+                        <!-- Interactive Field Satellite Map Container (Leaflet.js + Google Satellite / Esri Tile Layer) -->
+                        <div style="margin-top: 1rem; border-radius: 14px; overflow: hidden; border: 1px solid var(--nav-border); box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                            <div style="background: var(--bg-color); padding: 0.6rem 1rem; font-size: 0.82rem; font-weight: 700; color: var(--text-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--nav-border);">
+                                <span>🗺️ Interactive Field Satellite Map (Click to select field location)</span>
+                                <span style="font-size: 0.75rem; color: #27ae60;" id="leaflet-map-status">
+                                    {% if google_maps_api_key %}
+                                    📡 Google Maps Satellite Engine Active
+                                    {% else %}
+                                    📡 Esri Sentinel-2 Satellite Engine Active
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div id="leaflet-field-map" style="height: 220px; width: 100%; background: #1a252f;"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -1168,6 +1185,59 @@
                 });
         }
 
+        let leafletMap = null;
+        let fieldMarker = null;
+
+        function initLeafletSatelliteMap() {
+            const mapElem = document.getElementById('leaflet-field-map');
+            if (!mapElem || leafletMap) {
+                if (leafletMap) leafletMap.invalidateSize();
+                return;
+            }
+
+            const defaultLat = 11.0168;
+            const defaultLng = 76.9558;
+
+            try {
+                leafletMap = L.map('leaflet-field-map').setView([defaultLat, defaultLng], 12);
+
+                const gMapsKey = "{{ google_maps_api_key or '' }}";
+                let tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+                let tileAttribution = 'Tiles &copy; Esri &mdash; Sentinel-2 Satellite Imagery';
+
+                if (gMapsKey && gMapsKey.length > 5) {
+                    tileUrl = `https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&key=${gMapsKey}`;
+                    tileAttribution = 'Map data &copy; Google Maps Satellite';
+                }
+
+                L.tileLayer(tileUrl, {
+                    maxZoom: 18,
+                    attribution: tileAttribution
+                }).addTo(leafletMap);
+
+                fieldMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(leafletMap);
+                fieldMarker.bindPopup("<b>🌾 Selected Farm Field</b><br>Click map or drag marker.").openPopup();
+
+                leafletMap.on('click', function(e) {
+                    const lat = e.latlng.lat.toFixed(4);
+                    const lng = e.latlng.lng.toFixed(4);
+                    fieldMarker.setLatLng(e.latlng);
+                    fieldMarker.bindPopup(`<b>🌾 Selected Farm Field</b><br>Lat: ${lat}, Lng: ${lng}`).openPopup();
+                    fetchSatelliteAnalytics('Coimbatore');
+                });
+
+                fieldMarker.on('dragend', function(e) {
+                    const coord = fieldMarker.getLatLng();
+                    const lat = coord.lat.toFixed(4);
+                    const lng = coord.lng.toFixed(4);
+                    fieldMarker.bindPopup(`<b>🌾 Selected Farm Field</b><br>Lat: ${lat}, Lng: ${lng}`).openPopup();
+                    fetchSatelliteAnalytics('Coimbatore');
+                });
+            } catch (err) {
+                console.error('[!] Failed to initialize Leaflet satellite map:', err);
+            }
+        }
+
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, 
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
@@ -1196,6 +1266,7 @@
                     fetchCropPriceTrend('Rice');
                     fetchHyperlocalWeather();
                     fetchSatelliteAnalytics();
+                    setTimeout(initLeafletSatelliteMap, 300);
                 }
             }
 

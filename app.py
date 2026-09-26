@@ -611,7 +611,9 @@ def farmer_dashboard():
     ai_scan_history = db.get_cropsync_ai_scans_history(farmer_id, limit=10)
     mandi_trends = db.get_mandi_price_trends()
 
-    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user, ai_chat_history=ai_chat_history, ai_scan_history=ai_scan_history, mandi_trends=mandi_trends)
+    google_maps_api_key = (os.environ.get('GOOGLE_MAPS_API_KEY') or os.environ.get('MAPS_API_KEY') or '').strip()
+
+    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user, ai_chat_history=ai_chat_history, ai_scan_history=ai_scan_history, mandi_trends=mandi_trends, google_maps_api_key=google_maps_api_key)
 
 @app.route('/ai/query', methods=['POST'])
 def cropsync_ai_query():
