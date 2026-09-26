@@ -123,7 +123,7 @@ def generate_agri_advice(query, category='general', language='en'):
     """
     Generates intelligent agricultural advice using Gemini API or offline domain knowledge base.
     """
-    api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+    api_key = (os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or '').strip()
     msp_context = _fetch_msp_context()
 
     # Determine fallback category
@@ -141,8 +141,8 @@ def generate_agri_advice(query, category='general', language='en'):
 
     lang_code = 'ta' if language == 'ta' or any(ord(c) > 0x0B80 and ord(c) < 0x0BFF for c in query) else 'en'
 
-    # Try Gemini API if key exists
-    if api_key:
+    # Try Gemini API if valid key exists
+    if api_key and len(api_key) > 10:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
             
@@ -170,7 +170,7 @@ Respond clearly in {'Tamil' if lang_code == 'ta' else 'English'}. Keep response 
                 method='POST'
             )
 
-            with urllib.request.urlopen(req, timeout=8) as response:
+            with urllib.request.urlopen(req, timeout=5) as response:
                 result = json.loads(response.read().decode('utf-8'))
                 candidates = result.get('candidates', [])
                 if candidates:
@@ -209,7 +209,7 @@ def diagnose_crop_image(image_base64, mime_type='image/jpeg', language='en'):
     """
     Analyzes an uploaded crop leaf/plant image using Gemini 1.5 Flash Vision API or domain fallback.
     """
-    api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+    api_key = (os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or '').strip()
     lang_code = 'ta' if language == 'ta' else 'en'
     
     # Strip data URL prefix if present (e.g. "data:image/jpeg;base64,...")
@@ -220,7 +220,7 @@ def diagnose_crop_image(image_base64, mime_type='image/jpeg', language='en'):
         elif 'webp' in header:
             mime_type = 'image/webp'
             
-    if api_key:
+    if api_key and len(api_key) > 10:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
             
@@ -250,7 +250,7 @@ Language: Respond strictly in {'Tamil' if lang_code == 'ta' else 'English'}. Kee
                 method='POST'
             )
             
-            with urllib.request.urlopen(req, timeout=12) as response:
+            with urllib.request.urlopen(req, timeout=6) as response:
                 result = json.loads(response.read().decode('utf-8'))
                 candidates = result.get('candidates', [])
                 if candidates:
@@ -333,7 +333,7 @@ def predict_crop_price_trend(crop_name, district='Coimbatore', language='en'):
     """
     Generates AI market price forecast, Mandi comparison, and sell timing advisory.
     """
-    api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+    api_key = (os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or '').strip()
     lang_code = 'ta' if language == 'ta' else 'en'
     
     # 1. Fetch Mandi benchmark from DB
@@ -347,7 +347,7 @@ def predict_crop_price_trend(crop_name, district='Coimbatore', language='en'):
     pct_change = mandi_data.get('predicted_change_pct') if mandi_data else 4.0
     rec_text = mandi_data.get('recommendation') if mandi_data else 'Hold 10-14 days for optimal return'
 
-    if api_key:
+    if api_key and len(api_key) > 10:
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
             
@@ -374,7 +374,7 @@ Language: Respond strictly in {'Tamil' if lang_code == 'ta' else 'English'}. Kee
                 method='POST'
             )
             
-            with urllib.request.urlopen(req, timeout=10) as response:
+            with urllib.request.urlopen(req, timeout=5) as response:
                 result = json.loads(response.read().decode('utf-8'))
                 candidates = result.get('candidates', [])
                 if candidates:

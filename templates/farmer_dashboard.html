@@ -49,14 +49,15 @@
             document.addEventListener('click', function(e) {
                 const target = e.target.closest('a, button, input[type="submit"], .btn, .sidebar-link');
                 if (target) {
-                    if (target.id === 'theme-toggle' || target.classList.contains('mobile-toggle') || target.classList.contains('sidebar-overlay')) return;
+                    if (target.id === 'theme-toggle' || target.classList.contains('mobile-toggle') || target.classList.contains('sidebar-overlay') || target.closest('#section-cropsync-ai')) return;
                     const href = target.getAttribute('href');
                     if (href && (href.startsWith('#') || href.startsWith('javascript:'))) return;
                     showLoader();
                 }
             }, true);
 
-            document.addEventListener('submit', function() {
+            document.addEventListener('submit', function(e) {
+                if (e.target && (e.target.id === 'ai-chat-form' || e.target.closest('#section-cropsync-ai'))) return;
                 showLoader();
             }, true);
         })();
@@ -632,6 +633,7 @@
 
         function submitAIChat(event) {
             if (event) event.preventDefault();
+            if (window.hideLoader) window.hideLoader();
             const input = document.getElementById('ai-user-input');
             if (!input) return;
             const query = input.value.trim();
@@ -714,6 +716,7 @@
         }
 
         function handleCropCameraUpload(event) {
+            if (window.hideLoader) window.hideLoader();
             const file = event.target.files[0];
             if (!file) return;
 
