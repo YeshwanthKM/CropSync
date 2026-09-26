@@ -721,58 +721,7 @@
                     </div>
                 </div>
 
-                <!-- AI Chat Container -->
-                <div class="ai-chat-card" style="background: var(--card-bg); border: 1px solid var(--nav-border); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; min-height: 440px; max-height: 600px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
-                    <div id="ai-chat-messages" style="flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
-                        <!-- Initial AI Greeting -->
-                        <div class="ai-msg ai-msg-bot">
-                            <div class="ai-avatar ai-avatar-bot">🌿</div>
-                            <div class="ai-bubble">
-                                <strong>CropSync AI:</strong><br>
-                                {% if farmer_lang == 'ta' %}
-                                வணக்கம்! நான் உங்கள் பயிர் ஆலோசகர் **CropSync AI**. பயிர் மேலாண்மை, அரசு ஆதரவு விலை (MSP), உரம் அல்லது பூச்சி கட்டுப்பாடு பற்றி ஏதேனும் கேட்கவும்.
-                                {% else %}
-                                Welcome! I am **CropSync AI**, your smart agricultural advisor. Ask me anything about your crops, government MSP reference rates, fertilizer plans, or pest management!
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- Persistent Chat History -->
-                        {% if ai_chat_history %}
-                        {% for chat in ai_chat_history %}
-                        <div class="ai-msg ai-msg-user">
-                            <div class="ai-avatar ai-avatar-user">👨‍🌾</div>
-                            <div class="ai-bubble user-bubble">{{ chat.query }}</div>
-                        </div>
-                        <div class="ai-msg ai-msg-bot">
-                            <div class="ai-avatar ai-avatar-bot">🌿</div>
-                            <div class="ai-bubble raw-markdown-bubble">{{ chat.response }}</div>
-                        </div>
-                        {% endfor %}
-                        {% endif %}
-                    </div>
-
-                    <!-- Chat Input Form Capsule -->
-                    <div style="padding: 0.85rem 1.25rem; background: var(--nav-bg); border-top: 1px solid var(--nav-border); position: relative;">
-                        <form id="ai-chat-form" onsubmit="submitAIChat(event)" style="display: flex; gap: 0.5rem; align-items: center; margin: 0; background: var(--bg-color); border: 1.5px solid var(--nav-border); border-radius: 30px; padding: 4px 6px 4px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: border-color 0.2s ease;">
-                            <!-- Integrated Mic Button -->
-                            <button type="button" id="ai-mic-btn" onclick="toggleVoiceInput()" style="background: rgba(39, 174, 96, 0.12); color: #27ae60; border: none; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; transition: all 0.2s ease; flex-shrink: 0;" title="Speak your question (Hands-Free Voice AI)">
-                                <span id="ai-mic-icon">🎙️</span>
-                            </button>
-
-                            <input type="text" id="ai-user-input" placeholder="{% if farmer_lang == 'ta' %}கேள்வி கேட்கவும் அல்லது பேசவும்...{% else %}Ask or speak your question for CropSync AI...{% endif %}" required style="flex: 1; border: none; background: transparent; color: var(--text-color); font-size: 0.95rem; outline: none; padding: 0.5rem 0.4rem;">
-
-                            <button type="submit" id="ai-send-btn" style="background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; border: none; height: 38px; padding: 0 1.25rem; border-radius: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3); transition: transform 0.2s ease; flex-shrink: 0;">
-                                <span>{% if farmer_lang == 'ta' %}அனுப்பு{% else %}Ask AI{% endif %}</span>
-                                <span style="font-size: 0.9rem;">➔</span>
-                            </button>
-                        </form>
-                        <div id="ai-mic-status" style="display: none; position: absolute; top: -28px; left: 1.5rem; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 3px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; align-items: center; gap: 0.4rem; box-shadow: 0 3px 10px rgba(231, 76, 60, 0.35);">
-                            <span style="width: 8px; height: 8px; background: white; border-radius: 50%; display: inline-block;"></span>
-                            <span id="ai-mic-status-text">Listening in {{ 'Tamil' if farmer_lang == 'ta' else 'English' }}...</span>
-                        </div>
-                    </div>
-                </div>
+                <!-- Inline chat container removed — AI Assistant is now exclusively accessible via the floating bottom-right AI Assistant agent widget -->
             </div>
         </main>
     </div>
@@ -1481,44 +1430,77 @@
         });
     </script>
 
-    <!-- Floating CropSync AI Chatbot FAB Drawer -->
+    <!-- Floating CropSync AI Chatbot FAB Drawer (Primary AI Agent Window) -->
     <div id="ai-fab-container" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
-        <button type="button" onclick="toggleAIChatDrawer()" id="ai-fab-btn" style="background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; border: none; padding: 13px 20px; border-radius: 30px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 0.55rem; box-shadow: 0 8px 24px rgba(39, 174, 96, 0.45); transition: transform 0.2s ease;">
+        <!-- Launcher Pill Button -->
+        <button type="button" onclick="toggleAIChatDrawer()" id="ai-fab-btn" style="background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; border: none; padding: 13px 22px; border-radius: 30px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 0.55rem; box-shadow: 0 8px 24px rgba(39, 174, 96, 0.45); transition: transform 0.2s ease;">
             <span style="font-size: 1.25rem;">✨</span>
             <span>CropSync AI</span>
             <span style="background: rgba(255,255,255,0.22); padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">🌿 Assistant</span>
         </button>
 
         <!-- Floating Chatbot Drawer Window -->
-        <div id="ai-chat-drawer" style="display: none; position: absolute; bottom: 65px; right: 0; width: 380px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 100px); background: var(--card-bg, #1e293b); border: 1px solid var(--nav-border, rgba(255,255,255,0.15)); border-radius: 20px; box-shadow: 0 12px 36px rgba(0,0,0,0.45); overflow: hidden; flex-direction: column;">
+        <div id="ai-chat-drawer" style="display: none; position: absolute; bottom: 65px; right: 0; width: 400px; max-width: calc(100vw - 32px); height: 560px; max-height: calc(100vh - 90px); background: var(--card-bg, #1e293b); border: 1px solid var(--nav-border, rgba(255,255,255,0.15)); border-radius: 20px; box-shadow: 0 12px 36px rgba(0,0,0,0.5); overflow: hidden; flex-direction: column;">
             <!-- Drawer Header -->
-            <div style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.18), rgba(30, 132, 73, 0.1)); padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--nav-border); display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <strong style="font-size: 0.95rem; color: var(--text-color); display: flex; align-items: center; gap: 0.4rem;">
-                        ✨ CropSync AI Assistant 🌿
-                    </strong>
-                    <div style="font-size: 0.72rem; color: #27ae60; font-weight: 700;">Online & Ready to help</div>
+            <div style="background: linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(30, 132, 73, 0.08)); padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--nav-border); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 32px; height: 32px; background: #27ae60; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: white;">🌿</div>
+                    <div>
+                        <strong style="font-size: 0.95rem; color: var(--text-color); display: flex; align-items: center; gap: 0.35rem;">
+                            ✨ CropSync AI Assistant
+                        </strong>
+                        <div style="font-size: 0.72rem; color: #27ae60; font-weight: 700;">Online & Ready to help</div>
+                    </div>
                 </div>
-                <button type="button" onclick="toggleAIChatDrawer()" style="background: none; border: none; color: var(--secondary-text); font-size: 1.2rem; cursor: pointer; padding: 4px;">✕</button>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <button type="button" onclick="clearAIChatUI()" style="background: rgba(255,255,255,0.1); border: 1px solid var(--nav-border); color: var(--text-color); padding: 3px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">🧹 Clear</button>
+                    <button type="button" onclick="toggleAIChatDrawer()" style="background: none; border: none; color: var(--secondary-text); font-size: 1.2rem; cursor: pointer; padding: 2px 6px;">✕</button>
+                </div>
             </div>
 
             <!-- Drawer Message Container -->
-            <div id="ai-drawer-chat-box" style="flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem; background: var(--bg-color);">
+            <div id="ai-chat-messages" style="flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem; background: var(--bg-color);">
+                <!-- Initial AI Greeting -->
                 <div class="ai-msg ai-msg-bot">
-                    <div style="background: var(--nav-bg); border: 1px solid var(--nav-border); padding: 0.85rem; border-radius: 14px; font-size: 0.88rem; color: var(--text-color);">
+                    <div class="ai-avatar ai-avatar-bot" style="display: none;">🌿</div>
+                    <div class="ai-bubble" style="background: var(--nav-bg); border: 1px solid var(--nav-border); padding: 0.85rem; border-radius: 14px; font-size: 0.88rem; color: var(--text-color);">
                         <strong style="color: #27ae60;">CropSync AI:</strong><br>
-                        Hello! Ask me anything about crop recommendations, NPK fertilizers, Mandi prices, weather, or pest control.
+                        {% if farmer_lang == 'ta' %}
+                        வணக்கம்! நான் உங்கள் பயிர் ஆலோசகர் **CropSync AI**. பயிர் மேலாண்மை, அரசு ஆதரவு விலை (MSP), உரம் அல்லது பூச்சி கட்டுப்பாடு பற்றி ஏதேனும் கேட்கவும்.
+                        {% else %}
+                        Welcome! I am **CropSync AI**, your smart agricultural advisor. Ask me anything about your crops, government MSP reference rates, fertilizer plans, or pest management!
+                        {% endif %}
                     </div>
                 </div>
+
+                <!-- Persistent Chat History -->
+                {% if ai_chat_history %}
+                {% for chat in ai_chat_history %}
+                <div class="ai-msg ai-msg-user" style="text-align: right;">
+                    <div class="ai-bubble user-bubble" style="display: inline-block; background: #27ae60; color: white; padding: 0.65rem 0.95rem; border-radius: 14px; font-size: 0.88rem; text-align: left; max-width: 85%;">{{ chat.query }}</div>
+                </div>
+                <div class="ai-msg ai-msg-bot">
+                    <div class="ai-bubble raw-markdown-bubble" style="background: var(--nav-bg); border: 1px solid var(--nav-border); padding: 0.85rem; border-radius: 14px; font-size: 0.88rem; color: var(--text-color);">{{ chat.response }}</div>
+                </div>
+                {% endfor %}
+                {% endif %}
             </div>
 
             <!-- Drawer Input Area -->
-            <div style="padding: 0.75rem 0.85rem; border-top: 1px solid var(--nav-border); background: var(--nav-bg);">
-                <form id="ai-drawer-form" onsubmit="sendAIDrawerMessage(event)" style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button type="button" onclick="startVoiceInput('drawer')" style="background: rgba(39,174,96,0.15); color: #27ae60; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.95rem;" title="Speech to text">🎙️</button>
-                    <input type="text" id="ai-drawer-input" placeholder="Ask CropSync AI..." style="flex: 1; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--nav-border); padding: 0.55rem 0.85rem; border-radius: 20px; font-size: 0.85rem;">
-                    <button type="submit" style="background: #27ae60; color: white; border: none; padding: 0.55rem 0.95rem; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem;">Send</button>
+            <div style="padding: 0.75rem 0.85rem; border-top: 1px solid var(--nav-border); background: var(--nav-bg); position: relative;">
+                <form id="ai-chat-form" onsubmit="submitAIChat(event)" style="display: flex; gap: 0.4rem; align-items: center; margin: 0;">
+                    <button type="button" id="ai-mic-btn" onclick="toggleVoiceInput()" style="background: rgba(39, 174, 96, 0.15); color: #27ae60; border: none; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; flex-shrink: 0;" title="Speak your question (Hands-Free Voice AI)">
+                        <span id="ai-mic-icon">🎙️</span>
+                    </button>
+                    <input type="text" id="ai-user-input" placeholder="{% if farmer_lang == 'ta' %}கேள்வி கேட்கவும் அல்லது பேசவும்...{% else %}Ask or speak your question...{% endif %}" required style="flex: 1; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--nav-border); padding: 0.55rem 0.85rem; border-radius: 20px; font-size: 0.85rem; outline: none;">
+                    <button type="submit" id="ai-send-btn" style="background: #27ae60; color: white; border: none; padding: 0.55rem 0.95rem; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem; flex-shrink: 0;">
+                        <span>{% if farmer_lang == 'ta' %}அனுப்பு{% else %}Ask AI{% endif %}</span> ➔
+                    </button>
                 </form>
+                <div id="ai-mic-status" style="display: none; position: absolute; top: -28px; left: 1rem; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 3px 12px; border-radius: 12px; font-size: 0.72rem; font-weight: bold; align-items: center; gap: 0.4rem; box-shadow: 0 3px 10px rgba(231, 76, 60, 0.35);">
+                    <span style="width: 7px; height: 7px; background: white; border-radius: 50%; display: inline-block;"></span>
+                    <span id="ai-mic-status-text">Listening in {{ 'Tamil' if farmer_lang == 'ta' else 'English' }}...</span>
+                </div>
             </div>
         </div>
     </div>
