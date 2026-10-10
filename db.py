@@ -787,8 +787,9 @@ def _val(row, default=0):
 
 def get_user_by_email(email):
     try:
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             query = """
                 SELECT u.*, 
@@ -828,8 +829,9 @@ def get_user_by_email(email):
 
 def get_user_by_id(user_id):
     try:
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             query = """
                 SELECT u.*, 
@@ -870,8 +872,9 @@ def get_user_by_id(user_id):
 SEED_USERS = []
 
 def create_user(email, password_hash, role, name="User", phone="", address="", location="", organization="", user_id=None, status="pending", email_verified=False, phone_verified=False):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         uid = str(user_id) if user_id else str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
@@ -953,8 +956,9 @@ def create_user(email, password_hash, role, name="User", phone="", address="", l
         conn.close()
 
 def update_email_verified(user_id, verified=True):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -979,8 +983,9 @@ def update_email_verified(user_id, verified=True):
         conn.close()
 
 def set_phone_otp(user_id, otp_hash, expires_at_iso):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -996,8 +1001,9 @@ def set_phone_otp(user_id, otp_hash, expires_at_iso):
         conn.close()
 
 def increment_otp_attempts(user_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"UPDATE users SET otp_attempts = COALESCE(otp_attempts, 0) + 1 WHERE id = {ph}"
@@ -1008,8 +1014,9 @@ def increment_otp_attempts(user_id):
         conn.close()
 
 def update_phone_verified(user_id, verified=True):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -1032,8 +1039,9 @@ def update_phone_verified(user_id, verified=True):
         conn.close()
 
 def log_admin_action(admin_id, action, target_user_id, reason=None):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         uid = str(uuid.uuid4())
@@ -1058,8 +1066,9 @@ def log_admin_action(admin_id, action, target_user_id, reason=None):
 
 def get_audit_logs(limit=50):
     try:
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             sql = f"""
@@ -1079,8 +1088,9 @@ def get_audit_logs(limit=50):
         return []
 
 def set_verification_token(user_id, token):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"UPDATE users SET verification_token = {ph} WHERE id = {ph}"
@@ -1093,8 +1103,9 @@ def set_verification_token(user_id, token):
 def get_user_by_verification_token(token):
     if not token:
         return None
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"SELECT * FROM users WHERE verification_token = {ph}"
@@ -1115,8 +1126,11 @@ def delete_user(user_id):
         print(f"[!] Protection: Permanent demo account {user.get('email')} cannot be deleted.")
         return False
 
-    conn, db_type = get_connection()
+    conn = None
+
     try:
+
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         cursor.execute(f"DELETE FROM farmer_profiles WHERE user_id = {ph}", (str(user_id),))
@@ -1135,8 +1149,11 @@ def update_user_status(user_id, status, reason=None):
         delete_user(user_id)
         return
 
-    conn, db_type = get_connection()
+    conn = None
+
     try:
+
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -1153,8 +1170,9 @@ def update_user_status(user_id, status, reason=None):
 
 
 def update_user_profile(user_id, name, phone="", address="", location="", organization=""):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         user = get_user_by_id(user_id)
         if not user:
@@ -1185,8 +1203,9 @@ def ensure_seed_users():
 
     try:
         from werkzeug.security import generate_password_hash
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             for u in SEED_USERS:
@@ -1221,8 +1240,9 @@ def ensure_seed_users():
 
 def get_all_farmers(search=None, status_filter=None):
     try:
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             where_clauses = ["u.role = 'farmer'"]
@@ -1271,8 +1291,9 @@ def get_all_farmers(search=None, status_filter=None):
 
 def set_farmer_verification_admin(farmer_id, is_verified, admin_id=None):
     try:
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             now = datetime.utcnow().isoformat()
@@ -1305,8 +1326,9 @@ def set_farmer_verification_admin(farmer_id, is_verified, admin_id=None):
 
 def get_all_buyers(search=None, status_filter=None):
     try:
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             where_clauses = ["u.role = 'buyer'"]
@@ -1355,9 +1377,9 @@ def get_all_buyers(search=None, status_filter=None):
 
 def get_admin_stats():
     try:
-        conn, db_type = get_connection()
-
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as count FROM users WHERE role = 'farmer'")
             farmers_count = cursor.fetchone()
@@ -1402,8 +1424,9 @@ def get_admin_stats():
 
 def get_crops(farmer_id=None, search=None, location=None):
     try:
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             join_sql = "JOIN users u ON c.farmer_id::text = u.id::text LEFT JOIN farmer_profiles fp ON u.id::text = fp.user_id::text" if db_type == "postgres" else "JOIN users u ON c.farmer_id = u.id LEFT JOIN farmer_profiles fp ON u.id = fp.user_id"
@@ -1444,8 +1467,9 @@ def get_crops(farmer_id=None, search=None, location=None):
 
 def get_crop_by_id(crop_id):
     try:
-        conn, db_type = get_connection()
+        conn = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             sql = f"SELECT * FROM crops WHERE id = {ph}"
@@ -1462,8 +1486,9 @@ def create_crop(farmer_id, crop_name, quantity, price_per_kg, location, crop_id=
     allowed, current_count, limit = can_farmer_add_listing(farmer_id)
     if not allowed:
         raise ValueError(f"You have reached the limit of {limit} active crop listings on your plan. Upgrade to Farmer Plus to list more crops.")
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         cid = str(crop_id) if crop_id else str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
@@ -1479,8 +1504,9 @@ def create_crop(farmer_id, crop_name, quantity, price_per_kg, location, crop_id=
         conn.close()
 
 def delete_crop(crop_id, farmer_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"DELETE FROM crops WHERE id = {ph} AND farmer_id = {ph}"
@@ -1490,8 +1516,9 @@ def delete_crop(crop_id, farmer_id):
         conn.close()
 
 def update_crop_quantity(crop_id, new_quantity):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -1504,9 +1531,10 @@ def update_crop_quantity(crop_id, new_quantity):
 
 def get_orders_for_farmer(farmer_id):
     try:
-        conn, db_type = get_connection()
+        conn = None
         cursor = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             sql = f"""
@@ -1527,9 +1555,10 @@ def get_orders_for_farmer(farmer_id):
 
 def get_orders_for_buyer(buyer_id):
     try:
-        conn, db_type = get_connection()
+        conn = None
         cursor = None
         try:
+            conn, db_type = get_connection()
             cursor = conn.cursor()
             ph = "%s" if db_type == "postgres" else "?"
             sql = f"""
@@ -1558,9 +1587,10 @@ def get_orders_for_buyer(buyer_id):
 # --- PHASE 4 EMAIL NOTIFICATIONS LOG & ORDER COMPLETION SERVICES ---
 
 def log_email_notification(order_id, recipient_user_id, notification_type, recipient_email, status='PENDING', error_message=None):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         nid = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
@@ -1590,9 +1620,10 @@ def log_email_notification(order_id, recipient_user_id, notification_type, recip
         release_connection(conn, cursor)
 
 def get_email_notifications_for_order(order_id):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"SELECT * FROM email_notifications WHERE order_id = {ph} ORDER BY created_at DESC"
@@ -1606,9 +1637,10 @@ def get_email_notifications_for_order(order_id):
         release_connection(conn, cursor)
 
 def get_all_email_notifications_admin():
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         sql = "SELECT * FROM email_notifications ORDER BY created_at DESC"
         cursor.execute(sql)
@@ -1622,8 +1654,9 @@ def get_all_email_notifications_admin():
 
 
 def complete_order_atomic(order_id, user_id, role):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow().isoformat()
@@ -1667,9 +1700,10 @@ def create_order(buyer_id, farmer_id, crop_id, crop_name, quantity, total_price,
     allowed, current_count, limit = can_buyer_place_order(buyer_id)
     if not allowed:
         raise ValueError(f"You have reached your limit of {limit} orders this month. Upgrade to Buyer Plus for a higher monthly order limit.")
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         oid = str(order_id) if order_id else str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
@@ -1686,9 +1720,10 @@ def create_order(buyer_id, farmer_id, crop_id, crop_name, quantity, total_price,
         release_connection(conn, cursor)
 
 def update_order_status(order_id, status):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -1702,8 +1737,9 @@ def update_order_status(order_id, status):
 
 
 def accept_order_atomic(order_id, farmer_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow().isoformat()
@@ -1784,8 +1820,9 @@ def seed_government_msp_data(force=False):
     global _msp_seeded
     if _msp_seeded and not force:
         return
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT count(*) FROM government_msp")
@@ -1827,8 +1864,9 @@ def seed_government_msp_data(force=False):
 
 def get_all_msp_references(search=None, season=None, year=None):
     seed_government_msp_data()
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         where_clauses = []
@@ -1857,8 +1895,9 @@ def get_all_msp_references(search=None, season=None, year=None):
 def get_msp_by_crop(crop_name):
     if not crop_name: return None
     seed_government_msp_data()
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         c_clean = crop_name.strip()
@@ -1879,8 +1918,9 @@ def get_msp_by_crop(crop_name):
         conn.close()
 
 def save_msp_reference(crop_name, msp_price_per_kg, category='Cereals', season='Kharif', effective_year=2025, source='Ministry of Agriculture & Farmers Welfare, Govt of India', status='active'):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -1917,8 +1957,9 @@ def save_msp_reference(crop_name, msp_price_per_kg, category='Cereals', season='
         conn.close()
 
 def toggle_msp_status(crop_name, new_status):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -1936,8 +1977,9 @@ def toggle_msp_status(crop_name, new_status):
 
 def get_all_listings_admin():
     seed_government_msp_data()
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         
         # Batch fetch all MSP active benchmark values in a single query
@@ -1975,8 +2017,9 @@ def get_all_listings_admin():
 
 
 def get_listing_by_id_admin(crop_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"""
@@ -2000,8 +2043,9 @@ def get_listing_by_id_admin(crop_id):
         conn.close()
 
 def update_listing_status_admin(crop_id, status, admin_id=None):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         now = datetime.utcnow().isoformat()
         ph = "%s" if db_type == "postgres" else "?"
@@ -2020,8 +2064,9 @@ def update_listing_status_admin(crop_id, status, admin_id=None):
 # --- ADMIN ORDERS MANAGEMENT SERVICES ---
 
 def get_all_orders_admin(status_filter=None):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         where_sql = f" WHERE o.status = {ph}" if status_filter and status_filter != 'All' else ""
@@ -2055,8 +2100,9 @@ def get_all_orders_admin(status_filter=None):
         conn.close()
 
 def get_order_by_id_admin(order_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"""
@@ -2087,8 +2133,9 @@ def get_order_by_id_admin(order_id):
 # --- ADMIN DASHBOARD STATS & AUDIT LOGGING ---
 
 def get_admin_dashboard_stats():
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         query = """
             SELECT 
@@ -2124,8 +2171,9 @@ def get_admin_dashboard_stats():
 
 
 def log_admin_action(admin_id, action, target_user_id=None, reason=None):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         aid = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
@@ -2210,9 +2258,10 @@ def ensure_seed_logistics_user():
 
 
 def get_all_logistics_users():
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         query = """
             SELECT u.id, u.email, u.account_status, u.created_at,
@@ -2245,9 +2294,10 @@ def _enrich_order_addresses(order):
     return order
 
 def get_logistics_orders(logistics_user_id=None, status_filter=None, search=None):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"""
@@ -2281,9 +2331,10 @@ def get_logistics_orders(logistics_user_id=None, status_filter=None, search=None
         release_connection(conn, cursor)
 
 def get_logistics_order_by_id(order_id):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"""
@@ -2308,9 +2359,10 @@ def get_logistics_order_by_id(order_id):
         release_connection(conn, cursor)
 
 def get_logistics_dashboard_stats(logistics_user_id=None):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         sql = """
             SELECT 
@@ -2351,9 +2403,10 @@ def get_logistics_dashboard_stats(logistics_user_id=None):
         release_connection(conn, cursor)
 
 def get_order_status_history(order_id):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"SELECT * FROM order_status_history WHERE order_id = {ph} ORDER BY created_at ASC"
@@ -2377,9 +2430,10 @@ def _valid_user_id_or_none(cursor, user_id, ph):
         return None
 
 def update_logistics_order_status_atomic(order_id, next_status, updated_by_user_id, updated_by_role='logistics', notes=None):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow().isoformat()
@@ -2455,9 +2509,10 @@ def update_logistics_order_status_atomic(order_id, next_status, updated_by_user_
         release_connection(conn, cursor)
 
 def farmer_confirm_payment_received_atomic(order_id, farmer_id):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow().isoformat()
@@ -2510,9 +2565,10 @@ def farmer_confirm_payment_received_atomic(order_id, farmer_id):
         release_connection(conn, cursor)
 
 def buyer_confirm_order_received_atomic(order_id, buyer_id):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow().isoformat()
@@ -2565,9 +2621,10 @@ def buyer_confirm_order_received_atomic(order_id, buyer_id):
 # ==========================================
 
 def seed_subscription_plans():
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow().isoformat()
@@ -2600,8 +2657,9 @@ def seed_subscription_plans():
         release_connection(conn, cursor)
 
 def get_subscription_plans():
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM subscription_plans WHERE status = 'active' ORDER BY price ASC")
         rows = cursor.fetchall()
@@ -2613,8 +2671,9 @@ def get_subscription_plans():
         release_connection(conn)
 
 def get_plan_by_key(plan_key):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         cursor.execute(f"SELECT * FROM subscription_plans WHERE plan_key = {ph}", (plan_key,))
@@ -2642,9 +2701,10 @@ def get_plan_by_key(plan_key):
         release_connection(conn)
 
 def assign_user_subscription(user_id, plan_key, access_source='free', duration_days=None, acting_admin_id=None, reason=None, action_source='system'):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now_dt = datetime.utcnow()
@@ -2710,8 +2770,9 @@ def assign_user_subscription(user_id, plan_key, access_source='free', duration_d
         release_connection(conn, cursor)
 
 def get_active_subscription(user_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"""
@@ -2764,12 +2825,16 @@ def get_active_subscription(user_id):
             sub = assign_user_subscription(user_id, default_key, access_source='free', action_source='system', reason='Initial free plan assignment')
 
         return sub
+    except Exception as e:
+        print(f'[!] DB Error in get_active_subscription: {e}')
+        return None
     finally:
         release_connection(conn)
 
 def get_farmer_active_listings_count(farmer_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"SELECT COUNT(*) FROM crops WHERE farmer_id = {ph} AND status = 'available'"
@@ -2790,8 +2855,9 @@ def can_farmer_add_listing(farmer_id):
     return allowed, current_count, limit
 
 def get_buyer_monthly_orders_count(buyer_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow()
@@ -2871,8 +2937,9 @@ def revoke_admin_subscription(acting_admin_id, target_user_id, reason=None):
     )
 
 def get_user_subscription_history(user_id):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         sql = f"""
@@ -2885,12 +2952,16 @@ def get_user_subscription_history(user_id):
         cursor.execute(sql, (str(user_id),))
         rows = cursor.fetchall()
         return [_dict_row(r) for r in rows]
+    except Exception as e:
+        print(f'[!] DB Error in get_user_subscription_history: {e}')
+        return []
     finally:
         release_connection(conn)
 
 def list_user_subscriptions_admin(search=None, role_filter=None, plan_filter=None, status_filter=None):
-    conn, db_type = get_connection()
+    conn = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         
@@ -2949,6 +3020,9 @@ def list_user_subscriptions_admin(search=None, role_filter=None, plan_filter=Non
                 
             result.append(d)
         return result
+    except Exception as e:
+        print(f'[!] DB Error in list_user_subscriptions_admin: {e}')
+        return []
     finally:
         release_connection(conn)
 
@@ -2964,9 +3038,13 @@ def create_payment_order(user_id, plan_key):
     if plan['eligible_role'] != 'all' and plan['eligible_role'] != user['role']:
         raise ValueError(f"Plan '{plan['name']}' is only available for {plan['eligible_role']} accounts.")
 
-    conn, db_type = get_connection()
+    conn = None
+
     cursor = None
+
     try:
+
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow().isoformat()
@@ -2998,9 +3076,10 @@ def create_payment_order(user_id, plan_key):
         release_connection(conn, cursor)
 
 def verify_and_activate_payment_subscription(user_id, plan_key, gateway_order_id, gateway_payment_id, signature_valid=True):
-    conn, db_type = get_connection()
+    conn = None
     cursor = None
     try:
+        conn, db_type = get_connection()
         cursor = conn.cursor()
         ph = "%s" if db_type == "postgres" else "?"
         now = datetime.utcnow().isoformat()
