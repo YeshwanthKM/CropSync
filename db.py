@@ -23,6 +23,41 @@ import threading
 
 _thread_local = threading.local()
 
+SUBSCRIPTION_CONFIG = {
+    'free_farmer': {
+        'name': 'Free Farmer',
+        'eligible_role': 'farmer',
+        'price': 0.0,
+        'active_listing_limit': 5,
+        'monthly_order_limit': 5,
+        'duration_days': 36500,
+    },
+    'farmer_plus': {
+        'name': 'Farmer Plus',
+        'eligible_role': 'farmer',
+        'price': 99.0,
+        'active_listing_limit': 20,
+        'monthly_order_limit': 5,
+        'duration_days': 30,
+    },
+    'free_buyer': {
+        'name': 'Free Buyer',
+        'eligible_role': 'buyer',
+        'price': 0.0,
+        'active_listing_limit': 0,
+        'monthly_order_limit': 5,
+        'duration_days': 36500,
+    },
+    'buyer_plus': {
+        'name': 'Buyer Plus',
+        'eligible_role': 'buyer',
+        'price': 199.0,
+        'active_listing_limit': 0,
+        'monthly_order_limit': 20,
+        'duration_days': 30,
+    }
+}
+
 def get_connection():
     if DB_URL:
         import psycopg2
@@ -252,6 +287,54 @@ def init_db():
                     sent_at TIMESTAMP WITH TIME ZONE,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS subscription_plans (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    plan_key TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    eligible_role TEXT NOT NULL CHECK (eligible_role IN ('farmer', 'buyer', 'all')),
+                    price NUMERIC DEFAULT 0.0 NOT NULL,
+                    active_listing_limit INTEGER NOT NULL DEFAULT 5,
+                    monthly_order_limit INTEGER NOT NULL DEFAULT 5,
+                    duration_days INTEGER DEFAULT 30 NOT NULL,
+                    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')) NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS user_subscriptions (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                    plan_id UUID REFERENCES subscription_plans(id) NOT NULL,
+                    plan_key TEXT NOT NULL,
+                    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'expired', 'cancelled', 'revoked')) NOT NULL,
+                    start_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+                    expiry_date TIMESTAMP WITH TIME ZONE,
+                    access_source TEXT DEFAULT 'free' CHECK (access_source IN ('free', 'admin_grant', 'payment')) NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS subscription_history (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                    previous_plan_key TEXT,
+                    new_plan_key TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    action_source TEXT NOT NULL CHECK (action_source IN ('system', 'admin_grant', 'user_payment')),
+                    acting_admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                    reason TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS payment_orders (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                    plan_key TEXT NOT NULL,
+                    amount NUMERIC NOT NULL,
+                    currency TEXT DEFAULT 'INR' NOT NULL,
+                    gateway_order_id TEXT UNIQUE NOT NULL,
+                    gateway_payment_id TEXT,
+                    status TEXT DEFAULT 'created' CHECK (status IN ('created', 'paid', 'failed', 'refunded')) NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+                );
             """)
             # Schema migrations for Postgres constraints
             try:
@@ -418,6 +501,54 @@ def init_db():
                     sent_at TEXT,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS subscription_plans (
+                    id TEXT PRIMARY KEY,
+                    plan_key TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    eligible_role TEXT NOT NULL CHECK (eligible_role IN ('farmer', 'buyer', 'all')),
+                    price REAL DEFAULT 0.0 NOT NULL,
+                    active_listing_limit INTEGER NOT NULL DEFAULT 5,
+                    monthly_order_limit INTEGER NOT NULL DEFAULT 5,
+                    duration_days INTEGER DEFAULT 30 NOT NULL,
+                    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')) NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS user_subscriptions (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                    plan_id TEXT REFERENCES subscription_plans(id) NOT NULL,
+                    plan_key TEXT NOT NULL,
+                    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'expired', 'cancelled', 'revoked')) NOT NULL,
+                    start_date TEXT NOT NULL,
+                    expiry_date TEXT,
+                    access_source TEXT DEFAULT 'free' CHECK (access_source IN ('free', 'admin_grant', 'payment')) NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS subscription_history (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                    previous_plan_key TEXT,
+                    new_plan_key TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    action_source TEXT NOT NULL CHECK (action_source IN ('system', 'admin_grant', 'user_payment')),
+                    acting_admin_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+                    reason TEXT,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS payment_orders (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                    plan_key TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    currency TEXT DEFAULT 'INR' NOT NULL,
+                    gateway_order_id TEXT UNIQUE NOT NULL,
+                    gateway_payment_id TEXT,
+                    status TEXT DEFAULT 'created' CHECK (status IN ('created', 'paid', 'failed', 'refunded')) NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
                 DROP TABLE IF EXISTS crop_price_history;
             """)
 
@@ -574,7 +705,7 @@ def init_db():
                     pass
 
             conn.commit()
-
+            seed_subscription_plans()
 
     except Exception as e:
         print("[!] Error executing DDL in init_db:", e)
@@ -760,6 +891,14 @@ def create_user(email, password_hash, role, name="User", phone="", address="", l
                 cursor.execute(prof_sql, (str(uuid.uuid4()), uid, name, phone, address or location or "Pan-India", now, now))
 
             conn.commit()
+            
+        if role in ('farmer', 'buyer'):
+            default_key = 'free_farmer' if role == 'farmer' else 'free_buyer'
+            try:
+                assign_user_subscription(uid, default_key, access_source='free', action_source='system', reason='Registration free plan assignment')
+            except Exception as se:
+                print(f"[!] Warning auto-assigning free subscription to user {uid}:", se)
+
         return uid
     except Exception as e:
         print("[!] Error in create_user:", e)
@@ -1274,6 +1413,9 @@ def get_crop_by_id(crop_id):
         return None
 
 def create_crop(farmer_id, crop_name, quantity, price_per_kg, location, crop_id=None):
+    allowed, current_count, limit = can_farmer_add_listing(farmer_id)
+    if not allowed:
+        raise ValueError(f"You have reached the limit of {limit} active crop listings on your plan. Upgrade to Farmer Plus to list more crops.")
     conn, db_type = get_connection()
     try:
         cursor = conn.cursor()
@@ -1476,6 +1618,9 @@ def complete_order_atomic(order_id, user_id, role):
         release_connection(conn, cursor)
 
 def create_order(buyer_id, farmer_id, crop_id, crop_name, quantity, total_price, order_id=None, fulfillment_method='Direct Collection', logistics_fee=0.0, cod_amount=0.0, farmer_settlement_amount=0.0, pickup_address="", delivery_address="", logistics_partner_name="CropSync Logistics"):
+    allowed, current_count, limit = can_buyer_place_order(buyer_id)
+    if not allowed:
+        raise ValueError(f"You have reached your limit of {limit} orders this month. Upgrade to Buyer Plus for a higher monthly order limit.")
     conn, db_type = get_connection()
     cursor = None
     try:
@@ -2365,5 +2510,458 @@ def buyer_confirm_order_received_atomic(order_id, buyer_id):
         try: conn.rollback()
         except: pass
         return False, f"Server error: {e}", None
+    finally:
+        release_connection(conn, cursor)
+
+
+# ==========================================
+# SUBSCRIPTION & PAYMENT MANAGEMENT FUNCTIONS
+# ==========================================
+
+def seed_subscription_plans():
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        for key, cfg in SUBSCRIPTION_CONFIG.items():
+            pid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"cropsync.plan.{key}"))
+            if db_type == "postgres":
+                sql = """
+                    INSERT INTO subscription_plans (id, plan_key, name, eligible_role, price, active_listing_limit, monthly_order_limit, duration_days, status, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active', %s)
+                    ON CONFLICT (plan_key) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        eligible_role = EXCLUDED.eligible_role,
+                        price = EXCLUDED.price,
+                        active_listing_limit = EXCLUDED.active_listing_limit,
+                        monthly_order_limit = EXCLUDED.monthly_order_limit,
+                        duration_days = EXCLUDED.duration_days,
+                        updated_at = EXCLUDED.updated_at
+                """
+                cursor.execute(sql, (pid, key, cfg['name'], cfg['eligible_role'], float(cfg['price']), int(cfg['active_listing_limit']), int(cfg['monthly_order_limit']), int(cfg['duration_days']), now))
+            else:
+                sql = """
+                    INSERT OR REPLACE INTO subscription_plans (id, plan_key, name, eligible_role, price, active_listing_limit, monthly_order_limit, duration_days, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+                """
+                cursor.execute(sql, (pid, key, cfg['name'], cfg['eligible_role'], float(cfg['price']), int(cfg['active_listing_limit']), int(cfg['monthly_order_limit']), int(cfg['duration_days']), now, now))
+        conn.commit()
+    except Exception as e:
+        print("[!] Error in seed_subscription_plans:", e)
+    finally:
+        release_connection(conn, cursor)
+
+def get_subscription_plans():
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM subscription_plans WHERE status = 'active' ORDER BY price ASC")
+        rows = cursor.fetchall()
+        return [_dict_row(r) for r in rows]
+    finally:
+        release_connection(conn)
+
+def get_plan_by_key(plan_key):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        cursor.execute(f"SELECT * FROM subscription_plans WHERE plan_key = {ph}", (plan_key,))
+        row = cursor.fetchone()
+        if row:
+            return _dict_row(row)
+        if plan_key in SUBSCRIPTION_CONFIG:
+            cfg = SUBSCRIPTION_CONFIG[plan_key]
+            return {
+                'id': str(uuid.uuid5(uuid.NAMESPACE_DNS, f"cropsync.plan.{plan_key}")),
+                'plan_key': plan_key,
+                'name': cfg['name'],
+                'eligible_role': cfg['eligible_role'],
+                'price': cfg['price'],
+                'active_listing_limit': cfg['active_listing_limit'],
+                'monthly_order_limit': cfg['monthly_order_limit'],
+                'duration_days': cfg['duration_days'],
+                'status': 'active'
+            }
+        return None
+    finally:
+        release_connection(conn)
+
+def assign_user_subscription(user_id, plan_key, access_source='free', duration_days=None, acting_admin_id=None, reason=None, action_source='system'):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now_dt = datetime.utcnow()
+        now_str = now_dt.isoformat()
+
+        plan = get_plan_by_key(plan_key)
+        if not plan:
+            raise ValueError(f"Invalid subscription plan key: {plan_key}")
+
+        plan_id = plan['id']
+        eff_days = duration_days if duration_days is not None else plan.get('duration_days', 30)
+        
+        if eff_days >= 30000:
+            expiry_str = None
+        else:
+            expiry_dt = now_dt + timedelta(days=int(eff_days))
+            expiry_str = expiry_dt.isoformat()
+
+        sql_old = f"SELECT plan_key FROM user_subscriptions WHERE user_id = {ph} AND status = 'active' ORDER BY created_at DESC LIMIT 1"
+        cursor.execute(sql_old, (str(user_id),))
+        old_row = cursor.fetchone()
+        prev_plan_key = old_row[0] if old_row else None
+
+        sql_deact = f"UPDATE user_subscriptions SET status = 'cancelled', updated_at = {ph} WHERE user_id = {ph} AND status = 'active'"
+        cursor.execute(sql_deact, (now_str, str(user_id)))
+
+        sub_id = str(uuid.uuid4())
+        sql_ins = f"""
+            INSERT INTO user_subscriptions (id, user_id, plan_id, plan_key, status, start_date, expiry_date, access_source, created_at, updated_at)
+            VALUES ({ph}, {ph}, {ph}, {ph}, 'active', {ph}, {ph}, {ph}, {ph}, {ph})
+        """
+        cursor.execute(sql_ins, (sub_id, str(user_id), str(plan_id), plan_key, now_str, expiry_str, access_source, now_str, now_str))
+
+        hist_id = str(uuid.uuid4())
+        action_name = 'granted' if access_source == 'admin_grant' else ('upgraded' if prev_plan_key else 'assigned')
+        sql_hist = f"""
+            INSERT INTO subscription_history (id, user_id, previous_plan_key, new_plan_key, action, action_source, acting_admin_id, reason, created_at)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+        """
+        valid_admin = _valid_user_id_or_none(cursor, acting_admin_id, ph) if acting_admin_id else None
+        cursor.execute(sql_hist, (hist_id, str(user_id), prev_plan_key, plan_key, action_name, action_source, valid_admin, reason, now_str))
+
+        conn.commit()
+
+        return {
+            'id': sub_id,
+            'user_id': str(user_id),
+            'plan_id': str(plan_id),
+            'plan_key': plan_key,
+            'plan_name': plan['name'],
+            'price': plan['price'],
+            'active_listing_limit': plan['active_listing_limit'],
+            'monthly_order_limit': plan['monthly_order_limit'],
+            'status': 'active',
+            'start_date': now_str,
+            'expiry_date': expiry_str,
+            'access_source': access_source
+        }
+    except Exception as e:
+        if conn: conn.rollback()
+        raise e
+    finally:
+        release_connection(conn, cursor)
+
+def get_active_subscription(user_id):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"""
+            SELECT us.*, sp.name as plan_name, sp.eligible_role, sp.price, sp.active_listing_limit, sp.monthly_order_limit, sp.duration_days
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON us.plan_id = sp.id
+            WHERE us.user_id = {ph} AND us.status = 'active'
+            ORDER BY us.created_at DESC
+            LIMIT 1
+        """
+        cursor.execute(sql, (str(user_id),))
+        row = cursor.fetchone()
+        sub = _dict_row(row)
+        
+        now_dt = datetime.utcnow()
+        now_str = now_dt.isoformat()
+
+        if sub and sub.get('expiry_date'):
+            exp_raw = sub['expiry_date']
+            exp_dt = None
+            if isinstance(exp_raw, str):
+                try:
+                    exp_dt = datetime.fromisoformat(exp_raw.replace('Z', ''))
+                except Exception:
+                    pass
+            elif isinstance(exp_raw, datetime):
+                exp_dt = exp_raw
+                
+            if exp_dt and exp_dt < now_dt:
+                u_sql = f"UPDATE user_subscriptions SET status = 'expired', updated_at = {ph} WHERE id = {ph}"
+                cursor.execute(u_sql, (now_str, sub['id']))
+                
+                user_info = get_user_by_id(user_id)
+                role = user_info.get('role', 'farmer') if user_info else 'farmer'
+                default_key = 'free_farmer' if role == 'farmer' else 'free_buyer'
+                
+                h_id = str(uuid.uuid4())
+                h_sql = f"""
+                    INSERT INTO subscription_history (id, user_id, previous_plan_key, new_plan_key, action, action_source, reason, created_at)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, 'expired', 'system', 'Subscription duration expired.', {ph})
+                """
+                cursor.execute(h_sql, (h_id, str(user_id), sub['plan_key'], default_key, now_str))
+                conn.commit()
+                sub = None
+
+        if not sub:
+            user_info = get_user_by_id(user_id)
+            role = user_info.get('role', 'farmer') if user_info else 'farmer'
+            default_key = 'free_farmer' if role == 'farmer' else 'free_buyer'
+            sub = assign_user_subscription(user_id, default_key, access_source='free', action_source='system', reason='Initial free plan assignment')
+
+        return sub
+    finally:
+        release_connection(conn)
+
+def get_farmer_active_listings_count(farmer_id):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"SELECT COUNT(*) FROM crops WHERE farmer_id = {ph} AND status = 'available'"
+        cursor.execute(sql, (str(farmer_id),))
+        row = cursor.fetchone()
+        return _val(row, 0)
+    finally:
+        release_connection(conn)
+
+def can_farmer_add_listing(farmer_id):
+    sub = get_active_subscription(farmer_id)
+    limit = int(sub.get('active_listing_limit', 5))
+    current_count = get_farmer_active_listings_count(farmer_id)
+    allowed = current_count < limit
+    return allowed, current_count, limit
+
+def get_buyer_monthly_orders_count(buyer_id):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow()
+        start_of_month = datetime(now.year, now.month, 1, 0, 0, 0).isoformat()
+        sql = f"SELECT COUNT(*) FROM orders WHERE buyer_id = {ph} AND created_at >= {ph}"
+        cursor.execute(sql, (str(buyer_id), start_of_month))
+        row = cursor.fetchone()
+        return _val(row, 0)
+    finally:
+        release_connection(conn)
+
+def can_buyer_place_order(buyer_id):
+    sub = get_active_subscription(buyer_id)
+    limit = int(sub.get('monthly_order_limit', 5))
+    current_count = get_buyer_monthly_orders_count(buyer_id)
+    allowed = current_count < limit
+    return allowed, current_count, limit
+
+def grant_admin_subscription(acting_admin_id, target_user_id, plan_key, duration_days=30, reason=None, custom_expiry=None):
+    admin_user = get_user_by_id(acting_admin_id)
+    if not admin_user or admin_user.get('role') != 'admin':
+        raise PermissionError("Only authorized administrators can grant subscriptions.")
+        
+    target_user = get_user_by_id(target_user_id)
+    if not target_user:
+        raise ValueError("Target user not found.")
+        
+    plan = get_plan_by_key(plan_key)
+    if not plan:
+        raise ValueError("Invalid subscription plan key.")
+        
+    if plan['eligible_role'] != 'all' and plan['eligible_role'] != target_user['role']:
+        raise ValueError(f"Plan '{plan['name']}' is only eligible for {plan['eligible_role']} accounts.")
+        
+    calc_duration = duration_days
+    if custom_expiry:
+        try:
+            exp_dt = datetime.fromisoformat(custom_expiry.replace('Z', ''))
+            calc_duration = (exp_dt - datetime.utcnow()).days
+            if calc_duration <= 0: calc_duration = 1
+        except Exception:
+            pass
+
+    return assign_user_subscription(
+        user_id=target_user_id,
+        plan_key=plan_key,
+        access_source='admin_grant',
+        duration_days=calc_duration,
+        acting_admin_id=acting_admin_id,
+        reason=reason or f"Admin grant by {admin_user.get('name', 'Admin')}",
+        action_source='admin_grant'
+    )
+
+def revoke_admin_subscription(acting_admin_id, target_user_id, reason=None):
+    admin_user = get_user_by_id(acting_admin_id)
+    if not admin_user or admin_user.get('role') != 'admin':
+        raise PermissionError("Only authorized administrators can revoke subscriptions.")
+        
+    target_user = get_user_by_id(target_user_id)
+    if not target_user:
+        raise ValueError("Target user not found.")
+        
+    role = target_user.get('role', 'farmer')
+    default_key = 'free_farmer' if role == 'farmer' else 'free_buyer'
+    
+    return assign_user_subscription(
+        user_id=target_user_id,
+        plan_key=default_key,
+        access_source='free',
+        duration_days=36500,
+        acting_admin_id=acting_admin_id,
+        reason=reason or f"Admin revocation by {admin_user.get('name', 'Admin')}",
+        action_source='admin_grant'
+    )
+
+def get_user_subscription_history(user_id):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        sql = f"""
+            SELECT sh.*, u.email as acting_admin_email
+            FROM subscription_history sh
+            LEFT JOIN users u ON sh.acting_admin_id = u.id
+            WHERE sh.user_id = {ph}
+            ORDER BY sh.created_at DESC
+        """
+        cursor.execute(sql, (str(user_id),))
+        rows = cursor.fetchall()
+        return [_dict_row(r) for r in rows]
+    finally:
+        release_connection(conn)
+
+def list_user_subscriptions_admin(search=None, role_filter=None, plan_filter=None, status_filter=None):
+    conn, db_type = get_connection()
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        
+        sql = f"""
+            SELECT u.id as user_id, u.email, u.role, u.account_status,
+                   COALESCE(fp.name, bp.name, 'User') as user_name,
+                   us.plan_key, us.status as sub_status, us.start_date, us.expiry_date, us.access_source,
+                   sp.name as plan_name, sp.price as plan_price, sp.active_listing_limit, sp.monthly_order_limit
+            FROM users u
+            LEFT JOIN farmer_profiles fp ON u.id = fp.user_id
+            LEFT JOIN buyer_profiles bp ON u.id = bp.user_id
+            LEFT JOIN user_subscriptions us ON u.id = us.user_id AND us.status = 'active'
+            LEFT JOIN subscription_plans sp ON us.plan_id = sp.id
+            WHERE u.role IN ('farmer', 'buyer')
+        """
+        params = []
+        if search:
+            s_term = f"%{search.strip().lower()}%"
+            sql += f" AND (LOWER(u.email) LIKE {ph} OR LOWER(COALESCE(fp.name, bp.name, '')) LIKE {ph})"
+            params.extend([s_term, s_term])
+            
+        if role_filter:
+            sql += f" AND u.role = {ph}"
+            params.append(role_filter)
+            
+        if plan_filter:
+            sql += f" AND us.plan_key = {ph}"
+            params.append(plan_filter)
+            
+        if status_filter:
+            sql += f" AND us.status = {ph}"
+            params.append(status_filter)
+            
+        sql += " ORDER BY u.created_at DESC"
+        
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+        result = []
+        for r in rows:
+            d = _dict_row(r)
+            uid = d['user_id']
+            if not d.get('plan_key'):
+                d['plan_key'] = 'free_farmer' if d['role'] == 'farmer' else 'free_buyer'
+                d['plan_name'] = 'Free Farmer' if d['role'] == 'farmer' else 'Free Buyer'
+                d['sub_status'] = 'active'
+                d['access_source'] = 'free'
+                d['active_listing_limit'] = 5
+                d['monthly_order_limit'] = 5
+            
+            if d['role'] == 'farmer':
+                d['current_usage'] = get_farmer_active_listings_count(uid)
+                d['usage_limit'] = d.get('active_listing_limit', 5)
+            else:
+                d['current_usage'] = get_buyer_monthly_orders_count(uid)
+                d['usage_limit'] = d.get('monthly_order_limit', 5)
+                
+            result.append(d)
+        return result
+    finally:
+        release_connection(conn)
+
+def create_payment_order(user_id, plan_key):
+    plan = get_plan_by_key(plan_key)
+    if not plan:
+        raise ValueError("Invalid subscription plan key.")
+        
+    user = get_user_by_id(user_id)
+    if not user:
+        raise ValueError("User not found.")
+        
+    if plan['eligible_role'] != 'all' and plan['eligible_role'] != user['role']:
+        raise ValueError(f"Plan '{plan['name']}' is only available for {plan['eligible_role']} accounts.")
+
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        
+        order_id = str(uuid.uuid4())
+        gateway_order_id = f"sub_order_{uuid.uuid4().hex[:12]}"
+        amount = float(plan['price'])
+        
+        sql = f"""
+            INSERT INTO payment_orders (id, user_id, plan_key, amount, currency, gateway_order_id, status, created_at, updated_at)
+            VALUES ({ph}, {ph}, {ph}, {ph}, 'INR', {ph}, 'created', {ph}, {ph})
+        """
+        cursor.execute(sql, (order_id, str(user_id), plan_key, amount, gateway_order_id, now, now))
+        conn.commit()
+        
+        return {
+            'id': order_id,
+            'user_id': str(user_id),
+            'plan_key': plan_key,
+            'amount': amount,
+            'currency': 'INR',
+            'gateway_order_id': gateway_order_id,
+            'status': 'created'
+        }
+    finally:
+        release_connection(conn, cursor)
+
+def verify_and_activate_payment_subscription(user_id, plan_key, gateway_order_id, gateway_payment_id, signature_valid=True):
+    conn, db_type = get_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        ph = "%s" if db_type == "postgres" else "?"
+        now = datetime.utcnow().isoformat()
+        
+        if not signature_valid:
+            sql_f = f"UPDATE payment_orders SET status = 'failed', gateway_payment_id = {ph}, updated_at = {ph} WHERE gateway_order_id = {ph}"
+            cursor.execute(sql_f, (gateway_payment_id, now, gateway_order_id))
+            conn.commit()
+            return False, "Payment signature verification failed.", None
+            
+        sql_u = f"UPDATE payment_orders SET status = 'paid', gateway_payment_id = {ph}, updated_at = {ph} WHERE gateway_order_id = {ph}"
+        cursor.execute(sql_u, (gateway_payment_id, now, gateway_order_id))
+        conn.commit()
+        
+        sub = assign_user_subscription(
+            user_id=user_id,
+            plan_key=plan_key,
+            access_source='payment',
+            duration_days=30,
+            reason=f"Payment verified ({gateway_payment_id})",
+            action_source='user_payment'
+        )
+        return True, "Payment verified and subscription activated successfully!", sub
     finally:
         release_connection(conn, cursor)

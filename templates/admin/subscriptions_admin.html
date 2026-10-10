@@ -1,0 +1,252 @@
+{% extends "admin/admin_base.html" %}
+{% set active_page = "subscriptions" %}
+{% block title %}Subscription Management{% endblock %}
+{% block header_title %}Subscription Management & Admin Grants{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 0.5rem;">User Subscription & Grant Control</h2>
+    <p style="color: var(--secondary-text);">Manually grant paid access, manage plans, and inspect usage limits across farmers and buyers.</p>
+</div>
+
+<!-- Search & Filters -->
+<div class="card" style="margin-bottom: 2rem; padding: 1.25rem;">
+    <form method="GET" action="{{ url_for('admin_subscriptions_page') }}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <input type="text" name="search" value="{{ search }}" placeholder="Search user by name or email..." style="flex: 2; min-width: 220px; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.9rem;">
+        
+        <select name="role" style="flex: 1; min-width: 140px; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.9rem;">
+            <option value="">All Roles</option>
+            <option value="farmer" {% if role_filter == 'farmer' %}selected{% endif %}>Farmers</option>
+            <option value="buyer" {% if role_filter == 'buyer' %}selected{% endif %}>Buyers</option>
+        </select>
+
+        <select name="plan" style="flex: 1; min-width: 150px; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.9rem;">
+            <option value="">All Plans</option>
+            <option value="free_farmer" {% if plan_filter == 'free_farmer' %}selected{% endif %}>Free Farmer</option>
+            <option value="farmer_plus" {% if plan_filter == 'farmer_plus' %}selected{% endif %}>Farmer Plus</option>
+            <option value="free_buyer" {% if plan_filter == 'free_buyer' %}selected{% endif %}>Free Buyer</option>
+            <option value="buyer_plus" {% if plan_filter == 'buyer_plus' %}selected{% endif %}>Buyer Plus</option>
+        </select>
+
+        <select name="status" style="flex: 1; min-width: 140px; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.9rem;">
+            <option value="">All Statuses</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+            <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+            <option value="revoked" {% if status_filter == 'revoked' %}selected{% endif %}>Revoked</option>
+        </select>
+
+        <button type="submit" class="btn" style="padding: 0.6rem 1.25rem;">Filter</button>
+        <a href="{{ url_for('admin_subscriptions_page') }}" class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-color); padding: 0.6rem 1rem;">Reset</a>
+    </form>
+</div>
+
+<!-- Users Subscriptions Table -->
+<div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+        <span>User Subscriptions & Usage Quotas ({{ users|length }})</span>
+    </div>
+    
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+            <thead>
+                <tr style="background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border-color); color: var(--secondary-text);">
+                    <th style="padding: 0.85rem 1.25rem;">User</th>
+                    <th style="padding: 0.85rem 1.25rem;">Role</th>
+                    <th style="padding: 0.85rem 1.25rem;">Current Plan</th>
+                    <th style="padding: 0.85rem 1.25rem;">Access Source</th>
+                    <th style="padding: 0.85rem 1.25rem;">Expiry Date</th>
+                    <th style="padding: 0.85rem 1.25rem;">Usage / Quota</th>
+                    <th style="padding: 0.85rem 1.25rem; text-align: right;">Admin Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if users %}
+                {% for u in users %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem 1.25rem;">
+                        <strong style="color: var(--text-color);">{{ u.user_name }}</strong>
+                        <div style="font-size: 0.8rem; color: var(--secondary-text);">{{ u.email }}</div>
+                    </td>
+                    <td style="padding: 1rem 1.25rem;">
+                        <span style="padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; background: rgba(255,255,255,0.08); color: var(--text-color);">
+                            {{ u.role }}
+                        </span>
+                    </td>
+                    <td style="padding: 1rem 1.25rem;">
+                        <strong style="color: {% if 'plus' in u.plan_key %}#27ae60{% else %}var(--text-color){% endif %};">
+                            {{ u.plan_name }}
+                        </strong>
+                        <div style="font-size: 0.75rem; color: var(--secondary-text);">₹{{ u.plan_price }}/mo</div>
+                    </td>
+                    <td style="padding: 1rem 1.25rem;">
+                        {% if u.access_source == 'admin_grant' %}
+                        <span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">Admin Grant</span>
+                        {% elif u.access_source == 'payment' %}
+                        <span style="background: rgba(39, 174, 96, 0.2); color: #27ae60; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">Paid Order</span>
+                        {% else %}
+                        <span style="background: rgba(255, 255, 255, 0.1); color: var(--secondary-text); padding: 3px 8px; border-radius: 12px; font-size: 0.75rem;">Free Tier</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem 1.25rem; font-size: 0.85rem;">
+                        {% if u.expiry_date %}
+                        {{ u.expiry_date[:10] }}
+                        {% else %}
+                        Lifetime Free
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem 1.25rem;">
+                        <div style="font-weight: 700; font-size: 0.9rem;">
+                            {{ u.current_usage }} / {{ u.usage_limit }}
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--secondary-text);">
+                            {% if u.role == 'farmer' %}Active Listings{% else %}Monthly Orders{% endif %}
+                        </div>
+                    </td>
+                    <td style="padding: 1rem 1.25rem; text-align: right;">
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            <button class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; background: #27ae60;" onclick="openGrantModal('{{ u.user_id }}', '{{ u.email }}', '{{ u.role }}')">
+                                🎁 Grant
+                            </button>
+                            
+                            {% if u.access_source == 'admin_grant' or 'plus' in u.plan_key %}
+                            <form method="POST" action="{{ url_for('admin_revoke_subscription') }}" style="display: inline;" onsubmit="return confirm('Revoke paid access for {{ u.email }}? User will return to Free plan.');">
+                                <input type="hidden" name="target_user_id" value="{{ u.user_id }}">
+                                <input type="hidden" name="reason" value="Revoked by Administrator">
+                                <button type="submit" class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; background: var(--danger);">
+                                    🚫 Revoke
+                                </button>
+                            </form>
+                            {% endif %}
+                            
+                            <button class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; background: rgba(255,255,255,0.1); color: var(--text-color);" onclick="showUserHistory('{{ u.user_id }}', '{{ u.email }}')">
+                                📜 Audit
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="7" style="padding: 2rem; text-align: center; color: var(--secondary-text);">
+                        No user subscriptions found matching current filter rules.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Admin Grant Subscription Modal -->
+<div id="grantModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; width: 90%; max-width: 480px; padding: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+        <h3 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 0.5rem;">Grant Subscription Access</h3>
+        <p id="grantUserEmail" style="color: var(--secondary-text); font-size: 0.9rem; margin-bottom: 1.5rem;">Target User</p>
+
+        <form method="POST" action="{{ url_for('admin_grant_subscription') }}">
+            <input type="hidden" name="target_user_id" id="grantTargetUserId">
+
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--secondary-text);">Select Plan</label>
+                <select name="plan_key" id="grantPlanSelect" required style="width: 100%; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 8px; font-size: 0.9rem;">
+                    <option value="farmer_plus">Farmer Plus (₹99/mo — Up to 20 Active Listings)</option>
+                    <option value="buyer_plus">Buyer Plus (₹199/mo — Up to 20 Monthly Orders)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--secondary-text);">Duration (Days)</label>
+                <select name="duration_days" style="width: 100%; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 8px; font-size: 0.9rem;">
+                    <option value="7">7 Days (Trial Grant)</option>
+                    <option value="30" selected>30 Days (1 Month)</option>
+                    <option value="90">90 Days (3 Months)</option>
+                    <option value="365">365 Days (1 Year)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--secondary-text);">Or Custom Expiry Date (Optional)</label>
+                <input type="date" name="custom_expiry" style="width: 100%; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 8px; font-size: 0.9rem;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--secondary-text);">Grant Reason / Notes</label>
+                <input type="text" name="reason" placeholder="e.g. Promotional Trial / Customer Support" style="width: 100%; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 8px; font-size: 0.9rem;">
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="button" onclick="closeGrantModal()" style="flex: 1; background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: var(--text-color); padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn" style="flex: 1; background: #27ae60; padding: 0.75rem; border-radius: 8px; font-weight: 700;">Grant Access</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div id="historyModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; width: 90%; max-width: 600px; padding: 2rem; max-height: 80vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 id="historyTitle" style="font-size: 1.2rem; font-weight: 800;">Subscription Audit History</h3>
+            <button onclick="closeHistoryModal()" style="background: none; border: none; color: var(--secondary-text); font-size: 1.2rem; cursor: pointer;">✕</button>
+        </div>
+        <div id="historyContent" style="font-size: 0.9rem; color: var(--secondary-text);">Loading history...</div>
+    </div>
+</div>
+
+<script>
+    function openGrantModal(userId, email, role) {
+        document.getElementById('grantTargetUserId').value = userId;
+        document.getElementById('grantUserEmail').innerText = 'Granting access to: ' + email + ' (' + role + ')';
+        
+        const select = document.getElementById('grantPlanSelect');
+        if (role === 'farmer') {
+            select.value = 'farmer_plus';
+        } else {
+            select.value = 'buyer_plus';
+        }
+        document.getElementById('grantModal').style.display = 'flex';
+    }
+
+    function closeGrantModal() {
+        document.getElementById('grantModal').style.display = 'none';
+    }
+
+    function showUserHistory(userId, email) {
+        document.getElementById('historyTitle').innerText = 'Subscription Audit History — ' + email;
+        const content = document.getElementById('historyContent');
+        content.innerHTML = 'Loading audit history...';
+        document.getElementById('historyModal').style.display = 'flex';
+
+        fetch('/admin/subscriptions/history/' + userId)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success || !data.history || data.history.length === 0) {
+                    content.innerHTML = '<div style="padding: 1.5rem; text-align: center;">No history logs recorded for this user.</div>';
+                    return;
+                }
+
+                let html = '<table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">';
+                html += '<thead><tr style="border-bottom: 1px solid var(--border-color);"><th style="padding: 8px;">Date</th><th style="padding: 8px;">Action</th><th style="padding: 8px;">New Plan</th><th style="padding: 8px;">Source</th><th style="padding: 8px;">Admin</th></tr></thead><tbody>';
+                
+                data.history.forEach(item => {
+                    html += `<tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 8px;">${item.created_at ? item.created_at.substring(0, 16).replace('T', ' ') : '-'}</td>
+                        <td style="padding: 8px;"><strong style="color: var(--text-color);">${item.action}</strong></td>
+                        <td style="padding: 8px;">${item.new_plan_key}</td>
+                        <td style="padding: 8px;">${item.action_source}</td>
+                        <td style="padding: 8px;">${item.acting_admin_email || 'System'}</td>
+                    </tr>`;
+                });
+                html += 'tbody></table>';
+                content.innerHTML = html;
+            })
+            .catch(err => {
+                content.innerHTML = '<div style="color: var(--danger); padding: 1rem;">Failed to load history logs.</div>';
+            });
+    }
+
+    function closeHistoryModal() {
+        document.getElementById('historyModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

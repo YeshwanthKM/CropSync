@@ -597,8 +597,10 @@ def farmer_dashboard():
                 db.create_crop(farmer_id, crop_name, qty, prc, location)
                 flash('Listing added!', 'success')
                 return redirect(url_for('farmer_dashboard', section='my-listings'))
-        except ValueError:
-            flash('Invalid numbers!', 'error')
+        except ValueError as ve:
+            flash(str(ve), 'error')
+        except Exception as e:
+            flash(f'Error adding listing: {str(e)}', 'error')
 
     farmer_user = db.get_user_by_id(farmer_id) or session['farmer_user']
     session['farmer_user'] = farmer_user
@@ -607,7 +609,19 @@ def farmer_dashboard():
     sold_orders = db.get_orders_for_farmer(farmer_id=farmer_id)
     earnings = round(sum(float(o['total_price']) for o in sold_orders if o['status'] in ('Accepted', 'Completed')), 2)
 
-    return render_template('farmer_dashboard.html', crops=user_crops, earnings=earnings, msp_data=MSP_DATA, sold_orders=sold_orders, farmer_user=farmer_user)
+    subscription = db.get_active_subscription(farmer_id)
+    active_listing_count = db.get_farmer_active_listings_count(farmer_id)
+
+    return render_template(
+        'farmer_dashboard.html',
+        crops=user_crops,
+        earnings=earnings,
+        msp_data=MSP_DATA,
+        sold_orders=sold_orders,
+        farmer_user=farmer_user,
+        subscription=subscription,
+        active_listing_count=active_listing_count
+    )
 
 @app.route('/delete_crop/<crop_id>')
 def delete_crop(crop_id):
@@ -800,9 +814,18 @@ def buyer_dashboard():
         else:
             o['msp_value'] = None
             o['msp_diff_pct'] = None
-            o['msp_diff_text'] = 'N/A'
+    buyer_id = session['buyer_user']['id']
+    subscription = db.get_active_subscription(buyer_id)
+    monthly_orders_count = db.get_buyer_monthly_orders_count(buyer_id)
 
-    return render_template('buyer_dashboard.html', crops=filtered_crops, orders=orders, msp_data=MSP_DATA)
+    return render_template(
+        'buyer_dashboard.html',
+        crops=filtered_crops,
+        orders=orders,
+        msp_data=MSP_DATA,
+        subscription=subscription,
+        monthly_orders_count=monthly_orders_count
+    )
 
 
 @app.route('/place_order', methods=['POST'])
@@ -882,6 +905,8 @@ def place_order():
                     email_service.send_new_order_email(order, farmer, buyer)
             except Exception as e:
                 print("[!] Error dispatching new order email:", e)
+        except ValueError as ve:
+            flash(str(ve), 'error')
         except Exception as e:
             print("[!] Error creating order:", e)
             flash(f'Failed to place order: {str(e)}', 'error')
@@ -1316,6 +1341,225 @@ def settings():
 def logout():
     session.clear()
     return redirect(url_for('home'))
+
+# ==========================================
+# SUBSCRIPTION & PAYMENT MANAGEMENT ROUTES
+# ==========================================
+
+@app.route('/subscriptions')
+def user_subscriptions_page():
+    user = session.get('farmer_user') or session.get('buyer_user')
+    if not user:
+        flash('Please log in to access subscriptions.', 'error')
+        return redirect(url_for('login'))
+
+    user_id = user['id']
+    user_db = db.get_user_by_id(user_id) or user
+    role = user_db.get('role', 'farmer')
+
+    subscription = db.get_active_subscription(user_id)
+    all_plans = db.get_subscription_plans()
+
+    if role == 'farmer':
+        current_usage = db.get_farmer_active_listings_count(user_id)
+        limit = subscription.get('active_listing_limit', 5)
+        usage_type = 'Active Crop Listings'
+        eligible_plans = [p for p in all_plans if p['eligible_role'] in ('farmer', 'all')]
+    else:
+        current_usage = db.get_buyer_monthly_orders_count(user_id)
+        limit = subscription.get('monthly_order_limit', 5)
+        usage_type = 'Monthly Orders'
+        eligible_plans = [p for p in all_plans if p['eligible_role'] in ('buyer', 'all')]
+
+    remaining = max(0, limit - current_usage)
+    limit_reached = current_usage >= limit
+
+    return render_template(
+        'subscriptions.html',
+        user=user_db,
+        role=role,
+        subscription=subscription,
+        plans=eligible_plans,
+        current_usage=current_usage,
+        limit=limit,
+        remaining=remaining,
+        limit_reached=limit_reached,
+        usage_type=usage_type,
+        razorpay_key_id=os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_cropsync_demo')
+    )
+
+@app.route('/api/subscription/status')
+def api_subscription_status():
+    user = session.get('farmer_user') or session.get('buyer_user') or session.get('admin_user')
+    if not user:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+
+    user_id = user['id']
+    sub = db.get_active_subscription(user_id)
+    role = user.get('role', 'farmer')
+
+    if role == 'farmer':
+        usage = db.get_farmer_active_listings_count(user_id)
+        limit = sub.get('active_listing_limit', 5)
+    else:
+        usage = db.get_buyer_monthly_orders_count(user_id)
+        limit = sub.get('monthly_order_limit', 5)
+
+    return jsonify({
+        'success': True,
+        'user_id': user_id,
+        'role': role,
+        'subscription': sub,
+        'current_usage': usage,
+        'limit': limit,
+        'remaining_allowance': max(0, limit - usage)
+    })
+
+@app.route('/api/subscription/checkout', methods=['POST'])
+def api_subscription_checkout():
+    user = session.get('farmer_user') or session.get('buyer_user')
+    if not user:
+        return jsonify({'success': False, 'error': 'Unauthorized access.'}), 401
+
+    data = request.get_json() or request.form
+    plan_key = data.get('plan_key')
+    if not plan_key:
+        return jsonify({'success': False, 'error': 'Plan key is required.'}), 400
+
+    try:
+        order = db.create_payment_order(user['id'], plan_key)
+        return jsonify({
+            'success': True,
+            'order': order,
+            'key_id': os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_cropsync_demo')
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/subscription/verify-payment', methods=['POST'])
+def api_subscription_verify_payment():
+    user = session.get('farmer_user') or session.get('buyer_user')
+    if not user:
+        return jsonify({'success': False, 'error': 'Unauthorized access.'}), 401
+
+    data = request.get_json() or request.form
+    plan_key = data.get('plan_key')
+    gateway_order_id = data.get('gateway_order_id') or data.get('razorpay_order_id')
+    gateway_payment_id = data.get('gateway_payment_id') or data.get('razorpay_payment_id') or f"pay_{secrets.token_hex(6)}"
+    signature = data.get('signature') or data.get('razorpay_signature')
+
+    if not plan_key or not gateway_order_id:
+        return jsonify({'success': False, 'error': 'Missing payment verification details.'}), 400
+
+    sig_valid = True
+    razorpay_secret = os.environ.get('RAZORPAY_KEY_SECRET')
+    if razorpay_secret and signature:
+        import hmac, hashlib
+        expected = hmac.new(razorpay_secret.encode(), f"{gateway_order_id}|{gateway_payment_id}".encode(), hashlib.sha256).hexdigest()
+        sig_valid = hmac.compare_digest(expected, signature)
+
+    success, msg, sub = db.verify_and_activate_payment_subscription(
+        user_id=user['id'],
+        plan_key=plan_key,
+        gateway_order_id=gateway_order_id,
+        gateway_payment_id=gateway_payment_id,
+        signature_valid=sig_valid
+    )
+
+    if success:
+        return jsonify({'success': True, 'message': msg, 'subscription': sub})
+    else:
+        return jsonify({'success': False, 'error': msg}), 400
+
+# --- ADMIN SUBSCRIPTION MANAGEMENT ROUTES ---
+
+@app.route('/admin/subscriptions', methods=['GET'])
+@admin_required
+def admin_subscriptions_page():
+    search = request.args.get('search', '').strip()
+    role_filter = request.args.get('role', '').strip()
+    plan_filter = request.args.get('plan', '').strip()
+    status_filter = request.args.get('status', '').strip()
+
+    users_list = db.list_user_subscriptions_admin(
+        search=search,
+        role_filter=role_filter or None,
+        plan_filter=plan_filter or None,
+        status_filter=status_filter or None
+    )
+    plans = db.get_subscription_plans()
+    stats = db.get_admin_dashboard_stats()
+
+    return render_template(
+        'admin/subscriptions_admin.html',
+        users=users_list,
+        plans=plans,
+        stats=stats,
+        search=search,
+        role_filter=role_filter,
+        plan_filter=plan_filter,
+        status_filter=status_filter,
+        active_page='subscriptions'
+    )
+
+@app.route('/admin/subscriptions/grant', methods=['POST'])
+@admin_required
+def admin_grant_subscription():
+    admin_id = session['admin_user']['id']
+    target_user_id = request.form.get('target_user_id')
+    plan_key = request.form.get('plan_key')
+    duration_days = request.form.get('duration_days', '30')
+    custom_expiry = request.form.get('custom_expiry')
+    reason = request.form.get('reason', '').strip()
+
+    if not target_user_id or not plan_key:
+        flash('Target user and plan key are required.', 'error')
+        return redirect(url_for('admin_subscriptions_page'))
+
+    try:
+        days = int(duration_days) if duration_days and duration_days.isdigit() else 30
+        sub = db.grant_admin_subscription(
+            acting_admin_id=admin_id,
+            target_user_id=target_user_id,
+            plan_key=plan_key,
+            duration_days=days,
+            reason=reason or "Admin manual grant",
+            custom_expiry=custom_expiry or None
+        )
+        flash(f"Successfully granted '{sub['plan_name']}' to user!", 'success')
+    except Exception as e:
+        flash(f"Failed to grant subscription: {str(e)}", 'error')
+
+    return redirect(url_for('admin_subscriptions_page'))
+
+@app.route('/admin/subscriptions/revoke', methods=['POST'])
+@admin_required
+def admin_revoke_subscription():
+    admin_id = session['admin_user']['id']
+    target_user_id = request.form.get('target_user_id')
+    reason = request.form.get('reason', '').strip()
+
+    if not target_user_id:
+        flash('Target user ID is required.', 'error')
+        return redirect(url_for('admin_subscriptions_page'))
+
+    try:
+        sub = db.revoke_admin_subscription(
+            acting_admin_id=admin_id,
+            target_user_id=target_user_id,
+            reason=reason or "Admin revocation"
+        )
+        flash("Successfully revoked paid access. User returned to Free plan.", 'success')
+    except Exception as e:
+        flash(f"Failed to revoke subscription: {str(e)}", 'error')
+
+    return redirect(url_for('admin_subscriptions_page'))
+
+@app.route('/admin/subscriptions/history/<user_id>')
+@admin_required
+def admin_user_subscription_history(user_id):
+    history = db.get_user_subscription_history(user_id)
+    return jsonify({'success': True, 'user_id': user_id, 'history': history})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

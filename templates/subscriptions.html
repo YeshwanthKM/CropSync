@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscriptions & Plans — CropSync</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --secondary-text: #94a3b8;
+            --accent-green: #27ae60;
+            --accent-green-hover: #1e8449;
+            --nav-bg: #1e293b;
+            --nav-border: rgba(255, 255, 255, 0.1);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --primary: #27ae60;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; display: flex; flex-direction: column; }
+        
+        .navbar { background: var(--card-bg); border-bottom: 1px solid var(--nav-border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 800; color: var(--accent-green); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+        .nav-links { display: flex; align-items: center; gap: 1rem; }
+        .btn-back { background: rgba(255, 255, 255, 0.08); color: var(--text-color); border: 1px solid var(--nav-border); padding: 0.5rem 1.2rem; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: all 0.2s; }
+        .btn-back:hover { background: rgba(255, 255, 255, 0.15); }
+
+        .container { max-width: 1100px; margin: 2.5rem auto; padding: 0 1.5rem; flex: 1; }
+
+        .header { margin-bottom: 2rem; text-align: center; }
+        .header h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .header p { color: var(--secondary-text); font-size: 1rem; }
+
+        .alert-banner { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #fca5a5; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+        .alert-banner.warning { background: rgba(245, 158, 11, 0.15); border-color: var(--warning); color: #fde047; }
+        .alert-text { font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.75rem; }
+
+        .status-card { background: var(--card-bg); border: 1px solid var(--nav-border); border-radius: 16px; padding: 2rem; margin-bottom: 3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+        .stat-item { background: rgba(255,255,255,0.03); border: 1px solid var(--nav-border); padding: 1.25rem; border-radius: 12px; }
+        .stat-label { font-size: 0.8rem; color: var(--secondary-text); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 0.4rem; }
+        .stat-value { font-size: 1.4rem; font-weight: 800; color: var(--text-color); display: flex; align-items: center; gap: 0.5rem; }
+
+        .progress-bar-bg { width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; margin-top: 0.75rem; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: var(--accent-green); border-radius: 5px; transition: width 0.3s ease; }
+        .progress-bar-fill.danger { background: var(--danger); }
+
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+        .badge-active { background: rgba(39, 174, 96, 0.2); color: #27ae60; border: 1px solid #27ae60; }
+        .badge-source { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
+
+        .plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+        .plan-card { background: var(--card-bg); border: 2px solid var(--nav-border); border-radius: 20px; padding: 2.2rem; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, border-color 0.2s; position: relative; }
+        .plan-card:hover { transform: translateY(-4px); }
+        .plan-card.active-plan { border-color: var(--accent-green); background: linear-gradient(180deg, rgba(39, 174, 96, 0.08) 0%, var(--card-bg) 100%); }
+        .plan-card.featured { border-color: #3b82f6; }
+        
+        .popular-tag { position: absolute; top: -14px; right: 24px; background: #3b82f6; color: white; padding: 4px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+
+        .plan-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .plan-price { font-size: 2.4rem; font-weight: 800; color: var(--text-color); margin: 1rem 0; }
+        .plan-price span { font-size: 1rem; color: var(--secondary-text); font-weight: 500; }
+        
+        .plan-features { list-style: none; margin: 1.5rem 0 2rem 0; }
+        .plan-features li { margin-bottom: 0.8rem; font-size: 0.95rem; color: var(--secondary-text); display: flex; align-items: center; gap: 0.6rem; }
+        .plan-features li::before { content: "✓"; color: var(--accent-green); font-weight: 800; }
+
+        .btn-plan { width: 100%; background: var(--accent-green); color: white; border: none; padding: 1rem; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        .btn-plan:hover { background: var(--accent-green-hover); }
+        .btn-plan.disabled { background: rgba(255,255,255,0.1); color: var(--secondary-text); cursor: not-allowed; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal { background: var(--card-bg); border: 1px solid var(--nav-border); border-radius: 20px; width: 90%; max-width: 460px; padding: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; }
+
+        footer { text-align: center; padding: 2rem; color: var(--secondary-text); font-size: 0.85rem; border-top: 1px solid var(--nav-border); margin-top: auto; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="logo">🌿 CropSync <span>Subscriptions</span></a>
+        <div class="nav-links">
+            {% if role == 'farmer' %}
+            <a href="/farmer_dashboard" class="btn-back">← Dashboard</a>
+            {% else %}
+            <a href="/buyer_dashboard" class="btn-back">← Buyer Portal</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <div class="header">
+            <h1>Choose Your Subscription Plan</h1>
+            <p>Upgrade to unlock higher limits and maximize your trade efficiency on CropSync.</p>
+        </div>
+
+        {% if flash_messages %}
+        {% for category, message in flash_messages %}
+        <div class="alert-banner {{ category }}">
+            <div class="alert-text">⚠️ {{ message }}</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if limit_reached %}
+        <div class="alert-banner">
+            <div class="alert-text">
+                🚨 
+                {% if role == 'farmer' %}
+                You have reached the limit of 5 active crop listings on the Free plan. Upgrade to Farmer Plus to list more crops.
+                {% else %}
+                You have reached your limit of 5 orders this month. Upgrade to Buyer Plus for a higher monthly order limit.
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Current Status -->
+        <div class="status-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="font-size: 1.4rem; font-weight: 800;">Your Active Subscription</h2>
+                    <p style="color: var(--secondary-text); font-size: 0.9rem;">Account: {{ user.email }} ({{ role|capitalize }})</p>
+                </div>
+                <div>
+                    <span class="badge badge-active">{{ subscription.status }}</span>
+                    <span class="badge badge-source">{{ subscription.access_source|replace('_', ' ')|capitalize }}</span>
+                </div>
+            </div>
+
+            <div class="status-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Current Plan</div>
+                    <div class="stat-value">{{ subscription.plan_name }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Plan Price</div>
+                    <div class="stat-value">₹{{ subscription.price }}<span style="font-size: 0.8rem; font-weight: 500; color: var(--secondary-text);">/mo</span></div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Expiry Date</div>
+                    <div class="stat-value" style="font-size: 1.1rem;">
+                        {% if subscription.expiry_date %}
+                        {{ subscription.expiry_date[:10] }}
+                        {% else %}
+                        Lifetime Free
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">{{ usage_type }} Usage</div>
+                    <div class="stat-value">{{ current_usage }} / {{ limit }}</div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill {% if limit_reached %}danger{% endif %}" style="width: {{ (current_usage / limit * 100)|round|int if limit > 0 else 0 }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Plans -->
+        <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; text-align: center;">Available Plans for {{ role|capitalize }}s</h2>
+        
+        <div class="plans-grid">
+            {% for plan in plans %}
+            <div class="plan-card {% if subscription.plan_key == plan.plan_key %}active-plan{% elif plan.price > 0 %}featured{% endif %}">
+                {% if plan.price > 0 %}
+                <div class="popular-tag">Recommended</div>
+                {% endif %}
+
+                <div>
+                    <div class="plan-title">{{ plan.name }}</div>
+                    <div class="plan-price">₹{{ plan.price }}<span>/month</span></div>
+                    
+                    <ul class="plan-features">
+                        {% if role == 'farmer' %}
+                        <li>Up to <strong>{{ plan.active_listing_limit }} Active Crop Listings</strong></li>
+                        <li>Full marketplace visibility & MSP advice</li>
+                        <li>Direct buyer requests & contact management</li>
+                        {% else %}
+                        <li>Up to <strong>{{ plan.monthly_order_limit }} Orders per month</strong></li>
+                        <li>Full crop catalog & MSP comparison</li>
+                        <li>Direct collection & logistics options</li>
+                        {% endif %}
+                        <li>Server-enforced quota reliability</li>
+                    </ul>
+                </div>
+
+                <div>
+                    {% if subscription.plan_key == plan.plan_key %}
+                    <button class="btn-plan disabled" disabled>Current Active Plan</button>
+                    {% else %}
+                    <button class="btn-plan" onclick="openPaymentModal('{{ plan.plan_key }}', '{{ plan.name }}', {{ plan.price }})">
+                        {% if subscription.price == 0 and plan.price > 0 %}Upgrade to {{ plan.name }}{% else %}Switch to {{ plan.name }}{% endif %}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    <!-- Payment Checkout Modal (Razorpay Sandbox Integration Preparation) -->
+    <div id="paymentModal" class="modal-overlay">
+        <div class="modal">
+            <h2 id="modalPlanTitle" style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem;">Confirm Upgrade</h2>
+            <p id="modalPlanPrice" style="color: var(--secondary-text); margin-bottom: 1.5rem;">Total Amount: ₹0</p>
+            
+            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; text-align: left; font-size: 0.85rem; margin-bottom: 1.5rem; border: 1px solid var(--nav-border);">
+                <div style="margin-bottom: 0.4rem;">💳 <strong>Payment Provider:</strong> Razorpay Gateway</div>
+                <div style="margin-bottom: 0.4rem;">🛡️ <strong>Security:</strong> Server-Side Signature Verification</div>
+                <div>⚡ <strong>Activation:</strong> Instant activation upon successful payment</div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="button" onclick="closePaymentModal()" style="flex: 1; background: rgba(255,255,255,0.1); border: 1px solid var(--nav-border); color: var(--text-color); padding: 0.8rem; border-radius: 10px; font-weight: 700; cursor: pointer;">Cancel</button>
+                <button type="button" id="payBtn" onclick="processPayment()" style="flex: 1; background: var(--accent-green); border: none; color: white; padding: 0.8rem; border-radius: 10px; font-weight: 700; cursor: pointer;">Pay & Activate</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        CropSync Subscription System — Preserving Transparency & Fair Agricultural Trade.
+    </footer>
+
+    <script>
+        let selectedPlanKey = '';
+
+        function openPaymentModal(planKey, planName, planPrice) {
+            selectedPlanKey = planKey;
+            document.getElementById('modalPlanTitle').innerText = 'Upgrade to ' + planName;
+            document.getElementById('modalPlanPrice').innerText = 'Total Amount: ₹' + planPrice + ' / month';
+            document.getElementById('paymentModal').style.display = 'flex';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+        }
+
+        function processPayment() {
+            const payBtn = document.getElementById('payBtn');
+            payBtn.disabled = true;
+            payBtn.innerText = 'Processing...';
+
+            // 1. Create Checkout Order
+            fetch('/api/subscription/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan_key: selectedPlanKey })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('Checkout Error: ' + data.error);
+                    payBtn.disabled = false;
+                    payBtn.innerText = 'Pay & Activate';
+                    return;
+                }
+
+                // 2. Verify Payment (Prepared for Razorpay Webhook Callback)
+                const gatewayOrderId = data.order.gateway_order_id;
+                fetch('/api/subscription/verify-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plan_key: selectedPlanKey,
+                        gateway_order_id: gatewayOrderId,
+                        gateway_payment_id: 'pay_demo_' + Math.random().toString(36).substring(2, 10),
+                        signature: 'demo_signature'
+                    })
+                })
+                .then(res => res.json())
+                .then(vData => {
+                    if (vData.success) {
+                        alert('🎉 Subscription activated successfully!');
+                        window.location.reload();
+                    } else {
+                        alert('Payment Verification Failed: ' + vData.error);
+                        payBtn.disabled = false;
+                        payBtn.innerText = 'Pay & Activate';
+                    }
+                });
+            })
+            .catch(err => {
+                alert('Network error during checkout.');
+                payBtn.disabled = false;
+                payBtn.innerText = 'Pay & Activate';
+            });
+        }
+    </script>
+</body>
+</html>
