@@ -1359,6 +1359,17 @@ def user_subscriptions_page():
     role = user_db.get('role', 'farmer')
 
     subscription = db.get_active_subscription(user_id)
+    if not subscription:
+        subscription = {
+            'plan_name': 'Free Plan',
+            'plan_key': 'free_farmer' if role == 'farmer' else 'free_buyer',
+            'price': 0,
+            'active_listing_limit': 5,
+            'monthly_order_limit': 5,
+            'access_source': 'free',
+            'status': 'active',
+            'expiry_date': None
+        }
     all_plans = db.get_subscription_plans()
 
     if role == 'farmer':
@@ -1397,6 +1408,13 @@ def api_subscription_status():
 
     user_id = user['id']
     sub = db.get_active_subscription(user_id)
+    if not sub:
+        sub = {
+            'plan_name': 'Free Plan',
+            'active_listing_limit': 5,
+            'monthly_order_limit': 5,
+            'status': 'active'
+        }
     role = user.get('role', 'farmer')
 
     if role == 'farmer':
