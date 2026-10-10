@@ -21,7 +21,8 @@ app.secret_key = 'cropsync-demo-secret-key-stable'
 # Auto-initialize database & run migration on startup
 try:
     db.init_db()
-    migrate_data.run_migration()
+    if not os.environ.get('VERCEL') and not os.environ.get('SKIP_MIGRATION'):
+        migrate_data.run_migration()
 except Exception as _e:
     print("[!] Database initialization warning:", _e)
 

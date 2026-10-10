@@ -63,16 +63,20 @@ def get_connection():
         import psycopg2
         import psycopg2.extras
         import psycopg2.extensions
-        
         conn = getattr(_thread_local, 'conn', None)
         if conn is not None:
             try:
                 if not conn.closed and conn.status == psycopg2.extensions.STATUS_READY:
+                    # Ping to verify it is alive (Vercel serverless workaround)
+                    c = conn.cursor()
+                    c.execute("SELECT 1")
+                    c.close()
                     return conn, "postgres"
             except Exception:
                 try: conn.close()
                 except Exception: pass
                 _thread_local.conn = None
+
 
         url = DB_URL
         if 'sslmode' not in url.lower():
