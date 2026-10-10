@@ -1584,3 +1584,11 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)
 
+
+@app.route('/secret-force-init')
+def secret_force_init():
+    try:
+        db.init_db()
+        return "Database Initialized Successfully!"
+    except Exception as e:
+        return f"Error: {e}", 500

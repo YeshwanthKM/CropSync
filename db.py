@@ -153,11 +153,8 @@ def init_db():
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP WITH TIME ZONE;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_attempts INTEGER DEFAULT 0;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_last_sent_at TIMESTAMP WITH TIME ZONE;
-                ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS logistics_profiles (
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT;
+CREATE TABLE IF NOT EXISTS logistics_profiles (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
                     company_name TEXT NOT NULL,
@@ -165,11 +162,8 @@ def init_db():
                     service_area TEXT,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS order_status_history (
+                );
+CREATE TABLE IF NOT EXISTS order_status_history (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     order_id UUID REFERENCES orders(id) ON DELETE CASCADE NOT NULL,
                     previous_status TEXT,
@@ -180,11 +174,8 @@ def init_db():
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
                 );
                 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
-                ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('farmer', 'buyer', 'admin', 'logistics'))""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS farmer_profiles (
+                ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('farmer', 'buyer', 'admin', 'logistics'));
+CREATE TABLE IF NOT EXISTS farmer_profiles (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
                     name TEXT NOT NULL,
@@ -194,11 +185,8 @@ def init_db():
                     is_verified BOOLEAN DEFAULT FALSE NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS buyer_profiles (
+                );
+CREATE TABLE IF NOT EXISTS buyer_profiles (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
                     name TEXT NOT NULL,
@@ -208,11 +196,8 @@ def init_db():
                     location TEXT,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS logistics_profiles (
+                );
+CREATE TABLE IF NOT EXISTS logistics_profiles (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
                     company_name TEXT NOT NULL,
@@ -220,11 +205,8 @@ def init_db():
                     service_area TEXT,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS crops (
+                );
+CREATE TABLE IF NOT EXISTS crops (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     farmer_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
                     crop_name TEXT NOT NULL,
@@ -234,11 +216,8 @@ def init_db():
                     status TEXT DEFAULT 'available' CHECK (status IN ('available', 'sold', 'archived')) NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS orders (
+                );
+CREATE TABLE IF NOT EXISTS orders (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     crop_id UUID REFERENCES crops(id) ON DELETE CASCADE NOT NULL,
                     buyer_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
@@ -265,11 +244,8 @@ def init_db():
                     settlement_at TIMESTAMP WITH TIME ZONE,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS order_status_history (
+                );
+CREATE TABLE IF NOT EXISTS order_status_history (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     order_id UUID REFERENCES orders(id) ON DELETE CASCADE NOT NULL,
                     previous_status TEXT,
@@ -278,22 +254,16 @@ def init_db():
                     updated_by_role TEXT,
                     notes TEXT,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS audit_logs (
+                );
+CREATE TABLE IF NOT EXISTS audit_logs (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
                     action TEXT NOT NULL,
                     target_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
                     reason TEXT,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS government_msp (
+                );
+CREATE TABLE IF NOT EXISTS government_msp (
                     crop_name TEXT PRIMARY KEY,
                     msp_price_per_kg NUMERIC NOT NULL,
                     msp_price_per_quintal NUMERIC,
@@ -304,11 +274,8 @@ def init_db():
                     status TEXT DEFAULT 'active',
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS email_notifications (
+                );
+CREATE TABLE IF NOT EXISTS email_notifications (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
                     recipient_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -318,11 +285,8 @@ def init_db():
                     error_message TEXT,
                     sent_at TIMESTAMP WITH TIME ZONE,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS subscription_plans (
+                );
+CREATE TABLE IF NOT EXISTS subscription_plans (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     plan_key TEXT UNIQUE NOT NULL,
                     name TEXT NOT NULL,
@@ -334,11 +298,8 @@ def init_db():
                     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')) NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS user_subscriptions (
+                );
+CREATE TABLE IF NOT EXISTS user_subscriptions (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
                     plan_id UUID REFERENCES subscription_plans(id) NOT NULL,
@@ -349,11 +310,8 @@ def init_db():
                     access_source TEXT DEFAULT 'free' CHECK (access_source IN ('free', 'admin_grant', 'payment')) NOT NULL,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS subscription_history (
+                );
+CREATE TABLE IF NOT EXISTS subscription_history (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
                     previous_plan_key TEXT,
@@ -363,11 +321,8 @@ def init_db():
                     acting_admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
                     reason TEXT,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-                )""")
-            except Exception as e:
-                print("[!] Error creating table:", e)
-            try:
-                cursor.execute("""CREATE TABLE IF NOT EXISTS payment_orders (
+                );
+CREATE TABLE IF NOT EXISTS payment_orders (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
                     plan_key TEXT NOT NULL,
@@ -2663,10 +2618,18 @@ def get_subscription_plans():
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM subscription_plans WHERE status = 'active' ORDER BY price ASC")
         rows = cursor.fetchall()
+        if not rows:
+            raise Exception("No plans found, fallback to config")
         return [_dict_row(r) for r in rows]
     except Exception as e:
         print(f'[!] DB Error in get_subscription_plans: {e}')
-        return []
+        plans = []
+        for key, cfg in SUBSCRIPTION_CONFIG.items():
+            plan = cfg.copy()
+            plan['plan_key'] = key
+            plan['id'] = key
+            plans.append(plan)
+        return sorted(plans, key=lambda x: x['price'])
     finally:
         release_connection(conn)
 
