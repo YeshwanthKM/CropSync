@@ -180,6 +180,26 @@
                     </form>
                 </div>
 
+                <!-- Order Limit Warning -->
+                {% if subscription %}
+                {% set order_limit = subscription.get('monthly_order_limit', 5) %}
+                {% set orders_used = monthly_orders_count|default(0) %}
+                {% if orders_used >= order_limit %}
+                <div style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: 10px; background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <strong style="color: #e74c3c;">🚫 Monthly order limit reached</strong>
+                        <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--secondary-text);">You've placed {{ orders_used }} of {{ order_limit }} orders this month on your <strong>{{ subscription.get('plan_name', 'Free') }}</strong> plan. Upgrade to place more.</p>
+                    </div>
+                    <a href="{{ url_for('user_subscriptions_page') }}" class="btn" style="background: linear-gradient(135deg, #7c3aed, #9333ea); white-space: nowrap;">Upgrade Plan →</a>
+                </div>
+                {% elif orders_used >= (order_limit * 0.8)|int %}
+                <div style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: 10px; background: rgba(243,156,18,0.08); border: 1px solid rgba(243,156,18,0.3);">
+                    <strong style="color: #f39c12;">⚠️ Approaching order limit</strong>
+                    <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--secondary-text);">{{ orders_used }} of {{ order_limit }} orders placed this month. <a href="{{ url_for('user_subscriptions_page') }}" style="color: #f39c12; font-weight: 600;">Upgrade →</a></p>
+                </div>
+                {% endif %}
+                {% endif %}
+
                 <div style="margin-bottom: 3rem;">
                     <h2>{{ get_text('available_crops') }}</h2>
                     <div class="table-container">
@@ -228,6 +248,13 @@
                                         <div style="font-size: 0.75rem; color: var(--secondary-text); font-style: italic;">Contact revealed upon order acceptance</div>
                                     </td>
                                     <td>
+                                        {% set at_limit = subscription and (monthly_orders_count|default(0)) >= subscription.get('monthly_order_limit', 5) %}
+                                        {% if at_limit %}
+                                        <div style="display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start;">
+                                            <span style="font-size: 0.72rem; color: #e74c3c; font-weight: 700;">🚫 Limit reached</span>
+                                            <a href="{{ url_for('user_subscriptions_page') }}" style="font-size: 0.7rem; color: #7c3aed; font-weight: 600; text-decoration: none;">Upgrade →</a>
+                                        </div>
+                                        {% else %}
                                         <form action="{{ url_for('place_order') }}" method="POST"
                                             style="display:flex; flex-direction: column; gap: 0.35rem; border: none; padding: 0; box-shadow: none; margin: 0; background: none;">
                                             <input type="hidden" name="crop_id" value="{{ crop.id }}">
@@ -241,6 +268,7 @@
                                                 <option value="Logistics Partner">🚛 Logistics Partner</option>
                                             </select>
                                         </form>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% else %}
