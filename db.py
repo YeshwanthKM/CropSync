@@ -822,7 +822,7 @@ def get_user_by_email(email):
             row = cursor.fetchone()
             return _dict_row(row)
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print(f"[!] Error in get_user_by_email({email}):", e)
         return None
@@ -864,7 +864,7 @@ def get_user_by_id(user_id):
             row = cursor.fetchone()
             return _dict_row(row)
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print(f"[!] Error in get_user_by_id({user_id}):", e)
         return None
@@ -953,7 +953,7 @@ def create_user(email, password_hash, role, name="User", phone="", address="", l
         print("[!] Error in create_user:", e)
         raise e
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def update_email_verified(user_id, verified=True):
     conn = None
@@ -980,7 +980,7 @@ def update_email_verified(user_id, verified=True):
             cursor.execute(sql, (1 if verified else 0, now, now, str(user_id)))
             conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def set_phone_otp(user_id, otp_hash, expires_at_iso):
     conn = None
@@ -998,7 +998,7 @@ def set_phone_otp(user_id, otp_hash, expires_at_iso):
         if db_type == "sqlite":
             conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def increment_otp_attempts(user_id):
     conn = None
@@ -1011,7 +1011,7 @@ def increment_otp_attempts(user_id):
         if db_type == "sqlite":
             conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def update_phone_verified(user_id, verified=True):
     conn = None
@@ -1036,7 +1036,7 @@ def update_phone_verified(user_id, verified=True):
             cursor.execute(sql, (1 if verified else 0, now, now, str(user_id)))
             conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def log_admin_action(admin_id, action, target_user_id, reason=None):
     conn = None
@@ -1062,7 +1062,7 @@ def log_admin_action(admin_id, action, target_user_id, reason=None):
     except Exception as e:
         print("[!] Audit logging error:", e)
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def get_audit_logs(limit=50):
     try:
@@ -1082,7 +1082,7 @@ def get_audit_logs(limit=50):
             rows = cursor.fetchall()
             return [_dict_row(r) for r in rows]
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_audit_logs:", e)
         return []
@@ -1098,7 +1098,7 @@ def set_verification_token(user_id, token):
         if db_type == "sqlite":
             conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def get_user_by_verification_token(token):
     if not token:
@@ -1113,7 +1113,7 @@ def get_user_by_verification_token(token):
         row = cursor.fetchone()
         return _dict_row(row)
     finally:
-        conn.close()
+        if conn: conn.close()
 
 PERMANENT_DEMO_EMAILS = {
     'admin@cropsync.com',
@@ -1142,7 +1142,7 @@ def delete_user(user_id):
             conn.commit()
         return True
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def update_user_status(user_id, status, reason=None):
     if status == 'suspended':
@@ -1166,7 +1166,7 @@ def update_user_status(user_id, status, reason=None):
         if db_type == "sqlite":
             conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 
 def update_user_profile(user_id, name, phone="", address="", location="", organization=""):
@@ -1196,7 +1196,7 @@ def update_user_profile(user_id, name, phone="", address="", location="", organi
         if db_type == "sqlite":
             conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def ensure_seed_users():
     ensure_seed_logistics_user()
@@ -1231,7 +1231,7 @@ def ensure_seed_users():
                     pass
             conn.commit()
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print("[!] Error in ensure_seed_users:", e)
 
@@ -1284,7 +1284,7 @@ def get_all_farmers(search=None, status_filter=None):
                 res = [u for u in SEED_USERS if u['role'] == 'farmer']
             return res
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_all_farmers:", e)
         return [u for u in SEED_USERS if u['role'] == 'farmer']
@@ -1319,7 +1319,7 @@ def set_farmer_verification_admin(farmer_id, is_verified, admin_id=None):
                 log_admin_action(admin_id, action_name, farmer_id, f"Set farmer verification status to {val}")
             return True, "Farmer verification status updated."
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print("[!] Error in set_farmer_verification_admin:", e)
         return False, f"Server error: {e}"
@@ -1369,7 +1369,7 @@ def get_all_buyers(search=None, status_filter=None):
                 res = [u for u in SEED_USERS if u['role'] == 'buyer']
             return res
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_all_buyers:", e)
         return [u for u in SEED_USERS if u['role'] == 'buyer']
@@ -1413,7 +1413,7 @@ def get_admin_stats():
                 'suspended_accounts': _c(suspended_count)
             }
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_admin_stats:", e)
         return {'total_farmers': 4, 'total_buyers': 4, 'active_listings': 0, 'active_orders': 0, 'suspended_accounts': 0}
@@ -1460,7 +1460,7 @@ def get_crops(farmer_id=None, search=None, location=None):
             rows = cursor.fetchall()
             return [_dict_row(r) for r in rows]
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_crops:", e)
         return []
@@ -1477,7 +1477,7 @@ def get_crop_by_id(crop_id):
             row = cursor.fetchone()
             return _dict_row(row)
         finally:
-            conn.close()
+        if conn: conn.close()
     except Exception as e:
         print(f"[!] Error in get_crop_by_id({crop_id}):", e)
         return None
@@ -1501,7 +1501,7 @@ def create_crop(farmer_id, crop_name, quantity, price_per_kg, location, crop_id=
         conn.commit()
         return cid
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def delete_crop(crop_id, farmer_id):
     conn = None
@@ -1513,7 +1513,7 @@ def delete_crop(crop_id, farmer_id):
         cursor.execute(sql, (str(crop_id), str(farmer_id)))
         conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def update_crop_quantity(crop_id, new_quantity):
     conn = None
@@ -1527,7 +1527,7 @@ def update_crop_quantity(crop_id, new_quantity):
         cursor.execute(sql, (float(new_quantity), status, now, str(crop_id)))
         conn.commit()
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def get_orders_for_farmer(farmer_id):
     try:
@@ -1795,7 +1795,7 @@ def accept_order_atomic(order_id, farmer_id):
         except: pass
         return False, f"Server error: {e}"
     finally:
-        conn.close()
+        if conn: conn.close()
 
 # --- PHASE 3 OFFICIAL MSP REFERENCE SERVICES ---
 
@@ -1859,7 +1859,7 @@ def seed_government_msp_data(force=False):
     except Exception as e:
         print("[!] Error in seed_government_msp_data:", e)
     finally:
-        conn.close()
+        if conn: conn.close()
 
 
 def get_all_msp_references(search=None, season=None, year=None):
@@ -1890,7 +1890,7 @@ def get_all_msp_references(search=None, season=None, year=None):
         print("[!] Error in get_all_msp_references:", e)
         return []
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def get_msp_by_crop(crop_name):
     if not crop_name: return None
@@ -1915,7 +1915,7 @@ def get_msp_by_crop(crop_name):
         print(f"[!] Error in get_msp_by_crop({crop_name}):", e)
         return None
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def save_msp_reference(crop_name, msp_price_per_kg, category='Cereals', season='Kharif', effective_year=2025, source='Ministry of Agriculture & Farmers Welfare, Govt of India', status='active'):
     conn = None
@@ -1954,7 +1954,7 @@ def save_msp_reference(crop_name, msp_price_per_kg, category='Cereals', season='
         print("[!] Error in save_msp_reference:", e)
         return False
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def toggle_msp_status(crop_name, new_status):
     conn = None
@@ -1971,7 +1971,7 @@ def toggle_msp_status(crop_name, new_status):
         print("[!] Error in toggle_msp_status:", e)
         return False
     finally:
-        conn.close()
+        if conn: conn.close()
 
 # --- ADMIN LISTINGS MANAGEMENT SERVICES ---
 
@@ -2013,7 +2013,7 @@ def get_all_listings_admin():
         print("[!] Error in get_all_listings_admin:", e)
         return []
     finally:
-        conn.close()
+        if conn: conn.close()
 
 
 def get_listing_by_id_admin(crop_id):
@@ -2040,7 +2040,7 @@ def get_listing_by_id_admin(crop_id):
         print(f"[!] Error in get_listing_by_id_admin({crop_id}):", e)
         return None
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def update_listing_status_admin(crop_id, status, admin_id=None):
     conn = None
@@ -2059,7 +2059,7 @@ def update_listing_status_admin(crop_id, status, admin_id=None):
         print(f"[!] Error in update_listing_status_admin({crop_id}):", e)
         return False
     finally:
-        conn.close()
+        if conn: conn.close()
 
 # --- ADMIN ORDERS MANAGEMENT SERVICES ---
 
@@ -2097,7 +2097,7 @@ def get_all_orders_admin(status_filter=None):
         print("[!] Error in get_all_orders_admin:", e)
         return []
     finally:
-        conn.close()
+        if conn: conn.close()
 
 def get_order_by_id_admin(order_id):
     conn = None
@@ -2128,7 +2128,7 @@ def get_order_by_id_admin(order_id):
         print(f"[!] Error in get_order_by_id_admin({order_id}):", e)
         return None
     finally:
-        conn.close()
+        if conn: conn.close()
 
 # --- ADMIN DASHBOARD STATS & AUDIT LOGGING ---
 
@@ -2166,7 +2166,7 @@ def get_admin_dashboard_stats():
             'total_listed_qty': 0.0, 'pending_orders': 0, 'accepted_orders': 0, 'completed_orders': 0
         }
     finally:
-        conn.close()
+        if conn: conn.close()
 
 
 
@@ -2187,7 +2187,7 @@ def log_admin_action(admin_id, action, target_user_id=None, reason=None):
     except Exception as e:
         print("[!] Error logging admin action:", e)
     finally:
-        conn.close()
+        if conn: conn.close()
 
 
 def reset_database():
@@ -2207,7 +2207,7 @@ def reset_database():
     except Exception as e:
         print("[!] Error clearing database tables:", e)
     finally:
-        conn.close()
+        if conn: conn.close()
 
     init_db()
     ensure_seed_users()
