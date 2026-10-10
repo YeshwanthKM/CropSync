@@ -822,7 +822,7 @@ def get_user_by_email(email):
             row = cursor.fetchone()
             return _dict_row(row)
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print(f"[!] Error in get_user_by_email({email}):", e)
         return None
@@ -864,7 +864,7 @@ def get_user_by_id(user_id):
             row = cursor.fetchone()
             return _dict_row(row)
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print(f"[!] Error in get_user_by_id({user_id}):", e)
         return None
@@ -1082,7 +1082,7 @@ def get_audit_logs(limit=50):
             rows = cursor.fetchall()
             return [_dict_row(r) for r in rows]
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_audit_logs:", e)
         return []
@@ -1231,7 +1231,7 @@ def ensure_seed_users():
                     pass
             conn.commit()
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print("[!] Error in ensure_seed_users:", e)
 
@@ -1284,7 +1284,7 @@ def get_all_farmers(search=None, status_filter=None):
                 res = [u for u in SEED_USERS if u['role'] == 'farmer']
             return res
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_all_farmers:", e)
         return [u for u in SEED_USERS if u['role'] == 'farmer']
@@ -1319,7 +1319,7 @@ def set_farmer_verification_admin(farmer_id, is_verified, admin_id=None):
                 log_admin_action(admin_id, action_name, farmer_id, f"Set farmer verification status to {val}")
             return True, "Farmer verification status updated."
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print("[!] Error in set_farmer_verification_admin:", e)
         return False, f"Server error: {e}"
@@ -1369,7 +1369,7 @@ def get_all_buyers(search=None, status_filter=None):
                 res = [u for u in SEED_USERS if u['role'] == 'buyer']
             return res
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_all_buyers:", e)
         return [u for u in SEED_USERS if u['role'] == 'buyer']
@@ -1413,7 +1413,7 @@ def get_admin_stats():
                 'suspended_accounts': _c(suspended_count)
             }
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_admin_stats:", e)
         return {'total_farmers': 4, 'total_buyers': 4, 'active_listings': 0, 'active_orders': 0, 'suspended_accounts': 0}
@@ -1460,7 +1460,7 @@ def get_crops(farmer_id=None, search=None, location=None):
             rows = cursor.fetchall()
             return [_dict_row(r) for r in rows]
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print("[!] Error in get_crops:", e)
         return []
@@ -1477,7 +1477,7 @@ def get_crop_by_id(crop_id):
             row = cursor.fetchone()
             return _dict_row(row)
         finally:
-        if conn: conn.close()
+            if conn: conn.close()
     except Exception as e:
         print(f"[!] Error in get_crop_by_id({crop_id}):", e)
         return None
