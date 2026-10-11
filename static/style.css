@@ -480,25 +480,8 @@ tr:hover {
     color: white !important;
 }
 
-/* Global Loading Screen & Overlay */
-#global-loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: var(--bg-color, #ffffff);
-    z-index: 999999;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    pointer-events: auto;
-}
-
+/* Global Loading Screen & Overlay (Disabled to prevent blocking UI delays) */
+#global-loading-screen,
 #global-loading-screen.hidden {
     opacity: 0 !important;
     visibility: hidden !important;

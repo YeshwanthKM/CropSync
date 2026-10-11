@@ -18,10 +18,10 @@ import services.email_service as email_service
 app = Flask(__name__)
 app.secret_key = 'cropsync-demo-secret-key-stable'
 
-# Auto-initialize database & run migration on startup
+# Auto-initialize database & run migration on local startup only (skip on Vercel cold starts for fast response)
 try:
-    db.init_db()
     if not os.environ.get('VERCEL') and not os.environ.get('SKIP_MIGRATION'):
+        db.init_db()
         migrate_data.run_migration()
 except Exception as _e:
     print("[!] Database initialization warning:", _e)
@@ -603,15 +603,17 @@ def farmer_dashboard():
         except Exception as e:
             flash(f'Error adding listing: {str(e)}', 'error')
 
-    farmer_user = db.get_user_by_id(farmer_id) or session['farmer_user']
-    session['farmer_user'] = farmer_user
+    farmer_user = session['farmer_user']
+    if 'name' not in farmer_user or 'is_verified' not in farmer_user:
+        farmer_user = db.get_user_by_id(farmer_id) or farmer_user
+        session['farmer_user'] = farmer_user
 
     user_crops = db.get_crops(farmer_id=farmer_id)
     sold_orders = db.get_orders_for_farmer(farmer_id=farmer_id)
     earnings = round(sum(float(o['total_price']) for o in sold_orders if o['status'] in ('Accepted', 'Completed')), 2)
 
     subscription = db.get_active_subscription(farmer_id)
-    active_listing_count = db.get_farmer_active_listings_count(farmer_id)
+    active_listing_count = len(user_crops)
 
     return render_template(
         'farmer_dashboard.html',
