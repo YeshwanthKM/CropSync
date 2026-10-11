@@ -102,8 +102,8 @@
 
             </nav>
             <div class="sidebar-footer">
-                <button id="theme-toggle" class="sidebar-link">Theme</button>
-                <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #e74c3c;">Logout</a>
+                <button id="theme-toggle" class="sidebar-link">🌓 Theme</button>
+                <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #e74c3c; font-weight: 700;">🚪 Logout</a>
             </div>
         </div>
 
@@ -118,8 +118,9 @@
             </button>
             <div class="dashboard-header">
                 <h1 style="margin: 0;">{% block header_title %}Admin Portal{% endblock %}</h1>
-                <div style="font-size: 0.875rem; color: var(--secondary-text);">
-                    Logged in as <strong>{{ session.get('admin_user', {}).get('email', 'Admin') }}</strong>
+                <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; color: var(--secondary-text);">
+                    <span>Logged in as <strong>{{ session.get('admin_user', {}).get('email', 'Admin') }}</strong></span>
+                    <a href="{{ url_for('logout') }}" style="background: #e74c3c; color: #ffffff; padding: 0.45rem 0.9rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.85rem;">Logout</a>
                 </div>
             </div>
 
