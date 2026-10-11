@@ -1492,7 +1492,8 @@ def api_subscription_verify_payment():
 
 # --- ADMIN SUBSCRIPTION MANAGEMENT ROUTES ---
 
-@app.route('/admin/subscriptions', methods=['GET'])
+@app.route('/admin/subscriptions', methods=['GET'], endpoint='admin_subscriptions')
+@app.route('/admin/subscriptions', methods=['GET'], endpoint='admin_subscriptions_page')
 @admin_required
 def admin_subscriptions_page():
     search = request.args.get('search', '').strip()
