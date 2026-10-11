@@ -70,6 +70,7 @@
                 <a href="#about">About</a>
                 <a href="#features">Features</a>
                 <a href="#how-it-works">How It Works</a>
+                <a href="#pricing">Pricing</a>
                 <a href="#compare">Compare</a>
                 <a href="#impact">Impact</a>
                 <a href="{{ url_for('register') }}" class="nav-cta" style="background: #27ae60; border-color: #27ae60; color: #fff;">Register</a>
@@ -399,6 +400,90 @@
         </div>
     </section>
 
+    <!-- ===== 8B. SUBSCRIPTION PLANS & PRICING SECTION ===== -->
+    <section class="landing-section section-center" id="pricing">
+        <div class="animate-on-scroll">
+            <div class="section-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                Transparent Membership Plans
+            </div>
+            <h2 class="section-title">Simple, Fair Subscription Plans</h2>
+            <p class="section-subtitle">Start free forever with generous quotas, or upgrade to Plus plans as your farm or sourcing volume grows.</p>
+        </div>
+
+        <div class="pricing-grid animate-on-scroll">
+            <!-- Free Farmer -->
+            <div class="pricing-card">
+                <div>
+                    <div class="pricing-role-label farmer-label">👨‍🌾 Farmer Tier</div>
+                    <div class="pricing-plan-name">Free Farmer</div>
+                    <div class="pricing-amount">₹0 <span>/ lifetime</span></div>
+                    <div class="pricing-quota-pill">🌾 Up to 5 Active Crop Listings</div>
+                    <ul class="pricing-features">
+                        <li><span class="p-check">✓</span> <span>List up to <strong>5 active crops</strong> at a time</span></li>
+                        <li><span class="p-check">✓</span> <span>1-Click English / தமிழ் Farmer Dashboard</span></li>
+                        <li><span class="p-check">✓</span> <span>Official Government MSP reference tags</span></li>
+                        <li><span class="p-check">✓</span> <span>Door-to-door logistics & direct settlement</span></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('register') }}" class="pricing-btn">Start Free as Farmer →</a>
+            </div>
+
+            <!-- Farmer Plus -->
+            <div class="pricing-card featured-farmer">
+                <div class="pricing-popular-tag">Popular for Farmers</div>
+                <div>
+                    <div class="pricing-role-label farmer-label">👨‍🌾 Farmer Tier</div>
+                    <div class="pricing-plan-name">Farmer Plus</div>
+                    <div class="pricing-amount">₹99 <span>/ 30 days</span></div>
+                    <div class="pricing-quota-pill" style="border-color: rgba(34, 197, 94, 0.4); color: var(--accent);">🚀 Up to 20 Active Crop Listings</div>
+                    <ul class="pricing-features">
+                        <li><span class="p-check">✓</span> <span>4× expanded capacity: <strong>20 active listings</strong></span></li>
+                        <li><span class="p-check">✓</span> <span>Ideal for multi-crop growers & FPOs</span></li>
+                        <li><span class="p-check">✓</span> <span>Full English / தமிழ் & MSP price protection</span></li>
+                        <li><span class="p-check">✓</span> <span>Instant checkout or admin-granted access</span></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('user_subscriptions_page') }}" class="pricing-btn primary-farmer">Upgrade to Farmer Plus →</a>
+            </div>
+
+            <!-- Free Buyer -->
+            <div class="pricing-card">
+                <div>
+                    <div class="pricing-role-label buyer-label">🛒 Buyer Tier</div>
+                    <div class="pricing-plan-name">Free Buyer</div>
+                    <div class="pricing-amount">₹0 <span>/ lifetime</span></div>
+                    <div class="pricing-quota-pill">📦 Up to 5 Orders / Month</div>
+                    <ul class="pricing-features">
+                        <li><span class="p-check">✓</span> <span>Place up to <strong>5 crop orders per month</strong></span></li>
+                        <li><span class="p-check">✓</span> <span>Source directly from verified local farmers</span></li>
+                        <li><span class="p-check">✓</span> <span>Compare prices against Government MSP</span></li>
+                        <li><span class="p-check">✓</span> <span>Live 6-stage logistics order tracking</span></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('register') }}" class="pricing-btn">Start Free as Buyer →</a>
+            </div>
+
+            <!-- Buyer Plus -->
+            <div class="pricing-card featured-buyer">
+                <div class="pricing-popular-tag buyer-tag">Best for Bulk Buyers</div>
+                <div>
+                    <div class="pricing-role-label buyer-label">🛒 Buyer Tier</div>
+                    <div class="pricing-plan-name">Buyer Plus</div>
+                    <div class="pricing-amount">₹199 <span>/ 30 days</span></div>
+                    <div class="pricing-quota-pill" style="border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;">🚀 Up to 20 Orders / Month</div>
+                    <ul class="pricing-features">
+                        <li><span class="p-check">✓</span> <span>4× expanded quota: <strong>20 monthly orders</strong></span></li>
+                        <li><span class="p-check">✓</span> <span>Built for retailers, wholesalers & bulk buyers</span></li>
+                        <li><span class="p-check">✓</span> <span>Automated logistics address & live tracking</span></li>
+                        <li><span class="p-check">✓</span> <span>Instant online upgrade & audit history</span></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('user_subscriptions_page') }}" class="pricing-btn primary-buyer">Upgrade to Buyer Plus →</a>
+            </div>
+        </div>
+    </section>
+
     <!-- ===== 9. MSP EXPLANATION SECTION ===== -->
     <section class="landing-section msp-section">
         <div class="section-center animate-on-scroll">
@@ -540,6 +625,11 @@
                         <td>Payment Settlement</td>
                         <td><span class="icon-warn">⚠</span> Payment delay risks</td>
                         <td><span class="icon-yes">✓</span> Verified payment settled directly to farmer</td>
+                    </tr>
+                    <tr>
+                        <td>Subscription & Fee Model</td>
+                        <td><span class="icon-no">✗</span> Heavy middleman cuts & hidden commissions</td>
+                        <td><span class="icon-yes">✓</span> Forever-Free tier (5 quota) + flat Plus plans (₹99 / ₹199)</td>
                     </tr>
                 </tbody>
             </table>
