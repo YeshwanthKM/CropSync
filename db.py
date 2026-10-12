@@ -2637,25 +2637,32 @@ def seed_subscription_plans():
 
 def get_subscription_plans():
     conn = None
+    db_plans = {}
     try:
         conn, db_type = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM subscription_plans WHERE status = 'active' ORDER BY price ASC")
         rows = cursor.fetchall()
-        if not rows:
-            raise Exception("No plans found, fallback to config")
-        return [_dict_row(r) for r in rows]
+        for r in (rows or []):
+            d = _dict_row(r)
+            if d and d.get('plan_key'):
+                db_plans[d['plan_key']] = d
     except Exception as e:
         print(f'[!] DB Error in get_subscription_plans: {e}')
-        plans = []
-        for key, cfg in SUBSCRIPTION_CONFIG.items():
-            plan = cfg.copy()
-            plan['plan_key'] = key
-            plan['id'] = key
-            plans.append(plan)
-        return sorted(plans, key=lambda x: x['price'])
     finally:
         release_connection(conn)
+
+    plans = []
+    for key, cfg in SUBSCRIPTION_CONFIG.items():
+        if key in db_plans:
+            plans.append(db_plans[key])
+        else:
+            plan = cfg.copy()
+            plan['plan_key'] = key
+            plan['id'] = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"cropsync.plan.{key}"))
+            plan['status'] = 'active'
+            plans.append(plan)
+    return sorted(plans, key=lambda x: float(x.get('price', 0)))
 
 def get_plan_by_key(plan_key):
     conn = None
