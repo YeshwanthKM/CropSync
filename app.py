@@ -582,7 +582,7 @@ def farmer_dashboard():
         crop_name = request.form.get('crop_name', '').strip().lower()
         quantity = request.form.get('quantity')
         price = request.form.get('price_per_kg')
-        location = session['farmer_user'].get('location') or 'Unknown'
+        location = session.get('farmer_user', {}).get('location') or 'Unknown'
 
         if not all([crop_name, quantity, price]):
             flash('Crop name, quantity, and price are required', 'error')

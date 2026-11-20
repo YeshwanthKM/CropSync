@@ -2843,6 +2843,14 @@ def get_farmer_active_listings_count(farmer_id):
 
 def can_farmer_add_listing(farmer_id):
     sub = get_active_subscription(farmer_id)
+    if not sub:
+        # Fallback to free farmer plan if subscription retrieval fails
+        sub = {'active_listing_limit': 5}
+    limit = int(sub.get('active_listing_limit', 5))
+    current_count = get_farmer_active_listings_count(farmer_id)
+    allowed = current_count < limit
+    return allowed, current_count, limit
+    sub = get_active_subscription(farmer_id)
     limit = int(sub.get('active_listing_limit', 5))
     current_count = get_farmer_active_listings_count(farmer_id)
     allowed = current_count < limit
@@ -2867,6 +2875,14 @@ def get_buyer_monthly_orders_count(buyer_id):
         release_connection(conn)
 
 def can_buyer_place_order(buyer_id):
+    sub = get_active_subscription(buyer_id)
+    if not sub:
+        # Fallback to free buyer plan if subscription retrieval fails
+        sub = {'monthly_order_limit': 5}
+    limit = int(sub.get('monthly_order_limit', 5))
+    current_count = get_buyer_monthly_orders_count(buyer_id)
+    allowed = current_count < limit
+    return allowed, current_count, limit
     sub = get_active_subscription(buyer_id)
     limit = int(sub.get('monthly_order_limit', 5))
     current_count = get_buyer_monthly_orders_count(buyer_id)
